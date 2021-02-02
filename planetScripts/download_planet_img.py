@@ -617,8 +617,8 @@ def download_planet_images(polygons_json, start_date, end_date, cloud_cover_thr,
 
             # wait until all task finished
             while basic.b_all_process_finish(sub_tasks) is False:
-                print('wait submitted tasks to finished ')
-                time.sleep(5)
+                print(datetime.now(),': wait all submitted tasks to finish ')
+                time.sleep(10)
 
         else:
             print('code {}, text, {}'.format(res.response.status_code, res.response.text))
