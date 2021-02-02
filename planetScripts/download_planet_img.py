@@ -152,6 +152,7 @@ def activate_and_download_asset(item,asset_key,save_dir):
     :return: True if successful, Flase otherwise
     '''
 
+    proc_id = multiprocessing.current_process().pid
     assets = client.get_assets(item).get()
 
     asset = assets.get(asset_key)
@@ -178,11 +179,11 @@ def activate_and_download_asset(item,asset_key,save_dir):
         # If asset is already active, we are done
         if asset_status == 'active':
             asset_activated = True
-            print("Asset is active and ready to download")
+            print("Process: %d, Asset is active and ready to download"%proc_id)
 
         # Still activating. Wait and check again.
         else:
-            print("...Still waiting for asset activation...")
+            print("Process: %d, ...Still waiting for asset activation..."%proc_id)
             # time.sleep(3)
             waitime = random.randint(10,30)
             time.sleep(waitime)
