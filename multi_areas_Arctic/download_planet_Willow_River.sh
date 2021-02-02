@@ -60,7 +60,7 @@ while [ "$d" != ${end_date} ]; do
 
     echo $d ${n_d}      # start date and end date
     # wait a few seconds
-    sleep 3
+#    sleep 3
 
     save_folder=planet_sr_images/${d}
 
