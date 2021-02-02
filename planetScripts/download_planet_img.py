@@ -74,6 +74,131 @@ def get_and_set_Planet_key(user_account):
                 return True
         raise ValueError('account: %s cannot find in %s'%(user_account,keyfile))
 
+def search_scenes_on_server(idx, geom, start_date, end_date, cloud_cover_thr,item_types):
+    # search and donwload using Planet Client API
+    combined_filter = get_a_filter_cli_api(geom, start_date, end_date, cloud_cover_thr)
+
+    # get the count number
+    item_count = get_items_count(combined_filter, item_types)
+    if item_count == 100000:
+        basic.outputlogMessage('error, failed to get images of %dth polygon currently, skip it' % idx)
+        return False
+    basic.outputlogMessage('The total number of scenes is %d' % item_count)
+
+    req = filters.build_search_request(combined_filter, item_types)
+    # p(req)
+    res = client.quick_search(req)
+
+    return res, item_count
+
+
+def get_items_count(combined_filter, item_types):
+    '''
+    based on the filter, and item types, the count of item
+    :param combined_filter: filter
+    :param item_types: item types
+    :return: the count of items
+    '''
+
+    try:
+        req = filters.build_search_request(combined_filter, item_types, interval="year") #year  or day
+        stats = client.stats(req).get()
+    except APIException as e:
+        # basic.outputlogMessage(str(e))
+        output_planetAPI_error(str(e))
+        return 100000  # return a large number
+
+    # p(stats)
+    total_count = 0
+    for bucket in stats['buckets']:
+        total_count += bucket['count']
+    return total_count
+
+# try max 1000 times, wait rand from 1 to 10 seconds
+@retry(stop_max_attempt_number=1000, wait_random_min=1000, wait_random_max=10000)
+def get_assets_from_server(item):
+    '''
+    get assets from the servers
+    :param item:
+    :return:
+    '''
+    try :
+        assets = client.get_assets(item).get()
+    # except APIException as e:
+    #     raise ValueError("Manually output the error: "+str(e))
+    except:
+        raise APIException
+    return assets
+
+# try max 1000 times, wait rand from 1 to 10 seconds
+@retry(stop_max_attempt_number=1000, wait_random_min=1000, wait_random_max=10000)
+def activate_a_asset_on_server(asset):
+    '''
+    activate a asset on the server (make it ready for download)
+    :param asset:
+    :return:
+    '''
+    try:
+        res = client.activate(asset)
+    except APIException as e:
+        e_str = str(e)
+        output_planetAPI_error(str(e))
+        if "Download quota has been exceeded" in e_str:
+            sys.exit(1)
+    except:
+        raise APIException
+
+    # print(activation.response.status_code)
+    if int(res.response.status_code) == 401:
+        basic.outputlogMessage('The account does not have permissions to download this file')
+        return False
+
+    if int(res.response.status_code) == 429:
+        raise Exception("rate limit error")
+    return True
+
+# try max 1000 times, wait rand from 1 to 30 seconds
+@retry(stop_max_attempt_number=1000, wait_random_min=1000, wait_random_max=30000)
+def download_a_asset_from_server(item,assets,asset_key,save_dir):
+    '''
+    download a asset from the server
+    :param item: the item
+    :param assets: assets from get_assets_from_server
+    :param asset_key: the name of the asset
+    :param save_dir: save dir
+    :return: True if successful, Flase otherwise
+    '''
+
+    proc_id = multiprocessing.current_process().pid
+    print('Process: %d, start downloading %s (id: %s)'%(proc_id,asset_key,item['id']))
+    output_stream = sys.stdout
+    def download_progress(start=None,wrote=None,total=None, finish=None): #result,skip=None
+        # print(start,wrote,total,finish)
+        # if total:
+        #     # print('received: %.2f K'%(float(total)/1024.0))
+        #     output_stream.write('received: %.2f K'%(float(total)/1024.0))
+        #     output_stream.flush()
+        # if total:
+        #     if finish is None:
+        #         print('received: %.2f K'%(float(total)/1024.0), end='\r')
+        #     else:
+        #         print('received: %.2f K' % (float(total) / 1024.0))
+        pass
+    callback = api.write_to_file(directory=save_dir + '/', callback=download_progress) # save_dir + '/'  #
+    body = client.download(assets[asset_key], callback=callback)
+    # body.await() for version 1.1.0
+    try:
+        body.wait() # for version > 1.4.2
+    except APIException as e:
+        output_planetAPI_error('An APIException occurs when try to download %s (id: %s)'%(asset_key,item['id']))
+        output_planetAPI_error(str(e))
+        raise Exception("rate limit error or other API errors")
+        # return False  # return a large number
+    except:
+        raise APIException
+
+    return True
+
 
 def read_polygons_json(polygon_shp, no_json=False):
     '''
@@ -119,60 +244,29 @@ def get_a_filter_cli_api(polygon_json,start_date, end_date, could_cover_thr):
     return combined_filters
 
 
-def get_items_count(combined_filter, item_types):
-    '''
-    based on the filter, and item types, the count of item
-    :param combined_filter: filter
-    :param item_types: item types
-    :return: the count of items
-    '''
-
-    try:
-        req = filters.build_search_request(combined_filter, item_types, interval="year") #year  or day
-        stats = client.stats(req).get()
-    except APIException as e:
-        # basic.outputlogMessage(str(e))
-        output_planetAPI_error(str(e))
-        return 100000  # return a large number
-
-    # p(stats)
-    total_count = 0
-    for bucket in stats['buckets']:
-        total_count += bucket['count']
-    return total_count
-
-# try max 100 times, wait rand from 5 to 30 seconds
-@retry(stop_max_attempt_number=100, wait_random_min=5000, wait_random_max=30000)
-def activate_and_download_asset(item,asset_key,save_dir):
+def activate_and_download_asset(item,assets,asset_key,save_dir):
     '''
     active a asset of a item and download it
     :param item: the item
+    :param assets: assets from get_assets_from_server
     :param asset_key: the name of the asset
     :param save_dir: save dir
     :return: True if successful, Flase otherwise
     '''
 
     proc_id = multiprocessing.current_process().pid
-    assets = client.get_assets(item).get()
-
     asset = assets.get(asset_key)
 
     # activate
-    activation = client.activate(asset)
-
-    print(activation.response.status_code)
-    if int(activation.response.status_code) == 401:
-        basic.outputlogMessage('The account does not have permissions to download this file')
+    out = activate_a_asset_on_server(asset)
+    if out is False:
         return False
 
-    if int(activation.response.status_code) == 429:
-        raise Exception("rate limit error")
-
+    # wait until the asset has been activated
     asset_activated = False
-
     while asset_activated == False:
         # Get asset and its activation status
-        assets = client.get_assets(item).get()  # need to used client to get the status
+        assets = get_assets_from_server(item) # need to get the status from the server
         asset = assets.get(asset_key)
         asset_status = asset["status"]
 
@@ -188,32 +282,8 @@ def activate_and_download_asset(item,asset_key,save_dir):
             waitime = random.randint(10,30)
             time.sleep(waitime)
 
-    output_stream = sys.stdout
-    def download_progress(start=None,wrote=None,total=None, finish=None): #result,skip=None
-        # print(start,wrote,total,finish)
-        # if total:
-        #     # print('received: %.2f K'%(float(total)/1024.0))
-        #     output_stream.write('received: %.2f K'%(float(total)/1024.0))
-        #     output_stream.flush()
-        # if total:
-        #     if finish is None:
-        #         print('received: %.2f K'%(float(total)/1024.0), end='\r')
-        #     else:
-        #         print('received: %.2f K' % (float(total) / 1024.0))
-        pass
-    callback = api.write_to_file(directory=save_dir + '/', callback=download_progress) # save_dir + '/'  #
-    body = client.download(assets[asset_key], callback=callback)
-    # body.await() for version 1.1.0
-    try:
-        body.wait() # for version > 1.4.2
-    except APIException as e:
-        output_planetAPI_error('An APIException occurs when try to download %s (id: %s)'%(asset_key,item['id']))
-        output_planetAPI_error(str(e))
-        raise Exception("rate limit error or other API errors")
-        # return False  # return a large number
+    return download_a_asset_from_server(item,assets,asset_key,save_dir)
 
-
-    return True
 
 def read_down_load_geometry(folder):
     '''
@@ -448,14 +518,6 @@ def check_asset_exist(download_item, asset, save_dir):
     else:
         return False
 
-def activate_and_download_asset_thread(download_item, asset, save_dir):
-    if asset not in asset_types:
-        return False
-    if check_asset_exist(download_item, asset, save_dir):
-        return True
-    basic.outputlogMessage('download %s' % asset)
-    # activate and download
-    return activate_and_download_asset(download_item, asset, save_dir)
 
 
 def download_planet_images(polygons_json, start_date, end_date, cloud_cover_thr, item_types, save_folder,process_num):
@@ -482,20 +544,9 @@ def download_planet_images(polygons_json, start_date, end_date, cloud_cover_thr,
             basic.outputlogMessage('%dth polygon already in the extent of downloaded images, skip it'%idx)
             continue
 
-
-        # search and donwload using Planet Client API
-        combined_filter = get_a_filter_cli_api(geom, start_date, end_date, cloud_cover_thr)
-
-        # get the count number
-        item_count = get_items_count(combined_filter, item_types)
-        if item_count == 100000:
-            basic.outputlogMessage('error, failed to get images of %dth polygon currently, skip it' % idx)
+        res, item_count = search_scenes_on_server(idx, geom, start_date, end_date, cloud_cover_thr,item_types)
+        if res is False:
             continue
-        basic.outputlogMessage('The total number of scenes is %d' % item_count)
-
-        req = filters.build_search_request(combined_filter, item_types)
-        # p(req)
-        res = client.quick_search(req)
         if res.response.status_code == 200:
             all_items = []
             for item in res.items_iter(item_count):
@@ -522,7 +573,7 @@ def download_planet_images(polygons_json, start_date, end_date, cloud_cover_thr,
                     continue
 
                 os.system('mkdir -p ' + save_dir)
-                assets = client.get_assets(download_item).get()
+                assets = get_assets_from_server(download_item)
                 basic.outputlogMessage('download a scene (id: %s) that cover the %dth polygon' % (download_item_id, idx))
 
                 # check 'analytic_sr' is available, if not, d
@@ -541,34 +592,33 @@ def download_planet_images(polygons_json, start_date, end_date, cloud_cover_thr,
                     if check_asset_exist(download_item, asset, save_dir):
                         continue
 
-                    # #
-                    # if activate_and_download_asset(download_item, asset, save_dir):
+                    #
+                    # if activate_and_download_asset(download_item, assets, asset, save_dir):
                     #     basic.outputlogMessage('downloaded asset type: %s of scene (%s)' % (asset, download_item_id))
                     ############################################################
-                    # parallel activate and download sub_tasks
+                    ##  parallel activate and download sub_tasks
                     while True:
                         if basic.alive_process_count(sub_tasks) < process_num:
-                            sub_process = Process(target=activate_and_download_asset,args=(download_item, asset, save_dir))
+                            sub_process = Process(target=activate_and_download_asset,args=(download_item, assets, asset, save_dir))
                             sub_process.start()
                             sub_tasks.append(sub_process)
+                            # time.sleep(200)
+                            # print('sleep 200')
                             break
                         else:
                             time.sleep(5) # wait, then try again.
 
-
-                ##############parallel version ##############
-                # some error like: requests.exceptions.SSLError: HTTPSConnectionPool(host='api.planet.com', port=443): Max retries exceeded with url: /data/v1/item-types/PSScene4Band/items/20190829_030847_0f49/assets/
-                # # Rate Limiting, https://developers.planet.com/docs/data/api-mechanics/#rate-limiting, to safe, set it job as 5
-                # num_thread = 5
-                # theadPool = Pool(num_thread)  # multi processes
-                # parameters_list = [ (download_item, asset, save_dir) for asset in sorted(assets.keys()) ]
-                # results = theadPool.starmap(activate_and_download_asset_thread, parameters_list)  # need python3
 
                 # save the geometry of this item to disk
                 with open(save_geojson_path, 'w') as outfile:
                     json.dump(download_item['geometry'], outfile,indent=2)
                     # update the geometry of already downloaded geometry
                     downloaded_scene_geometry.append(download_item['geometry'])
+
+            # wait until all task finished
+            while basic.b_all_process_finish(sub_tasks) is False:
+                print('wait submitted tasks to finished ')
+                time.sleep(5)
 
         else:
             print('code {}, text, {}'.format(res.response.status_code, res.response.text))
@@ -601,7 +651,8 @@ def main(options, args):
         # reproject to 4326 projection
         basic.outputlogMessage('reproject %s to latlon'%polygons_shp)
         latlon_shp = io_function.get_name_by_adding_tail(polygons_shp,'latlon')
-        vector_gpd.reproject_shapefile(polygons_shp,'EPSG:4326',latlon_shp)
+        if os.path.isfile(latlon_shp) is False:
+            vector_gpd.reproject_shapefile(polygons_shp,'EPSG:4326',latlon_shp)
         polygons_shp = latlon_shp
         basic.outputlogMessage('save new shapefile to %s for downloading images' % polygons_shp)
 
