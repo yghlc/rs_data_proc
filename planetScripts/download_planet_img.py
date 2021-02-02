@@ -144,8 +144,8 @@ def activate_a_asset_on_server(asset):
         e_str = str(e)
         output_planetAPI_error(str(e))
         if "Download quota has been exceeded" in e_str:
-            # sys.exit(1)   # only exit this sub-process, not
-            quit(1)         # may exit the entire program.
+            sys.exit(1)   # only exit this sub-process, not
+            # quit(1)         # may exit the entire program (not working)
     except:
         raise APIException
 
