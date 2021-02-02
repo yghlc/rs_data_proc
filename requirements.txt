@@ -1,0 +1,7 @@
+sentinelsat
+planet
+shapely
+geopandas
+rasterio
+triangle
+retrying
