@@ -598,7 +598,6 @@ def main(options, args):
     geojson_list = io_function.get_file_list_by_ext('.geojson',save_folder,bsub_folder=False)
     # print(geojson_list)
     incom_dir = os.path.join(save_folder, 'incomplete_scenes')
-    io_function.mkdir(incom_dir)
 
     for geojson_file in geojson_list:
         scene_id = os.path.splitext(os.path.basename(geojson_file))[0]
@@ -606,6 +605,9 @@ def main(options, args):
         files = io_function.get_file_list_by_pattern(scene_dir,scene_id+'*')
         # print(files)
         if len(files) != len(asset_types):
+            if os.path.isdir(incom_dir):
+                io_function.mkdir(incom_dir)
+
             basic.outputlogMessage('warning, downloading of %s is not completed, move to incomplete_scenes '%scene_id)
             io_function.movefiletodir(scene_dir,incom_dir,overwrite=True)
             io_function.movefiletodir(geojson_file,incom_dir,overwrite=True)
