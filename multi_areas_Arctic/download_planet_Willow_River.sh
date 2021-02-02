@@ -2,6 +2,8 @@
 
 ## Introduction: downloaded Planet images
 
+# run this script in ~/Data/Arctic/canada_arctic/rsImages
+
 #authors: Huang Lingcao
 #email:huanglingcao@gmail.com
 #add time: 2 February, 2021
@@ -12,7 +14,7 @@ set -eE -o functrace
 work_dir=~/Data/Arctic/canada_arctic/rsImages
 code_dir=~/codes/PycharmProjects/rs_data_proc
 
-#cd ${work_dir}
+cd ${work_dir}
 
 
 shp_file=~/Data/Arctic/canada_arctic/Willow_River/extent/WR_extent.shp
@@ -56,13 +58,13 @@ while [ "$d" != ${end_date} ]; do
     fi
 
     echo $d ${n_d}      # start date and end date
-    # wait five seconds
-    sleep 5
+    # wait a few seconds
+    sleep 3
 
     save_folder=planet_sr_images/${d}
 
     ${code_dir}/planetScripts/download_planet_img.py ${shp_file} ${save_folder} \
-    -s ${start_date} -e ${end_date} -c ${cloud_cover_thr} -i ${item_type} -a ${account}
+    -s ${d} -e ${n_d} -c ${cloud_cover_thr} -i ${item_type} -a ${account}
 
 
 
