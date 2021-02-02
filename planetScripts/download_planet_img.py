@@ -48,7 +48,7 @@ asset_types=['analytic_sr','analytic_xml','udm'] #   # surface reflectance, meta
 # if analytic_sr not available, we will download analytic (supplementary asset types)
 supp_asset_types = ['analytic']
 
-downloaed_scene_geometry = []       # the geometry (extent) of downloaded images
+downloaded_scene_geometry = []       # the geometry (extent) of downloaded images
 manually_excluded_scenes = []       # manually excluded item id
 
 def p(data):
@@ -211,7 +211,7 @@ def read_down_load_geometry(folder):
     :param folder: the save folder
     :return:
     '''
-    global  downloaed_scene_geometry
+    global  downloaded_scene_geometry
     json_list = io_function.get_file_list_by_ext('.geojson',folder, bsub_folder=False)
     for json_file in json_list:
 
@@ -229,7 +229,7 @@ def read_down_load_geometry(folder):
         with open(json_file) as json_file:
             data = json.load(json_file)
             # p(data) # test
-            downloaed_scene_geometry.append(data)
+            downloaded_scene_geometry.append(data)
 
 def read_excluded_scenes(folder):
     '''
@@ -468,7 +468,7 @@ def download_planet_images(polygons_json, start_date, end_date, cloud_cover_thr,
 
         ####################################
         #check if any image already cover this polygon, if yes, skip downloading
-        if check_geom_polygon_overlap(downloaed_scene_geometry, geom) is True:
+        if check_geom_polygon_overlap(downloaded_scene_geometry, geom) is True:
             basic.outputlogMessage('%dth polygon already in the extent of downloaded images, skip it'%idx)
             continue
 
@@ -546,7 +546,7 @@ def download_planet_images(polygons_json, start_date, end_date, cloud_cover_thr,
                 with open(save_geojson_path, 'w') as outfile:
                     json.dump(download_item['geometry'], outfile,indent=2)
                     # update the geometry of already downloaded geometry
-                    downloaed_scene_geometry.append(download_item['geometry'])
+                    downloaded_scene_geometry.append(download_item['geometry'])
 
         else:
             print('code {}, text, {}'.format(res.response.status_code, res.response.text))
