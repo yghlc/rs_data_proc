@@ -17,7 +17,7 @@ from retrying import retry
 
 count = 0
 
-# stop_max_attempt_number # defautl is 5 retry, after that, exit
+# stop_max_attempt_number # default is 5 retry, after that, exit
 # stop_max_delay # after try amount of this time, exit
 # wait_fixed # interval between each time, defautl is 1000 ms
 

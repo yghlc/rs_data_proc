@@ -35,6 +35,10 @@ import random
 
 import multiprocessing
 from multiprocessing import Pool
+from multiprocessing import Process
+
+
+from retrying import retry
 
 from planet import api
 from planet.api.exceptions import APIException
@@ -137,7 +141,8 @@ def get_items_count(combined_filter, item_types):
         total_count += bucket['count']
     return total_count
 
-
+# try max 100 times, wait rand from 5 to 30 seconds
+@retry(stop_max_attempt_number=100, wait_random_min=5000, wait_random_max=30000)
 def activate_and_download_asset(item,asset_key,save_dir):
     '''
     active a asset of a item and download it
@@ -158,6 +163,9 @@ def activate_and_download_asset(item,asset_key,save_dir):
     if int(activation.response.status_code) == 401:
         basic.outputlogMessage('The account does not have permissions to download this file')
         return False
+
+    if int(activation.response.status_code) == 429:
+        raise Exception("rate limit error")
 
     asset_activated = False
 
@@ -200,7 +208,8 @@ def activate_and_download_asset(item,asset_key,save_dir):
     except APIException as e:
         output_planetAPI_error('An APIException occurs when try to download %s (id: %s)'%(asset_key,item['id']))
         output_planetAPI_error(str(e))
-        return False  # return a large number
+        raise Exception("rate limit error or other API errors")
+        # return False  # return a large number
 
 
     return True
@@ -448,7 +457,7 @@ def activate_and_download_asset_thread(download_item, asset, save_dir):
     return activate_and_download_asset(download_item, asset, save_dir)
 
 
-def download_planet_images(polygons_json, start_date, end_date, cloud_cover_thr, item_types, save_folder):
+def download_planet_images(polygons_json, start_date, end_date, cloud_cover_thr, item_types, save_folder,process_num):
     '''
     download images from for all polygons, to save quota, each polygon only downlaod one image
     :param polygons_json: a list of polygons in json format
@@ -501,6 +510,7 @@ def download_planet_images(polygons_json, start_date, end_date, cloud_cover_thr,
             if select_items is False:
                 continue
 
+            sub_tasks = []
             for download_item in select_items:
                 download_item_id = download_item['id']
                 # p(item['geometry'])
@@ -530,9 +540,20 @@ def download_planet_images(polygons_json, start_date, end_date, cloud_cover_thr,
                     if check_asset_exist(download_item, asset, save_dir):
                         continue
 
-                    # activate and download
-                    if activate_and_download_asset(download_item, asset, save_dir):
-                        basic.outputlogMessage('downloaded asset type: %s of scene (%s)' % (asset, download_item_id))
+                    # #
+                    # if activate_and_download_asset(download_item, asset, save_dir):
+                    #     basic.outputlogMessage('downloaded asset type: %s of scene (%s)' % (asset, download_item_id))
+                    ############################################################
+                    # parallel activate and download sub_tasks
+                    while True:
+                        if basic.alive_process_count(sub_tasks) < process_num:
+                            sub_process = Process(target=activate_and_download_asset,args=(download_item, asset, save_dir))
+                            sub_process.start()
+                            sub_tasks.append(sub_process)
+                            break
+                        else:
+                            time.sleep(5) # wait, then try again.
+
 
                 ##############parallel version ##############
                 # some error like: requests.exceptions.SSLError: HTTPSConnectionPool(host='api.planet.com', port=443): Max retries exceeded with url: /data/v1/item-types/PSScene4Band/items/20190829_030847_0f49/assets/
@@ -569,6 +590,7 @@ def main(options, args):
     cloud_cover_thr = options.cloud_cover           # 0.3
 
     planet_account = options.planet_account
+    process_num = options.process_num
 
     # set Planet API key
     get_and_set_Planet_key(planet_account)
@@ -592,7 +614,7 @@ def main(options, args):
 
 
     # download images
-    download_planet_images(polygons_json, start_date, end_date, cloud_cover_thr, item_types, save_folder)
+    download_planet_images(polygons_json, start_date, end_date, cloud_cover_thr, item_types, save_folder,process_num)
 
     #check each downloaded ones are completed, otherwise, remove the incompleted ones
     geojson_list = io_function.get_file_list_by_ext('.geojson',save_folder,bsub_folder=False)
@@ -639,6 +661,9 @@ if __name__ == "__main__":
     parser.add_option("-a", "--planet_account",
                       action="store", dest="planet_account",default='huanglingcao@link.cuhk.edu.hk',
                       help="planet email account, e.g., huanglingcao@link.cuhk.edu.hk")
+    parser.add_option("-p", "--process_num",
+                      action="store", dest="process_num",type=int,default=10,
+                      help="number of processes to download images")
 
 
 
