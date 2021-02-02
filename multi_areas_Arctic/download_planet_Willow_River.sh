@@ -26,6 +26,7 @@ shp_file=~/Data/Arctic/canada_arctic/Willow_River/extent/WR_extent.shp
 #cloud_cover_thr=0.10
 cloud_cover_thr=0.01 # try download cloudcover less than 0.01 first
 item_type=PSScene4Band
+process_num=9
 
 account=lingcao.huang@colorado.edu
 
@@ -64,7 +65,7 @@ while [ "$d" != ${end_date} ]; do
     save_folder=planet_sr_images/${d}
 
     ${code_dir}/planetScripts/download_planet_img.py ${shp_file} ${save_folder} \
-    -s ${d} -e ${n_d} -c ${cloud_cover_thr} -i ${item_type} -a ${account}
+    -s ${d} -e ${n_d} -c ${cloud_cover_thr} -i ${item_type} -a ${account} -p ${process_num}
 
 
 
