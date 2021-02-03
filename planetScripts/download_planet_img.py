@@ -245,7 +245,7 @@ def get_a_filter_cli_api(polygon_json,start_date, end_date, could_cover_thr):
     return combined_filters
 
 
-def activate_and_download_asset(item,assets,asset_key,save_dir):
+def activate_and_download_asset(item,assets,asset_key,save_dir,process_num):
     '''
     active a asset of a item and download it
     :param item: the item
@@ -280,7 +280,7 @@ def activate_and_download_asset(item,assets,asset_key,save_dir):
         else:
             print("Process: %d, ...Still waiting for asset activation..."%proc_id)
             # time.sleep(3)
-            waitime = random.randint(10,30)
+            waitime = random.randint(process_num, process_num + 30)
             time.sleep(waitime)
 
     return download_a_asset_from_server(item,assets,asset_key,save_dir)
@@ -594,13 +594,13 @@ def download_planet_images(polygons_json, start_date, end_date, cloud_cover_thr,
                         continue
 
                     #
-                    # if activate_and_download_asset(download_item, assets, asset, save_dir):
+                    # if activate_and_download_asset(download_item, assets, asset, save_dir,process_num):
                     #     basic.outputlogMessage('downloaded asset type: %s of scene (%s)' % (asset, download_item_id))
                     ############################################################
                     ##  parallel activate and download sub_tasks
                     while True:
                         if basic.alive_process_count(sub_tasks) < process_num:
-                            sub_process = Process(target=activate_and_download_asset,args=(download_item, assets, asset, save_dir))
+                            sub_process = Process(target=activate_and_download_asset,args=(download_item, assets, asset, save_dir,process_num))
                             sub_process.start()
                             sub_tasks.append(sub_process)
                             # time.sleep(200)
