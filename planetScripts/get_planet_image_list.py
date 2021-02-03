@@ -322,6 +322,8 @@ def save_planet_images_to_shapefile(geojson_list, save_shp_path, wkt_string, ext
             continue
 
         sel_geojson_list, sel_polygons = get_geojson_list_overlap_a_polygon(extent,sub_geojsons)
+        if len(sel_geojson_list) < 1:
+            continue
         scene_table, scene_without_asset = get_meta_dict(sel_geojson_list)
 
 
