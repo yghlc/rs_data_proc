@@ -63,7 +63,7 @@ while [ "$d" != ${end_date} ]; do
     # wait a few seconds
 #    sleep 3
 
-    save_folder=planet_sr_images/${d}
+    save_folder=planet_sr_images/2020_July_August
 
     ${code_dir}/planetScripts/download_planet_img.py ${shp_file} ${save_folder} \
     -s ${d} -e ${n_d} -c ${cloud_cover_thr} -i ${item_type} -a ${account} -p ${process_num}

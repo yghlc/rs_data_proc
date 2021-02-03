@@ -328,7 +328,7 @@ def save_planet_images_to_shapefile(geojson_list, save_shp_path, wkt_string, ext
 
 
         if len(scene_table['scene_id']) != len(sel_polygons):
-            raise ValueError('The count of scence ID and polygon are different ')
+            raise ValueError('The count of scence ID and polygon are different, could due to some duplicated scenes ')
 
         # to strings, ESRI Shapefile does not support datetime fields
         scene_table['acquisitionDate'] = [ timeTools.datetime2str(item) for item in  scene_table['acquisitionDate']]
