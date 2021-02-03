@@ -12,6 +12,11 @@ add time: 16 July, 2020
 import sys,os
 from optparse import OptionParser
 
+# import thest two to make sure load GEOS dll before using shapely
+import shapely
+from shapely.geometry import mapping # transform to GeJSON format
+from shapely.geometry import shape
+
 sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS'))
 import basic_src.io_function as io_function
 import basic_src.map_projection as map_projection
@@ -23,10 +28,6 @@ from datetime import datetime
 import json
 import time
 
-# import thest two to make sure load GEOS dll before using shapely
-import shapely
-from shapely.geometry import mapping # transform to GeJSON format
-from shapely.geometry import shape
 
 from xml.dom import minidom
 
@@ -322,6 +323,15 @@ def save_planet_images_to_shapefile(geojson_list, save_shp_path, wkt_string, ext
 
         sel_geojson_list, sel_polygons = get_geojson_list_overlap_a_polygon(extent,sub_geojsons)
         scene_table, scene_without_asset = get_meta_dict(sel_geojson_list)
+
+
+        if len(scene_table['scene_id']) != len(sel_polygons):
+            raise ValueError('The count of scence ID and polygon are different ')
+
+        # to strings, ESRI Shapefile does not support datetime fields
+        scene_table['acquisitionDate'] = [ timeTools.datetime2str(item) for item in  scene_table['acquisitionDate']]
+        scene_table['downloadTime'] = [ timeTools.datetime2str(item) for item in  scene_table['downloadTime']]
+
         scene_table['Polygons'] = sel_polygons
         df = pd.DataFrame(scene_table)
 
