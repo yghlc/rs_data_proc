@@ -11,10 +11,11 @@
 # Exit immediately if a command exits with a non-zero status. E: error trace
 set -eE -o functrace
 
-work_dir=~/Data/Arctic/canada_arctic/rsImages
+#work_dir=~/Data/Arctic/canada_arctic/rsImages
+work_dir=${PWD}
 code_dir=~/codes/PycharmProjects/rs_data_proc
 
-cd ${work_dir}
+#cd ${work_dir}
 
 
 shp_file=~/Data/Arctic/canada_arctic/Willow_River/extent/WR_extent.shp
