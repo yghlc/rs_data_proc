@@ -47,10 +47,21 @@ def read_acquired_date(metadata_path):
     #acquisitionDatetime = float(nodes[0].firstChild.data)
     # 2016-08-23T03:27:21+00:00
     # acquisitionDatetime = datetime.strptime(nodes[0].firstChild.data, '%y-%m-%dT%H:%M:%S')
-    acquisitionDate = pd.to_datetime(nodes[0].firstChild.data).date()
-    # acquisitionDateTime = pd.to_datetime(nodes[0].firstChild.data).to_pydatetime()
+    acquisitionDate = pd.to_datetime(nodes[0].firstChild.data).date()                   # only the date
+    # acquisitionDateTime = pd.to_datetime(nodes[0].firstChild.data).to_pydatetime()    # python native datetime
     # print(cloud_per)
     return acquisitionDate
+
+def read_acquired_datetime(metadata_path):
+    xmldoc = minidom.parse(metadata_path)
+    nodes = xmldoc.getElementsByTagName("ps:acquisitionDateTime")
+    #acquisitionDatetime = float(nodes[0].firstChild.data)
+    # 2016-08-23T03:27:21+00:00
+    # acquisitionDatetime = datetime.strptime(nodes[0].firstChild.data, '%y-%m-%dT%H:%M:%S')
+    # acquisitionDate = pd.to_datetime(nodes[0].firstChild.data).date()                   # only the date
+    acquisitionDateTime = pd.to_datetime(nodes[0].firstChild.data).to_pydatetime()    # python native datetime
+    # print(cloud_per)
+    return acquisitionDateTime
 
 def get_geojson_list_overlap_a_polygon(polygon, geojson_list):
     out_geojson_list = []
@@ -150,7 +161,7 @@ def read_a_meta_of_scene(scene_folder_or_geojson,scene_id_list):
         # read metadata
         metadata_path = metadata_paths[0]
         cloud_cover = read_cloud_cover(metadata_path)
-        acquisitionDate =  read_acquired_date(metadata_path)
+        acquisitionDate =  read_acquired_datetime(metadata_path)
 
     assets = io_function.get_file_list_by_pattern(scene_folder,'*')
     asset_count = len(assets)
