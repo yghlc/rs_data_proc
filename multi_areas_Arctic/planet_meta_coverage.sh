@@ -28,7 +28,8 @@ function meta () {
    mkdir -p ${meta_dir}
    save_shp=${meta_dir}/${region}_Planet_meta.shp
 
-   ${py} ${work_dir}/planet_sr_images -e ${extent_file} --group_date -m ${save_shp}
+    # --group_date
+   ${py} ${work_dir}/planet_sr_images -e ${extent_file} -m ${save_shp}
 }
 
 region=WR
