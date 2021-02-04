@@ -7,6 +7,8 @@ This repo provides scriptos for downloading and pre-processing different sources
     it will download Planet images. For the large area (such as Tibet), 
     you should divie the entire region to many samll grids (50 by 50 km).
     
+    planetScripts/get_planet_image_list.py: the the metadata and coverage of
+    downloade Planet images.     
 
     
     
