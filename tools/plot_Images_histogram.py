@@ -83,9 +83,13 @@ def main(options, args):
     else:
         tif_list = io_function.get_file_list_by_ext('.tif',img_dir,bsub_folder=True)
     if len(tif_list) < 1:
-        raise ValueError('no tif in %s'%img_dir)
+        if options.extent_shp is None:
+            print('no image files in %s'%img_dir)
+        else:
+            print('no image files in %s within extent of %s'%(img_dir,options.extent_shp))
+        return True
 
-    tif_list = tif_list[:1] # for test
+    # tif_list = tif_list[:1] # for test
 
     pre_name = os.path.basename(img_dir)
     if options.extent_shp is not None:
