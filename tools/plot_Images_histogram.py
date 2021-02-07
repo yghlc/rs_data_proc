@@ -216,11 +216,12 @@ def main(options, args):
     # ax2.xaxis.label.set_color('blue')
     ax1.tick_params(axis='x')
 
-    # ## marked the values
-    # threshold = [9500]
-    # for dem in threshold:
-    #     ax1.axvline(x=dem, color='r', linewidth=0.8, linestyle='--')
-    #     ax1.text(dem + 100, 0.5, str(dem), rotation=90, fontsize=10, color='r')
+    ## marked the min and max values
+    for idx, (min, max) in enumerate(zip(min_list, max_list)):
+        # print(idx, min, max)
+        ax1.axvline(x=min, color=line_style[idx][0], linestyle=line_style[idx][1:], linewidth=0.5)
+        ax1.axvline(x=max, color=line_style[idx][0], linestyle=line_style[idx][1:], linewidth=0.5)
+        # ax1.text(dem + 100, 0.5, str(dem), rotation=90, fontsize=10, color='r')
 
 
     # plt.gcf().subplots_adjust(bottom=0.15)  #add space for the buttom
