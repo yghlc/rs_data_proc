@@ -192,7 +192,7 @@ def main(options, args):
     save_min_max_txt = pre_name + '_min_%.3f_max_%.3f'%(min_percent,max_percent) + '_' + hist_info + '.txt'
     with open(save_min_max_txt, 'w') as f_obj:
         f_obj.writelines('%s \n'%save_min_max_txt)
-        f_obj.writelines('min (%.3f) and max (%.3f) value based on percentage on histogram \n'%(min_percent,max_percent))
+        f_obj.writelines('min (%.3f) and max (%.3f) values based on percentage on histogram \n'%(min_percent,max_percent))
         for min, max in zip(min_list, max_list):
             f_obj.writelines('min, max: %.4f, %.4f \n'%(min,max))
 
