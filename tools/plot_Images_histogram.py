@@ -88,6 +88,10 @@ def get_max_min_histogram_percent(bin_edges, hist, min_percent=0.01, max_percent
     if hist.ndim != 1:
         raise ValueError('Only accept one dimension array')
 
+    if min_percent is not None and max_percent is not None:
+        if min_percent >= max_percent:
+            raise ValueError('min_percent >= max_percent')
+
     found_min = 0
     found_max = 0
 
