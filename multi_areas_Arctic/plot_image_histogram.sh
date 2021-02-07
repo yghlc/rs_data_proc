@@ -36,7 +36,8 @@ function histogram_mosaic(){
     tif_dir=$1
     up_per=$2
     low_per=$3
-    ${py} ${tif_dir} -u ${up_per} -l ${low_per}
+    # -u ${up_per} -l ${low_per}
+    ${py} ${tif_dir}
 }
 dir=~/Data/Arctic/canada_arctic/rsImages
 histogram_mosaic ${dir}/daily_mosaic/WR_daily_mosaic
