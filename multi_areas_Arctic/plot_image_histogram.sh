@@ -39,12 +39,12 @@ function histogram_mosaic(){
     ${py} ${tif_dir} -u ${up_per} -l ${low_per}
 }
 dir=~/Data/Arctic/canada_arctic/rsImages
-histogram_mosaic ${dir}/WR_daily_mosaic
-histogram_mosaic ${dir}/Banks_east_daily_mosaic
-histogram_mosaic ${dir}/Ellesmere_Island_daily_mosaic
+histogram_mosaic ${dir}/daily_mosaic/WR_daily_mosaic
+histogram_mosaic ${dir}/daily_mosaic/Banks_east_daily_mosaic
+histogram_mosaic ${dir}/daily_mosaic/Ellesmere_Island_daily_mosaic
 
 # histogram for all
-histogram_mosaic ${dir}
+histogram_mosaic ${dir}/daily_mosaic
 
 
 
