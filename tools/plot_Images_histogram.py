@@ -75,6 +75,50 @@ def get_Planet_image_tif_list(image_dir, ext_shp):
     return image_path_list
 
 
+def get_max_min_histogram_percent(bin_edges, hist, min_percent=0.01, max_percent=0.99):
+    '''
+    get the max and min when cut of % top and bottom pixel values
+    :param bin_edges:
+    :param hist: numpy 1-d array.
+    :param min_percent: percent
+    :param max_percent: percent
+    :return:
+    '''
+
+    if hist.ndim != 1:
+        raise ValueError('Only accept one dimension array')
+
+    found_min = 0
+    found_max = 0
+
+    count = hist.size
+    sum = np.sum(hist)
+    accumulate_sum = 0
+    for ii in range(count):
+        accumulate_sum += hist[ii]
+        if accumulate_sum/sum >= min_percent:
+            found_min = bin_edges[ii]
+            break
+
+    accumulate_sum = 0
+    for ii in range(count-1,0,-1):
+        # print(ii)
+        accumulate_sum += hist[ii]
+        if accumulate_sum / sum >= (1 - max_percent):
+            found_max = bin_edges[ii]
+            break
+
+    return found_min, found_max
+
+def get_max_min_histogram_percent_allBands(bin_edges, hist_allBands, min_percent=0.01, max_percent=0.9):
+    min_list = []
+    max_list = []
+    for hist in hist_allBands:
+        min, max = get_max_min_histogram_percent(bin_edges, hist, min_percent=min_percent, max_percent=max_percent)
+        min_list.append(min)
+        max_list.append(max)
+    return min_list, max_list
+
 def main(options, args):
 
     img_dir = args[0]
@@ -141,6 +185,17 @@ def main(options, args):
         np.savetxt(hist_txt, hist,fmt='%d')
 
 
+    # find min and max grey values
+    min_percent = options.hist_min_percent
+    max_percent = options.hist_max_percent
+    min_list, max_list = get_max_min_histogram_percent_allBands(bin_edges,hist_allImg_list,min_percent=min_percent, max_percent=max_percent)
+    save_min_max_txt = pre_name + '_min_%.3f_max_%.3f'%(min_percent,max_percent) + '_' + hist_info + '.txt'
+    with open(save_min_max_txt, 'w') as f_obj:
+        f_obj.writelines('%s \n'%save_min_max_txt)
+        f_obj.writelines('min (%.3f) and max (%.3f) value based on percentage on histogram \n'%(min_percent,max_percent))
+        for min, max in zip(min_list, max_list):
+            f_obj.writelines('min, max: %.4f, %.4f \n'%(min,max))
+
     fig = plt.figure(figsize=(6,4)) #
     ax1 = fig.add_subplot(111)
     # ax2 = ax1.twiny()    #have another x-axis
@@ -197,6 +252,14 @@ if __name__ == '__main__':
     parser.add_option("-p", "--planet_geojson",
                       action="store_true", dest="planet_geojson",default=False,
                       help="indicate that Planet images with geojson in the input folder")
+
+    parser.add_option("-u", "--hist_max_percent",
+                      action="store", dest="hist_max_percent",default=0.99,type=float,
+                      help="the upper percent for choosing the max pixel value")
+
+    parser.add_option("-l", "--hist_min_percent",
+                      action="store", dest="hist_min_percent",default=0.01,type=float,
+                      help="the lower percent for choosing the max pixel value")
 
 
 
