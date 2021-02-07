@@ -21,15 +21,25 @@ function histogram(){
     ${py} ${img_dir} --planet_geojson -e ${extent_file}
 }
 
-ext_shp=~/Data/Arctic/canada_arctic/Willow_River/extent/WR_extent_latlon.shp
-histogram ${ext_shp}
+#ext_shp=~/Data/Arctic/canada_arctic/Willow_River/extent/WR_extent_latlon.shp
+#histogram ${ext_shp}
+#
+#ext_shp=~/Data/Arctic/canada_arctic/Banks_east/extent/Banks_east_extent_latlon.shp
+#histogram ${ext_shp}
+#
+#ext_shp=~/Data/Arctic/canada_arctic/Ellesmere_Island/extent/HotWC_extent_latlon.shp
+#histogram ${ext_shp}
 
-ext_shp=~/Data/Arctic/canada_arctic/Banks_east/extent/Banks_east_extent_latlon.shp
-histogram ${ext_shp}
 
-ext_shp=~/Data/Arctic/canada_arctic/Ellesmere_Island/extent/HotWC_extent_latlon.shp
-histogram ${ext_shp}
-
+# plot histogram of mosaic
+function histogram_mosaic(){
+    tif_dir=$1
+    ${py} ${tif_dir}
+}
+dir=~/Data/Arctic/canada_arctic/rsImages
+histogram_mosaic ${dir}/WR_daily_mosaic
+histogram_mosaic ${dir}/Banks_east_daily_mosaic
+histogram_mosaic ${dir}/Ellesmere_Island_daily_mosaic
 
 
 
