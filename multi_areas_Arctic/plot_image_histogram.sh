@@ -46,7 +46,7 @@ dir=~/Data/Arctic/canada_arctic/rsImages
 #histogram_mosaic ${dir}/daily_mosaic/Ellesmere_Island_daily_mosaic
 
 # histogram for all
-histogram_mosaic ${dir}/daily_mosaic 0.95 0.01
+histogram_mosaic ${dir}/daily_mosaic
 
 
 
