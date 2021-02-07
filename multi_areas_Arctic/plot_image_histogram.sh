@@ -34,12 +34,17 @@ function histogram(){
 # plot histogram of mosaic
 function histogram_mosaic(){
     tif_dir=$1
-    ${py} ${tif_dir}
+    up_per=$2
+    low_per=$3
+    ${py} ${tif_dir} -u ${up_per} -l ${low_per}
 }
 dir=~/Data/Arctic/canada_arctic/rsImages
 histogram_mosaic ${dir}/WR_daily_mosaic
 histogram_mosaic ${dir}/Banks_east_daily_mosaic
 histogram_mosaic ${dir}/Ellesmere_Island_daily_mosaic
+
+# histogram for all
+histogram_mosaic ${dir}
 
 
 

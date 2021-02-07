@@ -111,6 +111,8 @@ def get_max_min_histogram_percent(bin_edges, hist, min_percent=0.01, max_percent
     return found_min, found_max
 
 def get_max_min_histogram_percent_allBands(bin_edges, hist_allBands, min_percent=0.01, max_percent=0.9):
+    if min_percent is None or max_percent is None:
+        return [],[]
     min_list = []
     max_list = []
     for hist in hist_allBands:
@@ -122,25 +124,10 @@ def get_max_min_histogram_percent_allBands(bin_edges, hist_allBands, min_percent
 def main(options, args):
 
     img_dir = args[0]
-    if options.planet_geojson is True:
-        tif_list = get_Planet_image_tif_list(img_dir, options.extent_shp)
-    else:
-        tif_list = io_function.get_file_list_by_ext('.tif',img_dir,bsub_folder=True)
-    if len(tif_list) < 1:
-        if options.extent_shp is None:
-            print('no image files in %s'%img_dir)
-        else:
-            print('no image files in %s within extent of %s'%(img_dir,options.extent_shp))
-        return True
-
-    # tif_list = tif_list[:1] # for test
 
     pre_name = os.path.basename(img_dir)
     if options.extent_shp is not None:
         pre_name +=  '_' + os.path.splitext(os.path.basename(options.extent_shp))[0]
-
-    # save tif list for checking
-    io_function.save_list_to_txt(pre_name+'_tif.txt',tif_list)
 
     range = (1, 6000)
     bin_count = 500
@@ -159,7 +146,22 @@ def main(options, args):
         _, bin_edges = np.histogram([1,2,3], bins=bin_count,range=range)
 
     if len(hist_allImg_list) < 1:
+
         # read image data and get histograms for each band
+        if options.planet_geojson is True:
+            tif_list = get_Planet_image_tif_list(img_dir, options.extent_shp)
+        else:
+            tif_list = io_function.get_file_list_by_ext('.tif', img_dir, bsub_folder=True)
+        if len(tif_list) < 1:
+            if options.extent_shp is None:
+                print('no image files in %s' % img_dir)
+            else:
+                print('no image files in %s within extent of %s' % (img_dir, options.extent_shp))
+            return True
+
+        # save tif list for checking
+        io_function.save_list_to_txt(pre_name + '_tif.txt', tif_list)
+
         for idx, tif in enumerate(tif_list):
             print(idx,len(tif_list), tif)
             hist_list, bin_edges = np_histogram_one_image(tif, range, bin_count)
@@ -176,25 +178,28 @@ def main(options, args):
                     hist_all += hist
                     # print(hist_all)
 
-
-    #save hist_allImg_list and bin_edges to txt file. Calculaing hist from over 600 GB images is time consuming.
-    for idx, hist in enumerate(hist_allImg_list):
-        hist_txt = pre_name + '_hist_b%d'%idx + '_' + hist_info + '.txt'
-        # data = np.stack(bin_edges, hist)
-        # print('data shape', data.shape)
-        np.savetxt(hist_txt, hist,fmt='%d')
+        #save hist_allImg_list and bin_edges to txt file. Calculaing hist from over 600 GB images is time consuming.
+        for idx, hist in enumerate(hist_allImg_list):
+            hist_txt = pre_name + '_hist_b%d'%idx + '_' + hist_info + '.txt'
+            # data = np.stack(bin_edges, hist)
+            # print('data shape', data.shape)
+            np.savetxt(hist_txt, hist,fmt='%d')
 
 
     # find min and max grey values
     min_percent = options.hist_min_percent
     max_percent = options.hist_max_percent
-    min_list, max_list = get_max_min_histogram_percent_allBands(bin_edges,hist_allImg_list,min_percent=min_percent, max_percent=max_percent)
-    save_min_max_txt = pre_name + '_min_%.3f_max_%.3f'%(min_percent,max_percent) + '_' + hist_info + '.txt'
-    with open(save_min_max_txt, 'w') as f_obj:
-        f_obj.writelines('%s \n'%save_min_max_txt)
-        f_obj.writelines('min (%.3f) and max (%.3f) values based on percentage on histogram \n'%(min_percent,max_percent))
-        for min, max in zip(min_list, max_list):
-            f_obj.writelines('min, max: %.4f, %.4f \n'%(min,max))
+    if min_percent is None or max_percent is None:
+        pass
+    else:
+        min_list, max_list = get_max_min_histogram_percent_allBands(bin_edges,hist_allImg_list,min_percent=min_percent, max_percent=max_percent)
+        min_max_info = 'min_%.3f_max_%.3f'%(min_percent,max_percent)
+        save_min_max_txt = pre_name + '_' + hist_info + '_' + min_max_info + '.txt'
+        with open(save_min_max_txt, 'w') as f_obj:
+            f_obj.writelines('%s \n'%save_min_max_txt)
+            f_obj.writelines('min (%.3f) and max (%.3f) values based on percentage on histogram \n'%(min_percent,max_percent))
+            for min, max in zip(min_list, max_list):
+                f_obj.writelines('min, max: %.4f, %.4f \n'%(min,max))
 
     fig = plt.figure(figsize=(6,4)) #
     ax1 = fig.add_subplot(111)
@@ -217,11 +222,12 @@ def main(options, args):
     ax1.tick_params(axis='x')
 
     ## marked the min and max values
-    for idx, (min, max) in enumerate(zip(min_list, max_list)):
-        # print(idx, min, max)
-        ax1.axvline(x=min, color=line_style[idx][0], linestyle=line_style[idx][1:], linewidth=0.5)
-        ax1.axvline(x=max, color=line_style[idx][0], linestyle=line_style[idx][1:], linewidth=0.5)
-        # ax1.text(dem + 100, 0.5, str(dem), rotation=90, fontsize=10, color='r')
+    if min_percent is not None and max_percent is not None:
+        for idx, (min, max) in enumerate(zip(min_list, max_list)):
+            # print(idx, min, max)
+            ax1.axvline(x=min, color=line_style[idx][0], linestyle=line_style[idx][1:], linewidth=0.5)
+            ax1.axvline(x=max, color=line_style[idx][0], linestyle=line_style[idx][1:], linewidth=0.5)
+            # ax1.text(dem + 100, 0.5, str(dem), rotation=90, fontsize=10, color='r')
 
 
     # plt.gcf().subplots_adjust(bottom=0.15)  #add space for the buttom
@@ -236,7 +242,10 @@ def main(options, args):
     # fig.legend((line_slope,line_dem),('Slope Histogram', 'DEM Histogram'))
     # ax1.legend(line_dem, ('Gray value'), fontsize=16,loc='upper center')
 
-    save_path = pre_name  +'_bin%d'%bin_count + '_range_%d_%d'%(range[0],range[1]) + '.jpg'
+    if min_percent is not None and max_percent is not None:
+        save_path = pre_name  + '_' + hist_info + '_' + min_max_info + '.jpg'
+    else:
+        save_path = pre_name + '_' + hist_info  + '.jpg'
     plt.savefig(save_path, dpi=200)  # 300
 
     pass
@@ -255,11 +264,11 @@ if __name__ == '__main__':
                       help="indicate that Planet images with geojson in the input folder")
 
     parser.add_option("-u", "--hist_max_percent",
-                      action="store", dest="hist_max_percent",default=0.99,type=float,
+                      action="store", dest="hist_max_percent",type=float,
                       help="the upper percent for choosing the max pixel value")
 
     parser.add_option("-l", "--hist_min_percent",
-                      action="store", dest="hist_min_percent",default=0.01,type=float,
+                      action="store", dest="hist_min_percent",type=float,
                       help="the lower percent for choosing the max pixel value")
 
 
