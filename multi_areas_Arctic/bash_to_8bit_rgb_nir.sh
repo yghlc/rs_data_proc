@@ -67,14 +67,14 @@ function to8bit(){
 #            -scale ${b4_min} ${b4_max} ${dst_min} ${dst_max} \
 #             -of VRT ${tif} ${out8bit}
 
-            ${py} -s ${b1_min} ${b1_max} ${dst_min} ${dst_max} \
-            -s ${b2_min} ${b2_max} ${dst_min} ${dst_max} \
-            -s ${b3_min} ${b3_max} ${dst_min} ${dst_max} \
-            -s ${b4_min} ${b4_max} ${dst_min} ${dst_max} \
-            ${tif} ${out8bit}
+#            ${py} -s ${b1_min} ${b1_max} ${dst_min} ${dst_max} \
+#            -s ${b2_min} ${b2_max} ${dst_min} ${dst_max} \
+#            -s ${b3_min} ${b3_max} ${dst_min} ${dst_max} \
+#            -s ${b4_min} ${b4_max} ${dst_min} ${dst_max} \
+#            ${tif} ${out8bit}
 
             # for a small region, we may use gdal_contrast_stretch, but if there is cloud, it makes the result bad
-#            gdal_contrast_stretch -percentile-range 0.01 0.99 ${tif} ${out8bit}
+            gdal_contrast_stretch -percentile-range 0.01 0.99 ${tif} ${out8bit}
 
             # get RGB
             outrgb=${rgb_save_dir}/${filename_noext}_8bit_rgb.tif
