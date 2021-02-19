@@ -506,8 +506,17 @@ def check_dem_diff_results(save_dir,pre_name,extent_id):
 
     return False
 
-def proc_dem_mosaic_diff(dem_tif_list, save_dir, extent_id, b_mosaic_id,b_mosaic_date,resample_method,process_num,
-                         keep_dem_percent,area_pixel_count,b_dem_diff,pre_name,b_rm_inter):
+def proc_dem_mosaic_diff(dem_tif_list, save_dir, extent_id,extent_poly, b_mosaic_id, b_mosaic_date, process_num,
+                         keep_dem_percent, o_res,  b_dem_diff, pre_name, b_rm_inter,resample_method='average'):
+
+    if len(dem_tif_list) < 1:
+        basic.outputlogMessage('No input dem files')
+        return False
+
+    # area pixel count
+    area_pixel_count = int(extent_poly.area / (o_res*o_res))
+    basic.outputlogMessage('Area pixel count: %d'%area_pixel_count)
+
     # groups DEM
     dem_groups = group_demTif_strip_pair_ID(dem_tif_list)
 
@@ -598,12 +607,9 @@ def proc_ArcticDEM_strip_one_grid_polygon(tar_dir,dem_polygons,dem_urls,o_res,sa
     if len(dem_tif_list) < 1:
         raise ValueError('No DEM extracted from tarballs')
 
-    # area pixel count
-    area_pixel_count = int(extent_poly.area / (o_res*o_res))
-    basic.outputlogMessage('Area pixel count: %d'%area_pixel_count)
 
-    proc_dem_mosaic_diff(dem_tif_list, save_dir, extent_id, b_mosaic_id, b_mosaic_date, resample_method, process_num,
-                         keep_dem_percent, area_pixel_count, b_dem_diff, pre_name, b_rm_inter)
+    proc_dem_mosaic_diff(dem_tif_list, save_dir, extent_id,extent_poly, b_mosaic_id, b_mosaic_date, process_num,
+                         keep_dem_percent, o_res,  b_dem_diff, pre_name, b_rm_inter,resample_method=resample_method)
 
     # remove intermediate files
     if b_rm_inter:
@@ -649,15 +655,51 @@ def main(options, args):
     arcticDEM_shp = options.arcticDEM_shp
     o_res = options.out_res
     b_dem_diff = options.create_dem_diff
+    dem_list_txt = options.dem_list_txt
+
+
+    # create mosaic is time consuming, but it also takes a lot memory. For a region of 50 km by 50 km, it may take 10 to 50 GB memory
+    process_num = options.process_num
+    basic.outputlogMessage('The number of processes for creating the mosaic is: %d' % process_num)
 
     extent_shp_base = os.path.splitext(os.path.basename(extent_shp))[0]
-
-    dem_prj = map_projection.get_raster_or_vector_srs_info_epsg(arcticDEM_shp)
     extent_prj = map_projection.get_raster_or_vector_srs_info_epsg(extent_shp)
-    if extent_prj == dem_prj:
-        extent_polys = vector_gpd.read_polygons_gpd(extent_shp)
+
+    b_ArcticDEM_tar = False
+    dem_tif_list = []
+    if tar_dir is True and arcticDEM_shp is not None:
+        b_ArcticDEM_tar = True
     else:
-        extent_polys = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp,dem_prj)
+        dem_tif_list = io_function.read_list_from_txt(dem_list_txt)
+        # check projection
+        for dem_tif in dem_tif_list:
+            dem_prj = map_projection.get_raster_or_vector_srs_info_epsg(dem_tif)
+            if dem_prj != extent_prj:
+                raise ValueError('The projection of %s is different from %s'%(dem_prj, extent_prj))
+
+    b_ArcticDEM_tiles = False
+    if b_ArcticDEM_tar:
+        arcdem_prj = map_projection.get_raster_or_vector_srs_info_epsg(arcticDEM_shp)
+
+        # read dem polygons and url
+        dem_polygons = vector_gpd.read_polygons_gpd(arcticDEM_shp)
+        dem_urls = vector_gpd.read_attribute_values_list(arcticDEM_shp, 'fileurl')
+        basic.outputlogMessage('%d dem polygons in %s' % (len(dem_polygons), extent_shp))
+        # get tarball list
+        tar_list = io_function.get_file_list_by_ext('.gz', tar_dir, bsub_folder=False)
+        if len(tar_list) < 1:
+            raise ValueError('No input tar.gz files in %s' % tar_dir)
+
+        if is_ArcticDEM_tiles(tar_list):
+            basic.outputlogMessage('Input is the mosaic version of ArcticDEM')
+            b_ArcticDEM_tiles = True
+
+        if extent_prj == arcdem_prj:
+            extent_polys = vector_gpd.read_polygons_gpd(extent_shp)
+        else:
+            extent_polys = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp,arcdem_prj)
+    else:
+        extent_polys = vector_gpd.read_polygons_gpd(extent_shp)
 
     if len(extent_polys) < 1:
         raise ValueError('No polygons in %s'%extent_shp)
@@ -665,28 +707,11 @@ def main(options, args):
         basic.outputlogMessage('%d extent polygons in %s'%(len(extent_polys),extent_shp))
 
     extPolys_ids = vector_gpd.read_attribute_values_list(extent_shp,'id')
-    if extPolys_ids is None:
+    if extPolys_ids is None or None in extPolys_ids:
         basic.outputlogMessage('Warning, field: id is not in %s, will create default ID for each grid'%extent_shp)
         extPolys_ids = [ id + 1 for id in range(len(extent_polys))]
 
-    # create mosaic is time consuming, but it also takes a lot memory. For a region of 50 km by 50 km, it may take 10 to 50 GB memory
-    process_num = options.process_num
-    basic.outputlogMessage('The number of processes for creating the mosaic is: %d' % process_num)
-
-    # read dem polygons and url
-    dem_polygons = vector_gpd.read_polygons_gpd(arcticDEM_shp)
-    dem_urls = vector_gpd.read_attribute_values_list(arcticDEM_shp,'fileurl')
-    basic.outputlogMessage('%d dem polygons in %s' % (len(dem_polygons), extent_shp))
-
-    # get tarball list
-    tar_list = io_function.get_file_list_by_ext('.gz',tar_dir,bsub_folder=False)
-    if len(tar_list) < 1:
-        raise ValueError('No input tar.gz files in %s'%tar_dir)
-
-    b_ArcticDEM_tiles = False
-    if is_ArcticDEM_tiles(tar_list):
-        basic.outputlogMessage('Input is the mosaic version of ArcticDEM')
-        b_ArcticDEM_tiles = True
+    # print('extPolys_ids, count',extPolys_ids, len(extent_polys))
 
     same_extent = False
     if b_dem_diff:
@@ -696,12 +721,21 @@ def main(options, args):
     for idx, ext_poly in zip(extPolys_ids,extent_polys):
         basic.outputlogMessage('get data for the %d th extent (%d in total)' % (idx, len(extent_polys)))
 
-        if b_ArcticDEM_tiles:
-            proc_ArcticDEM_tile_one_grid_polygon(tar_dir,dem_polygons,dem_urls,o_res,save_dir,inter_format,b_rm_inter,ext_poly, idx,extent_shp_base)
+        if b_ArcticDEM_tar:
+            if b_ArcticDEM_tiles:
+                proc_ArcticDEM_tile_one_grid_polygon(tar_dir,dem_polygons,dem_urls,o_res,save_dir,inter_format,b_rm_inter,ext_poly, idx,extent_shp_base)
+            else:
+                proc_ArcticDEM_strip_one_grid_polygon(tar_dir,dem_polygons, dem_urls, o_res,save_dir,inter_format,
+                                                      b_mosaic_id,b_mosaic_date,b_rm_inter, b_dem_diff,
+                                                      ext_poly,idx,keep_dem_percent, process_num,extent_shp_base, resample_method='average',same_extent=same_extent)
         else:
-            proc_ArcticDEM_strip_one_grid_polygon(tar_dir,dem_polygons, dem_urls, o_res,save_dir,inter_format,
-                                                  b_mosaic_id,b_mosaic_date,b_rm_inter, b_dem_diff,
-                                                  ext_poly,idx,keep_dem_percent, process_num,extent_shp_base, resample_method='average',same_extent=same_extent)
+            # proc_dem_mosaic_diff(dem_tif_list, save_dir, idx, b_mosaic_id, b_mosaic_date,
+            #                      process_num, keep_dem_percent, area_pixel_count, b_dem_diff, extent_shp_base, b_rm_inter,resample_method='average')
+
+            proc_dem_mosaic_diff(dem_tif_list, save_dir, idx, ext_poly, b_mosaic_id, b_mosaic_date,
+                                 process_num,
+                                 keep_dem_percent, o_res, b_dem_diff, extent_shp_base, b_rm_inter, resample_method='average')
+
 
 
 
@@ -728,7 +762,9 @@ if __name__ == "__main__":
                       action="store", dest="arcticDEM_shp",
                       help="if the extent shapefile contains multiple polygons, we need the shapefile of ArcticDEM")
 
-
+    parser.add_option("-l", "--dem_list_txt",
+                      action="store", dest="dem_list_txt",
+                      help="a txt file contains many dem file")
 
     parser.add_option("-p", "--keep_dem_percent",
                       action="store", dest="keep_dem_percent",type=float,default=30.0,
