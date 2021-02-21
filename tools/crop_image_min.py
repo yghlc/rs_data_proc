@@ -15,10 +15,12 @@ from optparse import OptionParser
 deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
 
+import vector_gpd
+
 import basic_src.RSImageProcess as RSImageProcess
 import basic_src.map_projection as map_projection
 import basic_src.io_function as io_function
-import vector_gpd
+
 
 def subset_image_by_polygon_min(in_img, out_img, polygon,resample_m='bilinear',o_format='GTiff', out_res=None):
     # if same_extent:
