@@ -234,7 +234,8 @@ def check_dem_valid_per(dem_tif_list, work_dir, process_num =1, move_dem_thresho
     if process_num == 1:
         for tif in dem_tif_list:
             # RSImage.get_valid_pixel_count(tif)
-            per = RSImage.get_valid_pixel_percentage(tif,total_pixel_num=area_pixel_num)
+            # per = RSImage.get_valid_pixel_percentage(tif,total_pixel_num=area_pixel_num)
+            per = raster_io.get_valid_pixel_percentage(tif, total_pixel_num=area_pixel_num)
             if per is False:
                 return False
             dem_tif_valid_per[tif] = per
@@ -242,7 +243,7 @@ def check_dem_valid_per(dem_tif_list, work_dir, process_num =1, move_dem_thresho
     elif process_num > 1:
         theadPool = Pool(process_num)  # multi processes
         parameters_list = [(tif, area_pixel_num) for tif in dem_tif_list]
-        results = theadPool.starmap(RSImage.get_valid_pixel_percentage, parameters_list)  # need python3
+        results = theadPool.starmap(raster_io.get_valid_pixel_percentage, parameters_list)  # need python3
         for res, tif in zip(results, dem_tif_list):
             if res is False:
                 return False
