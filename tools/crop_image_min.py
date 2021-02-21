@@ -67,7 +67,14 @@ if __name__ == "__main__":
     parser.add_option("-d", "--save_dir",
                       action="store", dest="save_dir",default='./',
                       help="the folder to save pre-processed results")
+    (options, args) = parser.parse_args()
+    # print(options.create_mosaic)
 
+    if  len(args) < 2:
+        parser.print_help()
+        sys.exit(2)
+
+    main(options, args)
 
 
 
