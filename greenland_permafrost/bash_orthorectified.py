@@ -36,11 +36,12 @@ def ortho_rectified_gdalwarp(input, output, dem_tif):
 #           -multi -wo NUM_THREADS=8  -r cubic -et 0.01 -to "RPC_DEM=${dem}" ${img}  ${out}
     CommandString = 'gdalwarp -co compress=lzw -co tiled=yes -co bigtiff=if_safer -tr '+ str(out_res) + ' '+ str(out_res)
 
-    dem_prj = map_projection.get_raster_or_vector_srs_info_proj4(dem_tif)
+    dem_prj = map_projection.get_raster_or_vector_srs_info_epsg(dem_tif)
     CommandString += ' -t_srs ' + dem_prj
     CommandString += ' -te ' + extent
     CommandString += ' -multi -wo NUM_THREADS=' + str(thread_num)
     CommandString += ' -r cubic -et 0.01 -to "RPC_DEM=%s" '%dem_tif
+    CommandString += ' -dstnodata 0 '
     CommandString += ' %s %s  '%(input,output)
 
     return basic.exec_command_string_one_file(CommandString, output)
@@ -50,7 +51,7 @@ def main():
     ntf_list = io_function.get_file_list_by_ext('.ntf',os.path.join(dir,'DATA'), bsub_folder=True)
     io_function.save_list_to_txt('ntf_list.txt',ntf_list)
     dem_list = io_function.get_file_list_by_ext('.tif',os.path.join(dir,'PRODUCTS'), bsub_folder=True)
-    dem_list = [ item for item in dem_list if item.endswith('_dem.tif')]
+    dem_list = [ item for item in dem_list if item.endswith('_dem.tif') and 'strips' in item]
     io_function.save_list_to_txt('dem_list.txt', dem_list)
 
     for idx, ntf in enumerate(ntf_list):
@@ -68,8 +69,8 @@ def main():
             raise ValueError('Cannot find the corresponding DEM')
 
         output = os.path.splitext(name)[0] + '_ortho_sub.tif'
-        ortho_rectified_gdalwarp(input, output, dem_path)
-
+        ortho_rectified_gdalwarp(ntf, output, dem_path)
+        # break
 
     pass
 
