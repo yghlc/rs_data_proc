@@ -40,7 +40,7 @@ def ortho_rectified_gdalwarp(input, output, dem_tif):
     CommandString += ' -t_srs ' + dem_prj
     CommandString += ' -te ' + extent
     CommandString += ' -multi -wo NUM_THREADS=' + str(thread_num)
-    CommandString += ' -r cubic -et 0.01 -to "RPC_DEM=%s" '%dem_tif
+    CommandString += ' -r cubic -et 0.01 -rpc -to "RPC_DEM=%s" '%dem_tif    # the ntf has rpc metadata
     CommandString += ' -dstnodata 0 '
     CommandString += ' %s %s  '%(input,output)
 
