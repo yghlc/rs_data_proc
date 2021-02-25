@@ -812,7 +812,7 @@ if __name__ == "__main__":
                       help="the data format for middle intermediate files")
 
     parser.add_option("", "--process_num",
-                      action="store", dest="process_num", type=int, default=1,
+                      action="store", dest="process_num", type=int, default=4,
                       help="number of processes to create the mosaic")
 
 
