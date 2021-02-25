@@ -65,7 +65,7 @@ def arcticDEM_strip_registration(strip_dir):
     else:
         with open('no_registration_strips.txt','a') as f_obj:
             f_obj.writelines('%s\n'%strip_dir)
-        raise None
+        return None
 
 
 def process_dem_tarball(tar_list, work_dir,inter_format, out_res, extent_poly=None, poly_id=0, same_extent=False):
