@@ -680,7 +680,7 @@ def main(options, args):
 
     b_ArcticDEM_tar = False
     dem_tif_list = []
-    if tar_dir is True and arcticDEM_shp is not None:
+    if tar_dir is not None and arcticDEM_shp is not None:
         b_ArcticDEM_tar = True
     else:
         dem_tif_list = io_function.read_list_from_txt(dem_list_txt)
