@@ -63,7 +63,9 @@ def arcticDEM_strip_registration(strip_dir):
     if os.path.isfile(reg_tif):
         return reg_tif
     else:
-        raise ValueError('Cannot find the file after registration')
+        with open('no_registration_strips.txt','a') as f_obj:
+            f_obj.writelines('%s\n'%strip_dir)
+        raise None
 
 
 def process_dem_tarball(tar_list, work_dir,inter_format, out_res, extent_poly=None, poly_id=0, same_extent=False):
@@ -97,6 +99,8 @@ def process_dem_tarball(tar_list, work_dir,inter_format, out_res, extent_poly=No
             if os.path.isfile(dem_tif):
                 #registration for each DEM using dx, dy, dz in *reg.txt file
                 reg_tif = arcticDEM_strip_registration(out_dir)
+                if reg_tif is None:
+                    continue
 
                 # crop
                 if extent_poly is None:
