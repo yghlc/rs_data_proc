@@ -41,7 +41,7 @@ def main():
             sys.exit(1)
         changed_list.append(sh)
 
-    if len(changed_list) != 0:
+    if len(changed_list) < 1 :
         print("no new or modified files")
     else:
         print("backup files:")
