@@ -20,6 +20,7 @@ def main():
     bak_dir='/home/lihu9680/scripts_para_bak'
 
     # get bash file (*.sh) list
+    print('find *.sh files')
     sh_list = io_function.get_file_list_by_ext('.sh',org_dir,bsub_folder=True)
     changed_list = []
     for sh in sh_list:
