@@ -144,7 +144,7 @@ def process_dem_tarball(tar_list, work_dir,inter_format, out_res, extent_poly=No
 
     theadPool = Pool(process_num)  # multi processes
     parameters_list = [(targz,work_dir,apply_registration,extent_poly,poly_id,inter_format,out_res,same_extent) for targz in tar_list]
-    results = theadPool.starmap(mosaic_dem_list, parameters_list)  # need python3
+    results = theadPool.starmap(process_dem_one_tarball, parameters_list)  # need python3
     for res in results:
         crop_tif, out_dir = res
         if crop_tif is not None and out_dir is not None:
