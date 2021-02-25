@@ -639,7 +639,7 @@ def main(options, args):
 
     start_date = datetime.strptime(options.start_date, '%Y-%m-%d') #datetime(year=2018, month=5, day=20)
     end_date = datetime.strptime(options.end_date, '%Y-%m-%d')  #end_date
-    cloud_cover_thr = options.cloud_cover           # 0.3
+    cloud_cover_thr = options.cloud_cover           # 0.01
 
     planet_account = options.planet_account
     process_num = options.process_num
