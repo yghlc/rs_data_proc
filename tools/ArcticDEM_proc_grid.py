@@ -29,6 +29,7 @@ import operator
 
 import re
 re_stripID='[0-9]{8}_[0-9A-F]{16}_[0-9A-F]{16}'
+reg_py=os.path.expanduser('~/codes/github_public_repositories/pgcdemtools/apply_setsm_registration.py')
 
 from urllib.parse import urlparse
 
@@ -53,6 +54,17 @@ def subset_image_by_polygon_box(in_img, out_img, polygon,resample_m='bilinear',o
     else:
         # crop to the min extent (polygon or the image)
         return RSImageProcess.subset_image_by_polygon_box_image_min(out_img,in_img,polygon,resample_m=resample_m,o_format=o_format, xres=out_res,yres=out_res)
+
+def arcticDEM_strip_registration(strip_dir):
+    command_str = 'python '+ reg_py + ' ' +strip_dir
+    basic.os_system_exit_code(command_str)
+    end = '_dem_reg.tif'
+    reg_tif = os.path.join(strip_dir, os.path.basename(strip_dir) + end)
+    if os.path.isfile(reg_tif):
+        return reg_tif
+    else:
+        raise ValueError('Cannot find the file after registration')
+
 
 def process_dem_tarball(tar_list, work_dir,inter_format, out_res, extent_poly=None, poly_id=0, same_extent=False):
     '''
@@ -83,8 +95,8 @@ def process_dem_tarball(tar_list, work_dir,inter_format, out_res, extent_poly=No
         if out_dir is not False:
             dem_tif = get_dem_path_in_unpack_tarball(out_dir)
             if os.path.isfile(dem_tif):
-                #TODO: registration for each DEM using dx, dy, dz in *reg.txt file
-                reg_tif = dem_tif
+                #registration for each DEM using dx, dy, dz in *reg.txt file
+                reg_tif = arcticDEM_strip_registration(out_dir)
 
                 # crop
                 if extent_poly is None:
