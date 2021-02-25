@@ -509,7 +509,7 @@ def proc_ArcticDEM_tile_one_grid_polygon(tar_dir,dem_polygons,dem_urls,o_res,sav
 
 def check_dem_diff_results(save_dir,pre_name,extent_id):
 
-    save_dem_diff = os.path.join(save_dir, pre_name + '_ArcticDEM_diff_sub_%d.tif' % extent_id)
+    save_dem_diff = os.path.join(save_dir, pre_name + '_DEM_diff_sub_%d.tif' % extent_id)
     save_date_diff = os.path.join(save_dir, pre_name + '_date_diff_sub_%d.tif' % extent_id)
 
     if os.path.isfile(save_dem_diff) and os.path.isfile(save_date_diff):
@@ -590,7 +590,7 @@ def proc_dem_mosaic_diff(dem_tif_list, save_dir, extent_id,extent_poly, b_mosaic
 
     # do DEM difference
     if b_dem_diff:
-        save_dem_diff = os.path.join(save_dir,pre_name + '_ArcticDEM_diff_sub_%d.tif'%extent_id)
+        save_dem_diff = os.path.join(save_dir,pre_name + '_DEM_diff_sub_%d.tif'%extent_id)
         save_date_diff = os.path.join(save_dir,pre_name + '_date_diff_sub_%d.tif'%extent_id)
         dem_diff_newest_oldest(dem_tif_list,save_dem_diff,save_date_diff)
 
@@ -643,7 +643,7 @@ def test_dem_diff():
         tif_names = [line.split()[0] for line in f_job.readlines()]
         dem_tif_list = [os.path.join(mosaic_yeardate_dir, item) for item in tif_names]
 
-    save_dem_diff = 'test' + '_ArcticDEM_diff_sub_%d.tif' % extent_id
+    save_dem_diff = 'test' + '_DEM_diff_sub_%d.tif' % extent_id
     save_date_diff = 'test' + '_date_diff_sub_%d.tif' % extent_id
     dem_diff_newest_oldest(dem_tif_list, save_dem_diff, save_date_diff)
     pass
@@ -746,9 +746,6 @@ def main(options, args):
                                                       b_mosaic_id,b_mosaic_date,b_rm_inter, b_dem_diff,
                                                       ext_poly,idx,keep_dem_percent, process_num,extent_shp_base, resample_method='average',same_extent=same_extent)
         else:
-            # proc_dem_mosaic_diff(dem_tif_list, save_dir, idx, b_mosaic_id, b_mosaic_date,
-            #                      process_num, keep_dem_percent, area_pixel_count, b_dem_diff, extent_shp_base, b_rm_inter,resample_method='average')
-
             proc_dem_mosaic_diff(dem_tif_list, save_dir, idx, ext_poly, b_mosaic_id, b_mosaic_date,
                                  process_num,
                                  keep_dem_percent, o_res, b_dem_diff, extent_shp_base, b_rm_inter, resample_method='average')
