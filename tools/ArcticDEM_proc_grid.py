@@ -67,8 +67,62 @@ def arcticDEM_strip_registration(strip_dir):
             f_obj.writelines('%s\n'%strip_dir)
         return None
 
+def process_dem_one_tarball(targz,work_dir,apply_registration,extent_poly,poly_id,inter_format,out_res,same_extent):
+    # file existence check
+    crop_tif = None
+    tar_base = os.path.basename(targz)[:-7]
+    # files = io_function.get_file_list_by_pattern(tif_save_dir, tar_base + '*')
+    # if len(files) == 1:
+    #     basic.outputlogMessage('%s exist, skip processing tarball %s' % (files[0], targz))
+    #     dem_tif_list.append(files[0])
+    #     continue
 
-def process_dem_tarball(tar_list, work_dir,inter_format, out_res, extent_poly=None, poly_id=0, same_extent=False):
+    # unpack, it can check whether it has been unpacked
+    out_dir = io_function.unpack_tar_gz_file(targz, work_dir)
+    if out_dir is not False:
+        dem_tif = get_dem_path_in_unpack_tarball(out_dir)
+        if os.path.isfile(dem_tif):
+            # registration for each DEM using dx, dy, dz in *reg.txt file
+            if apply_registration:
+                reg_tif = arcticDEM_strip_registration(out_dir)
+                if reg_tif is None:
+                    return None, None
+            else:
+                reg_tif = dem_tif
+
+            # crop
+            if extent_poly is None:
+                crop_tif = reg_tif
+            else:
+                # because later, we move the file to another foldeer, so we should not use 'VRT' format
+                # crop_tif = RSImageProcess.subset_image_by_shapefile(reg_tif, extent_shp, format=inter_format)
+                save_crop_path = io_function.get_name_by_adding_tail(reg_tif, 'sub_poly_%d' % poly_id)
+                if os.path.isfile(save_crop_path):
+                    basic.outputlogMessage('%s exists, skip cropping' % save_crop_path)
+                    crop_tif = save_crop_path
+                else:
+                    crop_tif = subset_image_by_polygon_box(reg_tif, save_crop_path, extent_poly, resample_m='near',
+                                                           o_format=inter_format, out_res=out_res,
+                                                           same_extent=same_extent)
+                if crop_tif is False:
+                    basic.outputlogMessage('warning, crop %s faild' % reg_tif)
+                    return None, None
+            # # move to a new folder
+            # new_crop_tif = os.path.join(tif_save_dir, os.path.basename(crop_tif))
+            # io_function.move_file_to_dst(crop_tif, new_crop_tif)
+            # dem_tif_list.append(new_crop_tif)
+            # dem_tif_list.append(crop_tif)
+        else:
+            basic.outputlogMessage('warning, no *_dem.tif in %s' % out_dir)
+
+        # tar_folder_list.append(out_dir)
+    else:
+        basic.outputlogMessage('warning, unpack %s faild' % targz)
+
+    return crop_tif, out_dir
+
+def process_dem_tarball(tar_list, work_dir,inter_format, out_res, extent_poly=None, poly_id=0, same_extent=False,
+                        process_num=4, apply_registration=False):
     '''
     process dem tarball one by one
     :param tar_list: tarball list
@@ -83,53 +137,20 @@ def process_dem_tarball(tar_list, work_dir,inter_format, out_res, extent_poly=No
 
     dem_tif_list = []
     tar_folder_list = []
-    for targz in tar_list:
-        # file existence check
-        tar_base = os.path.basename(targz)[:-7]
-        # files = io_function.get_file_list_by_pattern(tif_save_dir, tar_base + '*')
-        # if len(files) == 1:
-        #     basic.outputlogMessage('%s exist, skip processing tarball %s' % (files[0], targz))
-        #     dem_tif_list.append(files[0])
-        #     continue
+    # for targz in tar_list:
+    #     crop_tif, out_dir = process_dem_one_tarball(targz,work_dir,apply_registration,extent_poly,poly_id,inter_format,out_res,same_extent)
+    #     dem_tif_list.append(crop_tif)
+    #     tar_folder_list.append(out_dir)
 
-        # unpack, it can check whether it has been unpacked
-        out_dir = io_function.unpack_tar_gz_file(targz, work_dir)
-        if out_dir is not False:
-            dem_tif = get_dem_path_in_unpack_tarball(out_dir)
-            if os.path.isfile(dem_tif):
-                #registration for each DEM using dx, dy, dz in *reg.txt file
-                reg_tif = arcticDEM_strip_registration(out_dir)
-                if reg_tif is None:
-                    continue
-
-                # crop
-                if extent_poly is None:
-                    crop_tif = reg_tif
-                else:
-                    # because later, we move the file to another foldeer, so we should not use 'VRT' format
-                    # crop_tif = RSImageProcess.subset_image_by_shapefile(reg_tif, extent_shp, format=inter_format)
-                    save_crop_path = io_function.get_name_by_adding_tail(reg_tif,'sub_poly_%d'%poly_id)
-                    if os.path.isfile(save_crop_path):
-                        basic.outputlogMessage('%s exists, skip cropping'%save_crop_path)
-                        crop_tif = save_crop_path
-                    else:
-                        crop_tif = subset_image_by_polygon_box(reg_tif,save_crop_path, extent_poly, resample_m='near', o_format=inter_format, out_res = out_res, same_extent=same_extent)
-                    if crop_tif is False:
-                        basic.outputlogMessage('warning, crop %s faild' % reg_tif)
-                        continue
-                # # move to a new folder
-                # new_crop_tif = os.path.join(tif_save_dir, os.path.basename(crop_tif))
-                # io_function.move_file_to_dst(crop_tif, new_crop_tif)
-                # dem_tif_list.append(new_crop_tif)
-                dem_tif_list.append(crop_tif)
-            else:
-                basic.outputlogMessage('warning, no *_dem.tif in %s' % out_dir)
-
+    theadPool = Pool(process_num)  # multi processes
+    parameters_list = [(targz,work_dir,apply_registration,extent_poly,poly_id,inter_format,out_res,same_extent) for targz in tar_list]
+    results = theadPool.starmap(mosaic_dem_list, parameters_list)  # need python3
+    for res in results:
+        crop_tif, out_dir = res
+        if crop_tif is not None and out_dir is not None:
+            dem_tif_list.append(crop_tif)
             tar_folder_list.append(out_dir)
-        else:
-            basic.outputlogMessage('warning, unpack %s faild' % targz)
 
-        # break
 
     return dem_tif_list, tar_folder_list
 
@@ -438,7 +459,8 @@ def process_arcticDEM_tiles(tar_list,save_dir,inter_format, resample_method, o_r
     '''
 
     # unpackage and crop to extent
-    dem_tif_list, tar_folders = process_dem_tarball(tar_list, save_dir, inter_format, o_res, extent_poly=extent_poly, poly_id=extent_id)
+    dem_tif_list, tar_folders = process_dem_tarball(tar_list, save_dir, inter_format, o_res, extent_poly=extent_poly,
+                                                    poly_id=extent_id, process_num=4)
     if len(dem_tif_list) < 1:
         raise ValueError('No DEM extracted from tarballs')
 
@@ -620,7 +642,8 @@ def proc_ArcticDEM_strip_one_grid_polygon(tar_dir,dem_polygons,dem_urls,o_res,sa
         return False
 
     # unpackage and crop to extent
-    dem_tif_list, tar_folders = process_dem_tarball(tar_list, save_dir, inter_format, o_res, extent_poly=extent_poly, poly_id=extent_id,same_extent=same_extent)
+    dem_tif_list, tar_folders = process_dem_tarball(tar_list, save_dir, inter_format, o_res, extent_poly=extent_poly,
+                                                    poly_id=extent_id,same_extent=same_extent,process_num=process_num, apply_registration=True)
     if len(dem_tif_list) < 1:
         raise ValueError('No DEM extracted from tarballs')
 
