@@ -34,7 +34,7 @@ def main():
 
         new_dir = os.path.dirname(new_path)
         if os.path.isdir(new_dir) is False:
-            io_function.mkdir(new_dir)
+            os.system('mkdir -p %s'%new_dir)
 
         res = os.system('cp -p %s %s'%(sh, new_path))
         if res!=0:
