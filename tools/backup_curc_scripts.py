@@ -16,8 +16,7 @@ sys.path.insert(0, deeplabforRS)
 import basic_src.io_function as io_function
 
 def main():
-    # org_dir='/scratch/summit/lihu9680'
-    org_dir='/scratch/summit/lihu9680/Arctic/alaska'
+    org_dir='/scratch/summit/lihu9680'
     bak_dir='/home/lihu9680/scripts_para_bak'
 
     # get bash file (*.sh) list
@@ -25,8 +24,7 @@ def main():
     changed_list = []
     for sh in sh_list:
         bak_path = bak_dir + sh.replace(org_dir,'')
-        print(bak_path)
-        sys.exit(1)
+        # print(bak_path)
         mo_time = os.path.getmtime(sh)
         if os.path.isfile(bak_path):
             bak_mo_time = os.path.getmtime(bak_path)
