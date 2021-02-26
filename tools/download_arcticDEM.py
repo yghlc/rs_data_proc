@@ -58,8 +58,7 @@ def main(options, args):
         basic.outputlogMessage('%d extent polygons in %s'%(len(extent_polys),extent_shp))
 
     # read dem polygons and url
-    dem_polygons = vector_gpd.read_polygons_gpd(dem_index_shp)
-    dem_urls = vector_gpd.read_attribute_values_list(dem_index_shp,'fileurl')
+    dem_polygons, dem_urls = vector_gpd.read_polygons_attributes_list(dem_index_shp, 'fileurl',b_fix_invalid_polygon=False)
 
     basic.outputlogMessage('%d dem polygons in %s' % (len(dem_polygons), extent_shp))
 
