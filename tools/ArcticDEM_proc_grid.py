@@ -730,7 +730,7 @@ def main(options, args):
         arcdem_prj = map_projection.get_raster_or_vector_srs_info_epsg(arcticDEM_shp)
 
         # read dem polygons and url
-        dem_polygons = vector_gpd.read_polygons_gpd(arcticDEM_shp)
+        dem_polygons = vector_gpd.read_polygons_gpd(arcticDEM_shp, b_fix_invalid_polygon=False)
         dem_urls = vector_gpd.read_attribute_values_list(arcticDEM_shp, 'fileurl')
         basic.outputlogMessage('%d dem polygons in %s' % (len(dem_polygons), extent_shp))
         # get tarball list
