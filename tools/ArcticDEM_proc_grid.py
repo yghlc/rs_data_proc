@@ -661,8 +661,10 @@ def proc_ArcticDEM_strip_one_grid_polygon(tar_dir,dem_polygons,dem_urls,o_res,sa
         return False
 
     # unpackage and crop to extent
+    b_apply_registration = True
     dem_tif_list, tar_folders = process_dem_tarball(tar_list, save_dir, inter_format, o_res, extent_poly=extent_poly,
-                                                    poly_id=extent_id,same_extent=same_extent,process_num=process_num, apply_registration=False)
+                                                    poly_id=extent_id,same_extent=same_extent,process_num=process_num,
+                                                    apply_registration=b_apply_registration)
     if len(dem_tif_list) < 1:
         raise ValueError('No DEM extracted from tarballs')
 
