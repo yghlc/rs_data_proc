@@ -64,8 +64,11 @@ def arcticDEM_strip_registration(strip_dir):
     if os.path.isfile(reg_tif):
         return reg_tif
     else:
-        with open('no_registration_strips.txt','a') as f_obj:
-            f_obj.writelines('%s\n'%strip_dir)
+        # with open('no_registration_strips.txt','a') as f_obj:
+        #     f_obj.writelines('%s\n'%strip_dir)
+        f_obj=open('no_registration_strips.txt','a')
+        f_obj.writelines('%s\n'%strip_dir)
+        f_obj.close()   # close file manually, to avoid dead lock when using multiple threads
         return None
 
 def process_dem_one_tarball(targz,work_dir,apply_registration,extent_poly,poly_id,inter_format,out_res,same_extent):
