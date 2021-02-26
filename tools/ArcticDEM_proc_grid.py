@@ -41,6 +41,8 @@ import numpy as np
 import multiprocessing
 from multiprocessing import Pool
 
+import time
+
 def get_dem_path_in_unpack_tarball(out_dir):
     file_end = ['_dem.tif','_reg_dem.tif']   # Arctic strip and tile (mosaic) version
     for end in file_end:
@@ -730,8 +732,9 @@ def main(options, args):
         arcdem_prj = map_projection.get_raster_or_vector_srs_info_epsg(arcticDEM_shp)
 
         # read dem polygons and url
-        dem_polygons = vector_gpd.read_polygons_gpd(arcticDEM_shp, b_fix_invalid_polygon=False)
-        dem_urls = vector_gpd.read_attribute_values_list(arcticDEM_shp, 'fileurl')
+        time0 = time.time()
+        dem_polygons, dem_urls = vector_gpd.read_polygons_attributes_list(arcticDEM_shp,'fileurl',b_fix_invalid_polygon=False)
+        print('time cost of read polygons and attributes', time.time() - time0)
         basic.outputlogMessage('%d dem polygons in %s' % (len(dem_polygons), extent_shp))
         # get tarball list
         tar_list = io_function.get_file_list_by_ext('.gz', tar_dir, bsub_folder=False)
