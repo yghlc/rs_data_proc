@@ -24,6 +24,7 @@ import basic_src.RSImageProcess as RSImageProcess
 import basic_src.RSImage as RSImage
 import basic_src.timeTools as timeTools
 import raster_io
+import split_image
 
 import operator
 
@@ -309,28 +310,28 @@ def check_dem_valid_per(dem_tif_list, work_dir, process_num =1, move_dem_thresho
 
     return keep_dem_list
 
-def read_date_dem_to_memory(pair_idx, pair, date_pair_list_sorted,dem_data_dict, dem_groups_date, less_memory=False):
+def read_date_dem_to_memory(pair_idx, pair, date_pair_list_sorted,dem_data_dict, dem_groups_date, less_memory=False,boundary=None):
 
     if less_memory is False:
         # read data to memory if need, then store in memory, avoid to read them again.
         # for a large area, because we read all raster to memory, it will cause "out of memory problem"
         if pair[0] not in dem_data_dict.keys():
-            data_old, _ = raster_io.read_raster_one_band_np(dem_groups_date[pair[0]][0])
+            data_old, _ = raster_io.read_raster_one_band_np(dem_groups_date[pair[0]][0],boundary=boundary)
             dem_data_dict[pair[0]] = data_old
         else:
             data_old = dem_data_dict[pair[0]]
 
         # read data to memory if need
         if pair[1] not in dem_data_dict.keys():
-            data_new, _ = raster_io.read_raster_one_band_np(dem_groups_date[pair[1]][0])
+            data_new, _ = raster_io.read_raster_one_band_np(dem_groups_date[pair[1]][0],boundary=boundary)
             dem_data_dict[pair[1]] = data_new
         else:
             data_new = dem_data_dict[pair[1]]
     else:
         # if we don't have enough memory, don't store the all DEM data in memory, only read two needed.
         # wil increase reading operation from disk
-        data_old, _ = raster_io.read_raster_one_band_np(dem_groups_date[pair[0]][0])
-        data_new, _ = raster_io.read_raster_one_band_np(dem_groups_date[pair[1]][0])
+        data_old, _ = raster_io.read_raster_one_band_np(dem_groups_date[pair[0]][0],boundary=boundary)
+        data_new, _ = raster_io.read_raster_one_band_np(dem_groups_date[pair[1]][0],boundary=boundary)
 
     # release some memory if we can (NO)
 
@@ -369,6 +370,9 @@ def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff):
         if h!=height or w!=width:
             raise ValueError('the height and width of %s is different from others'%tif)
 
+    # divide the image the many small patches, then calcuate one by one, solving memory issues. 
+    image_patches = split_image.sliding_window(width,height, 1024, 1024,adj_overlay_x=0,adj_overlay_y=0)
+    patch_count = len(image_patches)
     tif_obj_list = None
 
     # read all and their date
@@ -377,42 +381,57 @@ def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff):
     # sort based on day difference (from max to min)
     date_pair_list_sorted = [x for _, x in sorted(zip(date_diff_list, date_pair_list),reverse=True)]    # descending
 
-    # use dict to read data from disk (only need)
-    dem_data_dict = {}
 
     # get the difference
     date_diff_np = np.zeros((height, width),dtype=np.uint16)
     dem_diff_np = np.empty((height, width),dtype=np.float32)
     dem_diff_np[:] = np.nan
 
-    for p_idx, pair in enumerate(date_pair_list_sorted):
-        diff_days = (pair[1] - pair[0]).days
-        basic.outputlogMessage('Getting DEM difference using the one on %s and %s, total day diff: %d'%
-                               (timeTools.date2str(pair[1]), timeTools.date2str(pair[0]),diff_days))
-        # print(pair,':',(pair[1] - pair[0]).days)
+    for idx, patch in enumerate(image_patches):
+        print('tile: %d / %d'%(idx+1, patch_count))
 
-        data_old, data_new = read_date_dem_to_memory(p_idx, pair, date_pair_list_sorted,dem_data_dict, dem_groups_date)
+        patch_w = patch[2]
+        patch_h = patch[3]
+        patch_date_diff = np.zeros((patch_h, patch_w),dtype=np.uint16)
+        patch_dem_diff = np.empty((patch_h, patch_w),dtype=np.float32)
+        patch_dem_diff[:] = np.nan
 
-        print('data_old shape:',data_old.shape)
-        print('data_new shape:',data_new.shape)
+        # use dict to read data from disk (only need)
+        dem_data_dict = {}
+        for p_idx, pair in enumerate(date_pair_list_sorted):
+            diff_days = (pair[1] - pair[0]).days
+            basic.outputlogMessage('Getting DEM difference using the one on %s and %s, total day diff: %d'%
+                                (timeTools.date2str(pair[1]), timeTools.date2str(pair[0]),diff_days))
+            # print(pair,':',(pair[1] - pair[0]).days)
 
-        diff_two = data_new - data_old
-        # print(diff_two)
+            data_old, data_new = read_date_dem_to_memory(p_idx, pair, date_pair_list_sorted,dem_data_dict, dem_groups_date,boundary=patch)
 
-        # fill the element
-        new_ele = np.where(np.logical_and( np.isnan(dem_diff_np), ~np.isnan(diff_two)))
-        dem_diff_np[ new_ele ] = diff_two[new_ele]
+            # print('data_old shape:',data_old.shape)
+            # print('data_new shape:',data_new.shape)
 
-        date_diff_np[new_ele] = diff_days
+            diff_two = data_new - data_old
+            # print(diff_two)
 
-        # check if all have been filled ( nan pixels)
-        diff_remain_hole = np.where(np.isnan(dem_diff_np))
-        basic.outputlogMessage(' remain %.4f percent pixels need to be filled'% (100.0*diff_remain_hole[0].size/dem_diff_np.size) )
-        if diff_remain_hole[0].size < 1:
-            break
+            # fill the element
+            new_ele = np.where(np.logical_and( np.isnan(patch_dem_diff), ~np.isnan(diff_two)))
 
-        # # test
-        # break
+            patch_dem_diff[new_ele] = diff_two[new_ele]
+            patch_date_diff[new_ele] = diff_days
+
+            # check if all have been filled ( nan pixels)
+            diff_remain_hole = np.where(np.isnan(patch_dem_diff))
+            # basic.outputlogMessage(' remain %.4f percent pixels need to be filled'% (100.0*diff_remain_hole[0].size/patch_dem_diff.size) )
+            if diff_remain_hole[0].size < 1:
+                break
+
+        # copy to the entire image
+        row_s = patch[1]
+        row_e = patch[1] + patch[3]
+        col_s = patch[0]
+        col_e = patch[0] + patch[2]
+        dem_diff_np[row_s:row_e, col_s:col_e] = patch_dem_diff
+        date_diff_np[row_s:row_e, col_s:col_e] = patch_date_diff
+
     # save date diff to tif (16 bit)
     raster_io.save_numpy_array_to_rasterfile(date_diff_np,out_date_diff,dem_tif_list[0], nodata=0,compress='lzw',tiled='yes',bigtiff='if_safer')
 
