@@ -677,24 +677,8 @@ def proc_ArcticDEM_strip_one_grid_polygon(tar_dir,dem_polygons,dem_urls,o_res,sa
             io_function.delete_file_or_dir(folder)
 
 
-def test_dem_diff():
-    # test in folder "~/Data/Arctic/canada_arctic/DEM/WR_dem"
-    extent_id = 1
-    mosaic_yeardate_dir = os.path.join('./', 'dem_date_mosaic_sub_%d' % extent_id)
-    with open(os.path.join(mosaic_yeardate_dir, 'dem_valid_percent.txt')) as f_job:
-        tif_names = [line.split()[0] for line in f_job.readlines()]
-        dem_tif_list = [os.path.join(mosaic_yeardate_dir, item) for item in tif_names]
-
-    save_dem_diff = 'test' + '_DEM_diff_sub_%d.tif' % extent_id
-    save_date_diff = 'test' + '_date_diff_sub_%d.tif' % extent_id
-    dem_diff_newest_oldest(dem_tif_list, save_dem_diff, save_date_diff)
-    pass
-
 
 def main(options, args):
-
-    # # test
-    # return test_dem_diff()
 
     extent_shp = args[0]
     # ext_shp_prj = map_projection.get_raster_or_vector_srs_info_epsg(extent_shp)
