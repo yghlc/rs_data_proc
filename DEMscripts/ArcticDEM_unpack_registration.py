@@ -92,6 +92,9 @@ def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, a
     :return:
     '''
 
+    if os.path.isdir(save_dir) is False:
+        io_function.mkdir(save_dir)
+
     out_dir_list = []
     for idx, targz in enumerate(tar_list):
         tar_base = os.path.basename(targz)[:-7]
@@ -129,14 +132,18 @@ def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, a
                 io_function.delete_file_or_dir(dir)
 
 def main(options, args):
-    tar_dir = args[0]
+
     save_dir = options.save_dir
     b_rm_inter = options.remove_inter_data
 
-    tar_list = io_function.get_file_list_by_ext('.gz', tar_dir, bsub_folder=False)
-    tar_count = len(tar_list)
-    if tar_count < 1:
-        raise ValueError('No input tar.gz files in %s' % tar_dir)
+    tar_dir = args[0]
+    if os.path.isfile(tar_dir):
+        tar_list = [tar_dir]
+    else:
+        tar_list = io_function.get_file_list_by_ext('.gz', tar_dir, bsub_folder=False)
+        tar_count = len(tar_list)
+        if tar_count < 1:
+            raise ValueError('No input tar.gz files in %s' % tar_dir)
 
     work_dir = './'
     process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=b_rm_inter, apply_registration=True)
@@ -144,7 +151,7 @@ def main(options, args):
 
 
 if __name__ == '__main__':
-    usage = "usage: %prog [options] tarball_dir "
+    usage = "usage: %prog [options] tarball_dir or a_tarball "
     parser = OptionParser(usage=usage, version="1.0 2020-12-26")
     parser.description = 'Introduction: untar ArcticDEM tarball and apply registration '
 
