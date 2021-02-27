@@ -31,8 +31,16 @@ def main(options, args):
     img_np_allbands, src_nodata = raster_io.read_raster_all_bands_np(img_path)
 
     scales = options.scale
-    print('input scale (src_min src_max dst_min dst_max): '+ str(scales))
-    img_array_8bit = raster_io.image_numpy_allBands_to_8bit(img_np_allbands,scales,src_nodata=src_nodata,dst_nodata=options.dst_nodata)
+    if scales is not None:
+        print('input scale (src_min src_max dst_min dst_max): '+ str(scales))
+        img_array_8bit = raster_io.image_numpy_allBands_to_8bit(img_np_allbands,scales,src_nodata=src_nodata,dst_nodata=options.dst_nodata)
+    else:
+        min_percent = options.hist_min_percent
+        max_percent = options.hist_max_percent
+        min_max_value = options.min_max_value
+        img_array_8bit = raster_io.image_numpy_allBands_to_8bit_hist(img_np_allbands,min_max_value,per_min=min_percent,
+                                                                     per_max=max_percent,src_nodata=src_nodata,
+                                                                     dst_nodata=options.dst_nodata)
 
     # save to file
     save_path = args[1]
@@ -63,8 +71,16 @@ if __name__ == '__main__':
                       action="store", dest="hist_min_percent",type=float,
                       help="the lower percent for choosing the max pixel value")
 
+    parser.add_option("", "--min_max_value",action="append",
+                      dest="min_max_value",type=float,
+                      help="if the value from hist_(min)_max_percent (less) greater than this one, it will be set as this"
+                           "--min_max_value min max. (repeat to give multiple ones)")
+    #
+
+
     (options, args) = parser.parse_args()
     # print(options.scale)
+    print(options.min_max_value)
 
     if len(sys.argv) < 2 or len(args) < 1:
         parser.print_help()
