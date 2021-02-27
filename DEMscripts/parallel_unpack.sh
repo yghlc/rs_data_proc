@@ -9,7 +9,7 @@ delay=3
 tar_dir=./
 save_dir=arcticdem_registration_tifs
 
-parallel --progress --delay ${delay} -j ${job} ${py} {} -d ${save_dir} -r ::: $(ls ${tar_dir}/*.tar.gz)
+parallel --citation --progress --delay ${delay} -j ${job} ${py} {} -d ${save_dir} -r ::: $(ls ${tar_dir}/*.tar.gz)
 
 
 
