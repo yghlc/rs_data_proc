@@ -71,7 +71,7 @@ if __name__ == '__main__':
                       action="store", dest="hist_min_percent",type=float,
                       help="the lower percent for choosing the max pixel value")
 
-    parser.add_option("", "--min_max_value",action="append",
+    parser.add_option("-m", "--min_max_value",nargs=2, action="append",
                       dest="min_max_value",type=float,
                       help="if the value from hist_(min)_max_percent (less) greater than this one, it will be set as this"
                            "--min_max_value min max. (repeat to give multiple ones)")
