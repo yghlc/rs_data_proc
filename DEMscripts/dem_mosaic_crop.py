@@ -147,7 +147,7 @@ def check_dem_valid_per(dem_tif_list, work_dir, process_num =1, move_dem_thresho
     '''
 
     keep_dem_list = []
-
+    print('start getting valid pixel percent %d files'%len(dem_tif_list))
     dem_tif_valid_per = {}
     if process_num == 1:
         for idx,tif in enumerate(dem_tif_list):
@@ -235,8 +235,8 @@ def mosaic_crop_dem_same_stripID(dem_tif_list, save_dir, extent_id, extent_poly,
                                                   o_format='GTiff')
             dem_tif_list = mosaic_list
 
-            # get valid pixel percentage (due to large memory used in raster_io, set process_num as 1)
-            dem_tif_list = check_dem_valid_per(dem_tif_list, mosaic_dir, process_num=1,
+            # get valid pixel percentage (due to large memory used in raster_io, may set process_num as 1)
+            dem_tif_list = check_dem_valid_per(dem_tif_list, mosaic_dir, process_num=process_num,
                                                move_dem_threshold=keep_dem_percent, area_pixel_num=area_pixel_count)
 
 
