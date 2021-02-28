@@ -108,7 +108,8 @@ def mosaic_dem_list(key, dem_list, save_tif_dir,resample_method,save_source, o_f
                                                o_format=o_format,
                                                compress='lzw', tiled='yes', bigtiff='if_safer',thread_num=thread_num)
     if result is False:
-        return False
+        sys.exit(1)
+        # return False
     return save_mosaic
 
 def mosaic_dem_same_stripID(demTif_groups,save_tif_dir, resample_method, process_num=1, save_source=False, o_format='GTiff'):
