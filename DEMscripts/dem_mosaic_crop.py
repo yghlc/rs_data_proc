@@ -97,7 +97,13 @@ def mosaic_dem_list(key, dem_list, save_tif_dir,resample_method,save_source, o_f
         save_mosaic_source_txt = os.path.join(save_tif_dir, key + '_src.txt')
         io_function.save_list_to_txt(save_mosaic_source_txt, dem_list)
 
-    # create mosaic, can handle only input one file
+    # if only one dem, then copy it if it's not VRT format
+    if len(dem_list) == 1:
+        if raster_io.get_driver_format(dem_list[0]) != 'VRT':
+            io_function.copy_file_to_dst(dem_list[0], save_mosaic)
+            return save_mosaic
+
+    # create mosaic, can handle only input one file, but is slow
     result = RSImageProcess.mosaic_crop_images_gdalwarp(dem_list, save_mosaic, resampling_method=resample_method,
                                                o_format=o_format,
                                                compress='lzw', tiled='yes', bigtiff='if_safer',thread_num=thread_num)
@@ -110,19 +116,20 @@ def mosaic_dem_same_stripID(demTif_groups,save_tif_dir, resample_method, process
         io_function.mkdir(save_tif_dir)
 
     mosaic_list = []
-    # if process_num == 1:
-    for key in demTif_groups.keys():
-        save_mosaic = mosaic_dem_list(key, demTif_groups[key], save_tif_dir,resample_method,save_source, o_format,thread_num=process_num)
-        mosaic_list.append(save_mosaic)
-    # elif process_num > 1:
-    #     theadPool = Pool(process_num)  # multi processes
-    #
-    #     parameters_list = [(key, demTif_groups[key], save_tif_dir, resample_method, save_source, o_format) for key in demTif_groups.keys()]
-    #
-    #     results = theadPool.starmap(mosaic_dem_list, parameters_list)  # need python3
-    #     mosaic_list = [ out for out in results if out is not False]
-    # else:
-    #     raise ValueError('Wrong process_num: %d'%process_num)
+    if process_num == 1:
+        for key in demTif_groups.keys():
+            save_mosaic = mosaic_dem_list(key, demTif_groups[key], save_tif_dir,resample_method,save_source, o_format,thread_num=process_num)
+            mosaic_list.append(save_mosaic)
+    elif process_num > 1:
+        # change backk to multi process of gdalwarp, when get mosaic, gdalwarp multi-thread cannot fully utlized CPUs
+        theadPool = Pool(process_num)  # multi processes
+
+        parameters_list = [(key, demTif_groups[key], save_tif_dir, resample_method, save_source, o_format,1) for key in demTif_groups.keys()]
+
+        results = theadPool.starmap(mosaic_dem_list, parameters_list)  # need python3
+        mosaic_list = [ out for out in results if out is not False]
+    else:
+        raise ValueError('Wrong process_num: %d'%process_num)
 
     return mosaic_list
 
