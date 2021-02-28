@@ -29,14 +29,14 @@ from multiprocessing import Pool
 import operator
 
 
-def subset_image_by_polygon_box(in_img, out_img, polygon,resample_m='bilinear',o_format='GTiff', out_res=None,same_extent=False):
+def subset_image_by_polygon_box(in_img, out_img, polygon,resample_m='bilinear',o_format='GTiff', out_res=None,same_extent=False, thread_num=1):
     if same_extent:
         return RSImageProcess.subset_image_by_polygon_box(out_img,in_img,polygon,resample_m=resample_m, o_format=o_format,
-                                                          xres=out_res,yres=out_res,compress='lzw', tiled='yes', bigtiff='if_safer')
+                                                          xres=out_res,yres=out_res,compress='lzw', tiled='yes', bigtiff='if_safer',thread_num=thread_num)
     else:
         # crop to the min extent (polygon or the image)
         return RSImageProcess.subset_image_by_polygon_box_image_min(out_img,in_img,polygon,resample_m=resample_m,o_format=o_format,
-                                                            xres=out_res,yres=out_res,compress='lzw', tiled='yes', bigtiff='if_safer')
+                                                            xres=out_res,yres=out_res,compress='lzw', tiled='yes', bigtiff='if_safer',thread_num=thread_num)
 
 
 def group_demTif_yearmonthDay(demTif_list, diff_days=30):
@@ -205,7 +205,7 @@ def mosaic_crop_dem_same_stripID(dem_tif_list, save_dir, extent_id, extent_poly,
             crop_tif_list.append(save_crop_path)
         else:
             crop_tif = subset_image_by_polygon_box(tif, save_crop_path, extent_poly, resample_m='near',
-                            o_format='VRT', out_res=o_res,same_extent=True)
+                            o_format='VRT', out_res=o_res,same_extent=True,thread_num=process_num)
             if crop_tif is False:
                 raise ValueError('warning, crop %s failed' % tif)
             crop_tif_list.append(crop_tif)
