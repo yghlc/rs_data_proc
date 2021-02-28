@@ -266,7 +266,7 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
             with open(os.path.join(mosaic_yeardate_dir,'dem_valid_percent.txt')) as f_job:
                 tif_valid_per_list = [line.strip().split() for line in f_job.readlines()]
                 # check keep_dem_percent
-                dem_tif_list = [ os.path.join(mosaic_dir,tif) for tif, per in tif_valid_per_list 
+                dem_tif_list = [ os.path.join(mosaic_yeardate_dir,tif) for tif, per in tif_valid_per_list
                 if float(per) >= keep_dem_percent]
         else:
             io_function.mkdir(mosaic_yeardate_dir)
