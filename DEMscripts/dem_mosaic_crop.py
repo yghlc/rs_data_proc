@@ -147,7 +147,7 @@ def check_dem_valid_per(dem_tif_list, work_dir, process_num =1, move_dem_thresho
     '''
 
     keep_dem_list = []
-    print('start getting valid pixel percent %d files'%len(dem_tif_list))
+    print('start getting valid pixel percent for %d files'%len(dem_tif_list))
     dem_tif_valid_per = {}
     if process_num == 1:
         for idx,tif in enumerate(dem_tif_list):
