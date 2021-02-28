@@ -337,6 +337,9 @@ def main(options, args):
             basic.outputlogMessage('mosaic and crop DEM for the %d th extent (%d in total)' % (idx, len(extent_polys)))
             # get subset of DEM
             dem_poly_ids = vector_gpd.get_poly_index_within_extent(dem_ext_polys, ext_poly)
+            if len(dem_poly_ids) < 1:
+                basic.outputlogMessage('no dem tifs within %d polygons'%idx)
+                continue
             dem_list_sub = [dem_list[id] for id in dem_poly_ids]
 
             mosaic_crop_dem_same_stripID(dem_list_sub, save_dir, idx, ext_poly, b_mosaic_id, b_mosaic_date,
