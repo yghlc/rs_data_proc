@@ -199,7 +199,7 @@ def check_dem_valid_per(dem_tif_list, work_dir, process_num =1, move_dem_thresho
 
     return keep_dem_list
 
-def mosaic_crop_dem_same_stripID(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id, b_mosaic_date, process_num,
+def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id, b_mosaic_date, process_num,
                          keep_dem_percent, o_res, pre_name, resample_method='average'):
 
     # crop to the same extent
@@ -233,8 +233,11 @@ def mosaic_crop_dem_same_stripID(dem_tif_list, save_dir, extent_id, extent_poly,
             basic.outputlogMessage('mosaic based on stripID exists, skip mosaicking')
             with open(os.path.join(mosaic_dir, 'dem_valid_percent.txt')) as f_job:
                 tif_names = [line.split()[0] for line in f_job.readlines()]
-                dem_tif_list = [os.path.join(mosaic_dir, item) for item in tif_names]
-                # print(dem_tif_list)
+                # dem_tif_list = [os.path.join(mosaic_dir, item) for item in tif_names]
+                # check keep_dem_percent
+                valid_per = [float(line.strip().split()[1]) for line in f_job.readlines()]
+                dem_tif_list = [ tif for tif, per in zip(tif_names,valid_per) if per >= keep_dem_percent]
+
         else:
             io_function.mkdir(mosaic_dir)
             # when create mosaic using VRT end some wrong results, so choose to use 'GTiff'
@@ -263,8 +266,10 @@ def mosaic_crop_dem_same_stripID(dem_tif_list, save_dir, extent_id, extent_poly,
             basic.outputlogMessage('mosaic based on acquisition date exists, skip mosaicking')
             with open(os.path.join(mosaic_yeardate_dir,'dem_valid_percent.txt')) as f_job:
                 tif_names = [ line.split()[0]  for line in f_job.readlines() ]
-                dem_tif_list = [os.path.join(mosaic_yeardate_dir,item) for item in tif_names]
+                # dem_tif_list = [os.path.join(mosaic_yeardate_dir,item) for item in tif_names]
                 # print(dem_tif_list)
+                valid_per = [float(line.strip().split()[1]) for line in f_job.readlines()]
+                dem_tif_list = [tif for tif, per in zip(tif_names, valid_per) if per >= keep_dem_percent]
         else:
             io_function.mkdir(mosaic_yeardate_dir)
             # this is the output of mosaic, save to 'GTiff' format.
@@ -350,7 +355,7 @@ def main(options, args):
                 continue
             dem_list_sub = [dem_list[id] for id in dem_poly_ids]
 
-            mosaic_crop_dem_same_stripID(dem_list_sub, save_dir, idx, ext_poly, b_mosaic_id, b_mosaic_date,
+            mosaic_crop_dem(dem_list_sub, save_dir, idx, ext_poly, b_mosaic_id, b_mosaic_date,
                                  process_num, keep_dem_percent, o_res, extent_shp_base, resample_method='average')
 
 
