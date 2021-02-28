@@ -234,8 +234,8 @@ def mosaic_crop_dem_same_stripID(dem_tif_list, save_dir, extent_id, extent_poly,
                                                   o_format='GTiff')
             dem_tif_list = mosaic_list
 
-            # get valid pixel percentage
-            dem_tif_list = check_dem_valid_per(dem_tif_list, mosaic_dir, process_num=process_num,
+            # get valid pixel percentage (due to large memory used in raster_io, set process_num as 1)
+            dem_tif_list = check_dem_valid_per(dem_tif_list, mosaic_dir, process_num=1,
                                                move_dem_threshold=keep_dem_percent, area_pixel_num=area_pixel_count)
 
 
