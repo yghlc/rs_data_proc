@@ -150,9 +150,10 @@ def check_dem_valid_per(dem_tif_list, work_dir, process_num =1, move_dem_thresho
 
     dem_tif_valid_per = {}
     if process_num == 1:
-        for tif in dem_tif_list:
+        for idx,tif in enumerate(dem_tif_list):
             # RSImage.get_valid_pixel_count(tif)
             # per = RSImage.get_valid_pixel_percentage(tif,total_pixel_num=area_pixel_num)
+            print('(%d/%d) get valid pixel percent for %s'%(idx+1, len(dem_tif_list),tif))
             per = raster_io.get_valid_pixel_percentage(tif, total_pixel_num=area_pixel_num)
             if per is False:
                 return False
