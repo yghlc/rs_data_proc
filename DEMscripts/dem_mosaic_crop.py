@@ -10,13 +10,12 @@ add time: 27 February, 2021
 
 import os,sys
 from optparse import OptionParser
-import basic_src.io_function as io_function
-import basic_src.basic as basic
-
 
 deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
 import vector_gpd
+import basic_src.io_function as io_function
+import basic_src.basic as basic
 import basic_src.map_projection as map_projection
 import basic_src.RSImageProcess as RSImageProcess
 import basic_src.timeTools as timeTools
@@ -230,7 +229,7 @@ def mosaic_crop_dem_same_stripID(dem_tif_list, save_dir, extent_id, extent_poly,
             # when create mosaic using VRT end some wrong results, so choose to use 'GTiff'
             # for creating a mosaic with VRT format, we should use "gdalbuildvrt"
             mosaic_list = mosaic_dem_same_stripID(dem_groups, mosaic_dir, resample_method, process_num=process_num,
-                                                  o_format='VRT')
+                                                  o_format='GTiff')
             dem_tif_list = mosaic_list
 
             # get valid pixel percentage
@@ -282,7 +281,6 @@ def main(options, args):
     b_mosaic_id = options.create_mosaic_id
     b_mosaic_date = options.create_mosaic_date
     keep_dem_percent = options.keep_dem_percent
-    inter_format = options.format
 
     dem_dir_or_txt = args[0]
     if os.path.isfile(dem_dir_or_txt):
@@ -306,17 +304,22 @@ def main(options, args):
                                 o_format='GTiff')
     else:
         extent_shp_base = os.path.splitext(os.path.basename(extent_shp))[0]
+        dem_prj = map_projection.get_raster_or_vector_srs_info_epsg(dem_list[0])
         extent_prj = map_projection.get_raster_or_vector_srs_info_epsg(extent_shp)
 
-        # check projection
-        for dem_tif in dem_list:
-            dem_prj = map_projection.get_raster_or_vector_srs_info_epsg(dem_tif)
-            if dem_prj != extent_prj:
-                raise ValueError('The projection of %s is different from %s'%(dem_prj, extent_prj))
+        # # check projection (time-consuming if there are many tif files)
+        # for dem_tif in dem_list:
+        #     prj = map_projection.get_raster_or_vector_srs_info_epsg(dem_tif)
+        #     if dem_prj != prj:
+        #         raise ValueError('The projection inconsistent among dems (%s is different)'%dem_tif)
 
         dem_ext_polys = get_dem_tif_ext_polygons(dem_list)
 
-        extent_polys = vector_gpd.read_polygons_gpd(extent_shp)
+        if extent_prj==dem_prj:
+            extent_polys = vector_gpd.read_polygons_gpd(extent_shp)
+        else:
+            extent_polys = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp,dem_prj)
+
         if len(extent_polys) < 1:
             raise ValueError('No polygons in %s' % extent_shp)
         else:
