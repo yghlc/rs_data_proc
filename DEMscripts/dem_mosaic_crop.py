@@ -161,7 +161,7 @@ def check_dem_valid_per(dem_tif_list, work_dir, process_num =1, move_dem_thresho
             keep_dem_list.append(tif)
     elif process_num > 1:
         theadPool = Pool(process_num)  # multi processes
-        parameters_list = [(tif, area_pixel_num) for tif in dem_tif_list]
+        parameters_list = [(tif, area_pixel_num, '%d/%d'%(idx+1, len(dem_tif_list)) ) for idx,tif in enumerate(dem_tif_list)]
         results = theadPool.starmap(raster_io.get_valid_pixel_percentage, parameters_list)  # need python3
         for res, tif in zip(results, dem_tif_list):
             if res is False:
