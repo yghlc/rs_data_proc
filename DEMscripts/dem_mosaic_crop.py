@@ -31,10 +31,12 @@ import operator
 
 def subset_image_by_polygon_box(in_img, out_img, polygon,resample_m='bilinear',o_format='GTiff', out_res=None,same_extent=False):
     if same_extent:
-        return RSImageProcess.subset_image_by_polygon_box(out_img,in_img,polygon,resample_m=resample_m, o_format=o_format, xres=out_res,yres=out_res)
+        return RSImageProcess.subset_image_by_polygon_box(out_img,in_img,polygon,resample_m=resample_m, o_format=o_format,
+                                                          xres=out_res,yres=out_res,compress='lzw', tiled='yes', bigtiff='if_safer')
     else:
         # crop to the min extent (polygon or the image)
-        return RSImageProcess.subset_image_by_polygon_box_image_min(out_img,in_img,polygon,resample_m=resample_m,o_format=o_format, xres=out_res,yres=out_res)
+        return RSImageProcess.subset_image_by_polygon_box_image_min(out_img,in_img,polygon,resample_m=resample_m,o_format=o_format,
+                                                            xres=out_res,yres=out_res,compress='lzw', tiled='yes', bigtiff='if_safer')
 
 
 def group_demTif_yearmonthDay(demTif_list, diff_days=30):
