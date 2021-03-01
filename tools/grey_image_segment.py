@@ -68,8 +68,8 @@ def segment_a_grey_image(img_path, save_dir,process_num):
         row_e = patch[1] + patch[3]
         col_s = patch[0]
         col_e = patch[0] + patch[2]
-        current_min = np.min(save_labes)
-        print('current_min',current_min)
+        current_min = np.max(save_labes)
+        print('current_max',current_min)
         save_labes[row_s:row_e, col_s:col_e] = out_labels + current_min
 
     if os.path.isdir(save_dir) is False:
