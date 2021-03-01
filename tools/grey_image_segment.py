@@ -19,6 +19,7 @@ import basic_src.io_function as io_function
 import split_image
 
 from image_segment import quickshift_segmentaion
+from image_segment import mean_shift_segmentation
 
 import multiprocessing
 from multiprocessing import Pool
@@ -33,8 +34,10 @@ def segment_a_patch(idx, patch, patch_count,img_path):
     # segmentation algorithm (the output of these algorithms is not alway good, need to chose the parameters carafully)
     # out_labels = watershed_segmentation(one_band_img)
     # out_labels = k_mean_cluster_segmentation(one_band_img)
-    out_labels = quickshift_segmentaion(one_band_img,ratio=1.0, kernel_size=5, max_dist=10,
-                           sigma=0, convert2lab=False)
+    # out_labels = quickshift_segmentaion(one_band_img,ratio=1.0, kernel_size=5, max_dist=10,
+    #                        sigma=0, convert2lab=False)
+
+    out_labels = mean_shift_segmentation(one_band_img)
 
     return patch, out_labels, nodata
 
