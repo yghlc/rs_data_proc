@@ -20,6 +20,8 @@ import basic_src.io_function as io_function
 import numpy as np
 from skimage import segmentation
 
+import pymeanshift as pms
+
 def watershed_segmentation(img_2d_one_band):
     # the result is so bad when we applied this one to dem difference (float32), maybe we need choose some markers.
     out_labels = segmentation.watershed(img_2d_one_band)
@@ -51,6 +53,15 @@ def quickshift_segmentaion(img_2d_one_band, ratio=1.0, kernel_size=5, max_dist=1
     out_labels = out_labels.astype(np.int32)
     return out_labels
 
+def mean_shift_segmentation(img_2d_one_band):
+    # python version of mean shift: https://github.com/fjean/pymeanshift
+    # clone this repo, then ./setup.py install --user
+
+    # after several test, set the parameters for 8bit grey image drived from elevation difference.
+    segmented_image, labels_image, number_regions = pms.segment(img_2d_one_band, spatial_radius=5,
+                                                                  range_radius=11, min_density=20)
+    return labels_image
+
 def segment_changes_on_dem_diff(dem_diff_tif, save_dir):
 
     out_pre = os.path.splitext(os.path.basename(dem_diff_tif))[0]
@@ -62,13 +73,15 @@ def segment_changes_on_dem_diff(dem_diff_tif, save_dir):
     # out_labels = watershed_segmentation(one_band_img)
     # out_labels = k_mean_cluster_segmentation(one_band_img)
     # out_labels = quickshift_segmentaion(one_band_img)
+    out_labels = mean_shift_segmentation(one_band_img)
+
 
     # segmentation by threshold (may have too many noise)
-    mean = np.nanmean(one_band_img)
-    print("mean value is: %.4f"%mean)
-    one_band_img = one_band_img - mean
-    out_labels = np.zeros_like(one_band_img,dtype=np.uint8)
-    out_labels[ np.abs(one_band_img) > 2 ] = 1
+    # mean = np.nanmean(one_band_img)
+    # print("mean value is: %.4f"%mean)
+    # one_band_img = one_band_img - mean
+    # out_labels = np.zeros_like(one_band_img,dtype=np.uint8)
+    # out_labels[ np.abs(one_band_img) > 2 ] = 1
 
     # save the label
     label_path = os.path.join(save_dir, out_pre + '_label.tif')

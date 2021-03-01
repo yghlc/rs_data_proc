@@ -18,9 +18,9 @@ import basic_src.io_function as io_function
 def test_watershed_segmentation():
     # img_path = os.path.expanduser('~/Data/Greenland_permafrost/2021_NNA_PROJECT/SCORESBYSUND_LANDSLIDES/north_ext_ArcticDEM_diff_sub_1.tif'
     #                               'dem_north/north_ext_ArcticDEM_diff_sub_1_clip2.tif')
-    img_path = os.path.expanduser('~/Data/Greenland_permafrost/2021_NNA_PROJECT/SCORESBYSUND_LANDSLIDES/dem_north/north_ext_ArcticDEM_diff_sub_1.tif')
-    # img_path = os.path.expanduser('~/Data/Greenland_permafrost/2021_NNA_PROJECT/SCORESBYSUND_LANDSLIDES/'
-    #                               'dem_north/north_ext_ArcticDEM_diff_sub_1_clip2_8bit.tif')
+    # img_path = os.path.expanduser('~/Data/Greenland_permafrost/2021_NNA_PROJECT/SCORESBYSUND_LANDSLIDES/dem_north/north_ext_ArcticDEM_diff_sub_1.tif')
+    img_path = os.path.expanduser('~/Data/Greenland_permafrost/2021_NNA_PROJECT/SCORESBYSUND_LANDSLIDES/'
+                                  'dem_north/north_ext_ArcticDEM_diff_sub_1_clip2_8bit.tif')
 
     io_function.is_file_exist(img_path)
     save_dir = './'
