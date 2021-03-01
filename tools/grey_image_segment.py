@@ -37,7 +37,7 @@ def segment_a_patch(idx, patch, patch_count,img_path):
 
     return patch, out_labels
 
-def segment_a_grey_image(img_path, save_dir):
+def segment_a_grey_image(img_path, save_dir,process_num):
 
     out_pre = os.path.splitext(os.path.basename(img_path))[0]
     height, width, band_num, date_type = raster_io.get_height_width_bandnum_dtype(img_path)
@@ -48,14 +48,27 @@ def segment_a_grey_image(img_path, save_dir):
     image_patches = split_image.sliding_window(width,height, 1024, 1024,adj_overlay_x=0,adj_overlay_y=0)
     patch_count = len(image_patches)
 
-    for idx, patch in enumerate(image_patches):
-        out_patch,out_labels = segment_a_patch(idx, patch, patch_count,img_path)
+    # for idx, patch in enumerate(image_patches):
+    #     out_patch,out_labels = segment_a_patch(idx, patch, patch_count,img_path)
+    #     # copy to the entire image
+    #     row_s = patch[1]
+    #     row_e = patch[1] + patch[3]
+    #     col_s = patch[0]
+    #     col_e = patch[0] + patch[2]
+    #     save_labes[row_s:row_e, col_s:col_e] = out_labels
+
+    theadPool = Pool(process_num)
+    parameters_list = [ (idx, patch, patch_count,img_path) for idx, patch in enumerate(image_patches)]
+    results = theadPool.starmap(segment_a_patch, parameters_list)
+    for res in results:
+        patch, out_labels = res
         # copy to the entire image
         row_s = patch[1]
         row_e = patch[1] + patch[3]
         col_s = patch[0]
         col_e = patch[0] + patch[2]
         save_labes[row_s:row_e, col_s:col_e] = out_labels
+
 
     # save the label
     label_path = os.path.join(save_dir, out_pre + '_label.tif')
@@ -73,8 +86,9 @@ def main(options, args):
     img_path = args[0]
     io_function.is_file_exist(img_path)
     save_dir = options.save_dir
+    process_num = options.process_num
 
-    segment_a_grey_image(img_path,save_dir)
+    segment_a_grey_image(img_path,save_dir,process_num)
 
 
 if __name__ == "__main__":
