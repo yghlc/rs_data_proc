@@ -69,7 +69,8 @@ def segment_a_grey_image(img_path, save_dir,process_num):
         col_e = patch[0] + patch[2]
         save_labes[row_s:row_e, col_s:col_e] = out_labels
 
-
+    if os.path.isdir(save_dir):
+        io_function.mkdir(save_dir)
     # save the label
     label_path = os.path.join(save_dir, out_pre + '_label.tif')
     raster_io.save_numpy_array_to_rasterfile(save_labes, label_path, img_path, nodata=0)
