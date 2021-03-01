@@ -12,72 +12,20 @@ from optparse import OptionParser
 
 deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
+import vector_gpd
 import basic_src.timeTools as timeTools
 import raster_io
 import basic_src.basic as basic
 import basic_src.io_function as io_function
+import basic_src.map_projection as map_projection
 import split_image
 
 import numpy as np
 from itertools import combinations
 import operator
 
-
-import multiprocessing
-from multiprocessing import Pool
-
-def check_dem_valid_per(dem_tif_list, work_dir, process_num =1, move_dem_threshold = None, area_pixel_num=None):
-    '''
-    get the valid pixel percentage for each DEM
-    :param dem_tif_list:
-    :param work_dir:
-    :param move_dem_threshold: move a DEM to a sub-folder if its valid percentage small then the threshold
-    :return:
-    '''
-
-    keep_dem_list = []
-
-    dem_tif_valid_per = {}
-    if process_num == 1:
-        for tif in dem_tif_list:
-            # RSImage.get_valid_pixel_count(tif)
-            # per = RSImage.get_valid_pixel_percentage(tif,total_pixel_num=area_pixel_num)
-            per = raster_io.get_valid_pixel_percentage(tif, total_pixel_num=area_pixel_num)
-            if per is False:
-                return False
-            dem_tif_valid_per[tif] = per
-            keep_dem_list.append(tif)
-    elif process_num > 1:
-        theadPool = Pool(process_num)  # multi processes
-        parameters_list = [(tif, area_pixel_num) for tif in dem_tif_list]
-        results = theadPool.starmap(raster_io.get_valid_pixel_percentage, parameters_list)  # need python3
-        for res, tif in zip(results, dem_tif_list):
-            if res is False:
-                return False
-            dem_tif_valid_per[tif] = res
-            keep_dem_list.append(tif)
-    else:
-        raise ValueError("Wrong process_num: %d"%process_num)
-    # sort
-    dem_tif_valid_per_d = dict(sorted(dem_tif_valid_per.items(), key=operator.itemgetter(1), reverse=True))
-    percent_txt = os.path.join(work_dir,'dem_valid_percent.txt')
-    with open(percent_txt,'w') as f_obj:
-        for key in dem_tif_valid_per_d:
-            f_obj.writelines('%s %.4f\n'%(os.path.basename(key),dem_tif_valid_per_d[key]))
-        basic.outputlogMessage('save dem valid pixel percentage to %s'%percent_txt)
-
-    # only keep dem with valid pixel greater than a threshold
-    if move_dem_threshold is not None:  # int or float
-        keep_dem_list = []      # reset the list
-        mosaic_dir_rm = os.path.join(work_dir,'dem_valid_lt_%.2f'%move_dem_threshold)
-        io_function.mkdir(mosaic_dir_rm)
-        for tif in dem_tif_valid_per.keys():
-            if dem_tif_valid_per[tif] < move_dem_threshold:
-                io_function.movefiletodir(tif,mosaic_dir_rm)
-            else:
-                keep_dem_list.append(tif)
-
-    return keep_dem_list
+from dem_mosaic_crop import subset_image_by_polygon_box
+from dem_mosaic_crop import group_demTif_yearmonthDay
 
 
 def read_date_dem_to_memory(pair_idx, pair, date_pair_list_sorted,dem_data_dict, dem_groups_date, less_memory=False,boundary=None):
@@ -251,33 +199,98 @@ def check_dem_diff_results(save_dir,pre_name,extent_id):
 
     return False
 
+def crop_to_same_exent_for_diff(dem_tif_list, save_dir, extent_id, extent_poly,process_num):
+    # crop to the same extent
+    crop_tif_dir = os.path.join(save_dir, 'dem_crop_for_diff_sub_%d' % extent_id)
+    if os.path.isdir(crop_tif_dir) is False:
+        io_function.mkdir(crop_tif_dir)
+    crop_tif_list = []
+    for tif in dem_tif_list:
+        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(tif, 'sub_poly_%d' % extent_id)) )
+        if os.path.isfile(save_crop_path):
+            basic.outputlogMessage('%s exists, skip cropping' % save_crop_path)
+            crop_tif_list.append(save_crop_path)
+        else:
+            crop_tif = subset_image_by_polygon_box(tif, save_crop_path, extent_poly, resample_m='near',
+                                                     same_extent=True,thread_num=process_num)
+            if crop_tif is False:
+                # raise ValueError('warning, crop %s failed' % tif)
+                continue
+            crop_tif_list.append(crop_tif)
+    dem_tif_list = crop_tif_list
+
+    return dem_tif_list
+
 def main(options, args):
-    extent_shp = args[0]
 
-    dem_list_txt = options.dem_list_txt
+    save_dir = options.save_dir
+    extent_shp = options.extent_shp
+    process_num = options.process_num
 
-    if b_dem_diff:
-        # crop each one to the same extent, easy for DEM differnce.
-        same_extent = True
+    dem_dir_or_txt = args[0]
+    if os.path.isfile(dem_dir_or_txt):
+        dem_list = io_function.read_list_from_txt(dem_dir_or_txt)
+    else:
+        dem_list = io_function.get_file_list_by_ext('.tif', dem_dir_or_txt, bsub_folder=False)
+    dem_count = len(dem_list)
+    if dem_count < 1:
+        raise ValueError('No input dem files in %s' % dem_dir_or_txt)
 
-    dem_tif_list = io_function.read_list_from_txt(dem_list_txt)
-    # check projection
-    for dem_tif in dem_tif_list:
-        dem_prj = map_projection.get_raster_or_vector_srs_info_epsg(dem_tif)
+    if extent_shp is not None:
+        pre_name = os.path.splitext(os.path.basename(extent_shp))[0]
+    else:
+        pre_name = os.path.basename(save_dir)
+    save_dem_diff = os.path.join(save_dir, pre_name + '_DEM_diff.tif')
+    save_date_diff = os.path.join(save_dir, pre_name + '_date_diff.tif')
+    if os.path.isfile(save_dem_diff) and os.path.isfile(save_date_diff):
+        print('%s and %s exists, skip'%(save_dem_diff, save_date_diff))
+        return
+
+    if extent_shp is not None:
+        # crop the DEM before differencing
+        extent_shp_base = os.path.splitext(os.path.basename(extent_shp))[0]
+        dem_prj = map_projection.get_raster_or_vector_srs_info_epsg(dem_list[0])
+        extent_prj = map_projection.get_raster_or_vector_srs_info_epsg(extent_shp)
         if dem_prj != extent_prj:
-            raise ValueError('The projection of %s is different from %s' % (dem_prj, extent_prj))
+            raise ValueError('The projection of extent file (%s) and dem tifs is different'%extent_shp)
 
-    pass
+        extent_polys = vector_gpd.read_polygons_gpd(extent_shp)
+        if len(extent_polys) != 1:
+            raise ValueError('Only allow one polygon in %s' % extent_shp)
+
+        extPolys_ids = vector_gpd.read_attribute_values_list(extent_shp, 'id')
+        if extPolys_ids is None or None in extPolys_ids:
+            basic.outputlogMessage('Warning, field: id is not in %s, will create default ID for each grid' % extent_shp)
+            extPolys_ids = [id + 1 for id in range(len(extent_polys))]
+
+        # crop
+        for idx, ext_poly in zip(extPolys_ids, extent_polys):
+            basic.outputlogMessage('crop and differnce DEM for the %d th extent (%d in total)' % (idx, len(extent_polys)))
+            crop_dem_list = crop_to_same_exent_for_diff(dem_list, save_dir, idx, ext_poly, process_num)
+
+            dem_list = crop_dem_list
+
+    dem_diff_newest_oldest(dem_list, save_dem_diff, save_date_diff)
+
 
 
 if __name__ == '__main__':
-    usage = "usage: %prog [options] extent_shp dem_dir "
+    usage = "usage: %prog [options] dem_tif_dir or dem_list_txt "
     parser = OptionParser(usage=usage, version="1.0 2020-12-26")
     parser.description = 'Introduction: difference for multi-temporal DEM '
+
+    parser.add_option("-d", "--save_dir",
+                      action="store", dest="save_dir",default='./',
+                      help="the folder to save pre-processed results")
 
     parser.add_option("", "--process_num",
                       action="store", dest="process_num", type=int, default=4,
                       help="number of processes to create the mosaic")
+
+    parser.add_option("-e", "--extent_shp",
+                      action="store", dest="extent_shp",
+                      help="the extent file for cropping")
+
 
 
     (options, args) = parser.parse_args()
