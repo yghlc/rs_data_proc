@@ -33,7 +33,8 @@ def k_mean_cluster_segmentation(img_2d_one_band):
     out_labels = out_labels.astype(np.int32)
     return out_labels
 
-def quickshift_segmentaion(img_2d_one_band):
+def quickshift_segmentaion(img_2d_one_band, ratio=1.0, kernel_size=5, max_dist=10, return_tree=False,
+                           sigma=0, convert2lab=True, random_seed=42):
     # Segments image using quickshift clustering in Color-(x,y) space.
     # Produces an oversegmentation of the image using the quickshift mode-seeking algorithm.
 
@@ -45,7 +46,8 @@ def quickshift_segmentaion(img_2d_one_band):
     # ValueError: the input array must be have a shape == (.., ..,[ ..,] 3)), got (1882, 1895, 1), set convert2lab=False
 
     img_2d_one_band = img_2d_one_band.astype(np.float64)
-    out_labels = segmentation.quickshift(img_2d_one_band, sigma=1, convert2lab=False)
+    out_labels = segmentation.quickshift(img_2d_one_band, ratio=ratio, kernel_size=kernel_size, max_dist=max_dist, return_tree=return_tree,
+                           sigma=sigma, convert2lab=convert2lab, random_seed=random_seed)
     out_labels = out_labels.astype(np.int32)
     return out_labels
 
