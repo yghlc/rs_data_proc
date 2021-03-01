@@ -72,7 +72,7 @@ def segment_a_grey_image(img_path, save_dir,process_num):
         print('current_min',current_min)
         save_labes[row_s:row_e, col_s:col_e] = out_labels + current_min
 
-    if os.path.isdir(save_dir):
+    if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
     # save the label
     label_path = os.path.join(save_dir, out_pre + '_label.tif')
