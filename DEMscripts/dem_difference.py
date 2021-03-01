@@ -239,7 +239,7 @@ def main(options, args):
     if extent_shp is not None:
         pre_name = os.path.splitext(os.path.basename(extent_shp))[0]
     else:
-        pre_name = os.path.basename(save_dir)
+        pre_name = os.path.basename(os.path.abspath(save_dir))
     save_dem_diff = os.path.join(save_dir, pre_name + '_DEM_diff.tif')
     save_date_diff = os.path.join(save_dir, pre_name + '_date_diff.tif')
     if os.path.isfile(save_dem_diff) and os.path.isfile(save_date_diff):
