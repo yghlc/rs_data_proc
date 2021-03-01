@@ -38,7 +38,7 @@ def segment_a_patch(idx, patch, patch_count,img_path):
 
     return patch, out_labels, nodata
 
-def segment_a_grey_image(img_path, save_dir,process_num):
+def segment_a_grey_image(img_path, save_dir,process_num, dem_diff=None):
 
     out_pre = os.path.splitext(os.path.basename(img_path))[0]
     height, width, band_num, date_type = raster_io.get_height_width_bandnum_dtype(img_path)
@@ -86,14 +86,19 @@ def segment_a_grey_image(img_path, save_dir,process_num):
     if res != 0:
         sys.exit(1)
 
+    if dem_diff is not None:
+        # do something of polygon merging
+        pass
+
 def main(options, args):
 
     img_path = args[0]
     io_function.is_file_exist(img_path)
     save_dir = options.save_dir
     process_num = options.process_num
+    org_elevation_diff = options.elevation_diff
 
-    segment_a_grey_image(img_path,save_dir,process_num)
+    segment_a_grey_image(img_path,save_dir,process_num,dem_diff=org_elevation_diff)
 
 
 if __name__ == "__main__":
@@ -108,6 +113,10 @@ if __name__ == "__main__":
     parser.add_option("-d", "--save_dir",
                       action="store", dest="save_dir", default='./',
                       help="the folder to save results")
+
+    parser.add_option("-c", "--elevation_diff",
+                      action="store", dest="elevation_diff",
+                      help="the original elevation difference")
 
     (options, args) = parser.parse_args()
 
