@@ -35,7 +35,7 @@ def segment_a_patch(idx, patch, patch_count,img_path):
     # out_labels = k_mean_cluster_segmentation(one_band_img)
     out_labels = quickshift_segmentaion(one_band_img)
 
-    return patch, out_labels
+    return patch, out_labels, nodata
 
 def segment_a_grey_image(img_path, save_dir,process_num):
 
@@ -43,7 +43,7 @@ def segment_a_grey_image(img_path, save_dir,process_num):
     height, width, band_num, date_type = raster_io.get_height_width_bandnum_dtype(img_path)
     print('input image: height, width, band_num, date_type',height, width, band_num, date_type)
 
-    save_labes = np.zeros((height,width),dtype=np.int)
+    save_labes = np.zeros((height,width),dtype=np.int32)
     # divide the image the many small patches, then calcuate one by one, solving memory issues.
     image_patches = split_image.sliding_window(width,height, 1024, 1024,adj_overlay_x=0,adj_overlay_y=0)
     patch_count = len(image_patches)
@@ -60,20 +60,23 @@ def segment_a_grey_image(img_path, save_dir,process_num):
     theadPool = Pool(process_num)
     parameters_list = [ (idx, patch, patch_count,img_path) for idx, patch in enumerate(image_patches)]
     results = theadPool.starmap(segment_a_patch, parameters_list)
+    current_min = 0
     for res in results:
-        patch, out_labels = res
+        patch, out_labels, nodata = res
         # copy to the entire image
         row_s = patch[1]
         row_e = patch[1] + patch[3]
         col_s = patch[0]
         col_e = patch[0] + patch[2]
-        save_labes[row_s:row_e, col_s:col_e] = out_labels
+        current_min = np.min(save_labes)
+        print('current_min',current_min)
+        save_labes[row_s:row_e, col_s:col_e] = out_labels + current_min
 
     if os.path.isdir(save_dir):
         io_function.mkdir(save_dir)
     # save the label
     label_path = os.path.join(save_dir, out_pre + '_label.tif')
-    raster_io.save_numpy_array_to_rasterfile(save_labes, label_path, img_path, nodata=0)
+    raster_io.save_numpy_array_to_rasterfile(save_labes, label_path, img_path) # do not set nodata
 
     # convert the label to shapefile
     out_shp = os.path.join(save_dir, out_pre + '.shp')
