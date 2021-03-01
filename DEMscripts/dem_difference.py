@@ -27,6 +27,8 @@ import operator
 from dem_mosaic_crop import subset_image_by_polygon_box
 from dem_mosaic_crop import group_demTif_yearmonthDay
 
+import multiprocessing
+from multiprocessing import Pool
 
 def read_date_dem_to_memory(pair_idx, pair, date_pair_list_sorted,dem_data_dict, dem_groups_date, less_memory=False,boundary=None):
 
@@ -61,8 +63,47 @@ def read_date_dem_to_memory(pair_idx, pair, date_pair_list_sorted,dem_data_dict,
 
     return data_old, data_new
 
+def dem_diff_newest_oldest_a_patch(idx, patch, patch_count,date_pair_list_sorted,dem_groups_date):
+    print('tile: %d / %d' % (idx + 1, patch_count))
 
-def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff):
+    patch_w = patch[2]
+    patch_h = patch[3]
+    patch_date_diff = np.zeros((patch_h, patch_w), dtype=np.uint16)
+    patch_dem_diff = np.empty((patch_h, patch_w), dtype=np.float32)
+    patch_dem_diff[:] = np.nan
+
+    # use dict to read data from disk (only need)
+    dem_data_dict = {}
+    for p_idx, pair in enumerate(date_pair_list_sorted):
+        diff_days = (pair[1] - pair[0]).days
+        # basic.outputlogMessage('Getting DEM difference using the one on %s and %s, total day diff: %d' %
+        #                        (timeTools.date2str(pair[1]), timeTools.date2str(pair[0]), diff_days))
+        # print(pair,':',(pair[1] - pair[0]).days)
+
+        data_old, data_new = read_date_dem_to_memory(p_idx, pair, date_pair_list_sorted, dem_data_dict, dem_groups_date,
+                                                     boundary=patch)
+
+        # print('data_old shape:',data_old.shape)
+        # print('data_new shape:',data_new.shape)
+
+        diff_two = data_new - data_old
+        # print(diff_two)
+
+        # fill the element
+        new_ele = np.where(np.logical_and(np.isnan(patch_dem_diff), ~np.isnan(diff_two)))
+
+        patch_dem_diff[new_ele] = diff_two[new_ele]
+        patch_date_diff[new_ele] = diff_days
+
+        # check if all have been filled ( nan pixels)
+        diff_remain_hole = np.where(np.isnan(patch_dem_diff))
+        # basic.outputlogMessage(' remain %.4f percent pixels need to be filled'% (100.0*diff_remain_hole[0].size/patch_dem_diff.size) )
+        if diff_remain_hole[0].size < 1:
+            break
+
+    return patch,patch_dem_diff,patch_date_diff
+
+def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff, process_num):
     '''
     get DEM difference, for each pixel, newest vaild value - oldest valid value
     :param dem_list:
@@ -111,43 +152,21 @@ def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff):
     dem_diff_np = np.empty((height, width),dtype=np.float32)
     dem_diff_np[:] = np.nan
 
-    for idx, patch in enumerate(image_patches):
-        print('tile: %d / %d'%(idx+1, patch_count))
+    # for idx, patch in enumerate(image_patches):
+    #     _,patch_dem_diff,patch_date_diff = dem_diff_newest_oldest_a_patch(idx, patch, patch_count,date_pair_list_sorted,dem_groups_date)
+    #     # copy to the entire image
+    #     row_s = patch[1]
+    #     row_e = patch[1] + patch[3]
+    #     col_s = patch[0]
+    #     col_e = patch[0] + patch[2]
+    #     dem_diff_np[row_s:row_e, col_s:col_e] = patch_dem_diff
+    #     date_diff_np[row_s:row_e, col_s:col_e] = patch_date_diff
 
-        patch_w = patch[2]
-        patch_h = patch[3]
-        patch_date_diff = np.zeros((patch_h, patch_w),dtype=np.uint16)
-        patch_dem_diff = np.empty((patch_h, patch_w),dtype=np.float32)
-        patch_dem_diff[:] = np.nan
-
-        # use dict to read data from disk (only need)
-        dem_data_dict = {}
-        for p_idx, pair in enumerate(date_pair_list_sorted):
-            diff_days = (pair[1] - pair[0]).days
-            basic.outputlogMessage('Getting DEM difference using the one on %s and %s, total day diff: %d'%
-                                (timeTools.date2str(pair[1]), timeTools.date2str(pair[0]),diff_days))
-            # print(pair,':',(pair[1] - pair[0]).days)
-
-            data_old, data_new = read_date_dem_to_memory(p_idx, pair, date_pair_list_sorted,dem_data_dict, dem_groups_date,boundary=patch)
-
-            # print('data_old shape:',data_old.shape)
-            # print('data_new shape:',data_new.shape)
-
-            diff_two = data_new - data_old
-            # print(diff_two)
-
-            # fill the element
-            new_ele = np.where(np.logical_and( np.isnan(patch_dem_diff), ~np.isnan(diff_two)))
-
-            patch_dem_diff[new_ele] = diff_two[new_ele]
-            patch_date_diff[new_ele] = diff_days
-
-            # check if all have been filled ( nan pixels)
-            diff_remain_hole = np.where(np.isnan(patch_dem_diff))
-            # basic.outputlogMessage(' remain %.4f percent pixels need to be filled'% (100.0*diff_remain_hole[0].size/patch_dem_diff.size) )
-            if diff_remain_hole[0].size < 1:
-                break
-
+    theadPool = Pool(process_num)
+    parameters_list = [ (idx, patch, patch_count,date_pair_list_sorted,dem_groups_date) for idx, patch in enumerate(image_patches)]
+    results = theadPool.starmap(dem_diff_newest_oldest_a_patch, parameters_list)
+    for res in results:
+        patch, patch_dem_diff, patch_date_diff = res
         # copy to the entire image
         row_s = patch[1]
         row_e = patch[1] + patch[3]
@@ -270,7 +289,7 @@ def main(options, args):
 
             dem_list = crop_dem_list
 
-    dem_diff_newest_oldest(dem_list, save_dem_diff, save_date_diff)
+    dem_diff_newest_oldest(dem_list, save_dem_diff, save_date_diff,process_num)
 
 
 
