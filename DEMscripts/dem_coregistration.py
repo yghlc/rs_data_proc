@@ -25,6 +25,7 @@ deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
 import basic_src.io_function as io_function
 
+dem_dem_align = os.path.expanduser('~/codes/github_public_repositories/demcoreg/demcoreg/dem_align.py')
 
 def choose_reference_dem(dem_list, dem_valid_per_txt):
     if dem_valid_per_txt is None:
@@ -46,10 +47,16 @@ def choose_reference_dem(dem_list, dem_valid_per_txt):
     return None
 
 def co_registration_parallel(ref_dem, dem_list, save_dir, process_num):
+    print('ref_dem', ref_dem)
+    print('source dem:')
+    for dem_tif in dem_list:
+        print(dem_tif)
+    
 
     # parallel --progress --delay 10 -j 14 dem_align.py ${ref} {} ::: $(ls *_dem.tif | grep -v 2012)
-    commond_str = 'parallel --progress --delay 5 -j %d %s'%(process_num, ref_dem)
-    commond_str += ' \{} ::: ' + ' '.join(dem_list)
+    commond_str = 'parallel --progress --delay 5 -j %d %s %s'%(process_num, dem_dem_align ,ref_dem)
+    commond_str += ' {} ::: ' + ' '.join(dem_list)
+    print(commond_str)
     os.system(commond_str)
 
 def main(options, args):
@@ -100,3 +107,12 @@ if __name__ == '__main__':
     parser.add_option("-p", "--dem_valid_per_txt",
                       action="store", dest="dem_valid_per_txt",
                       help="a txt file storing the valid percentage of all the DEM")
+
+    (options, args) = parser.parse_args()
+    # print(options.create_mosaic)
+
+    if len(sys.argv) < 2 or len(args) < 1:
+        parser.print_help()
+        sys.exit(2)
+
+    main(options, args)
