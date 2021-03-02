@@ -193,7 +193,7 @@ def main(options, args):
 
 if __name__ == '__main__':
     usage = "usage: %prog [options] dem_tif_dir or dem_list_txt "
-    parser = OptionParser(usage=usage, version="1.0 2020-12-26")
+    parser = OptionParser(usage=usage, version="1.0 2020-3-1")
     parser.description = 'Introduction: co-registration for multi-temporal DEMs '
 
     parser.add_option("-d", "--save_dir",
