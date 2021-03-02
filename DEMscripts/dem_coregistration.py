@@ -58,11 +58,22 @@ def choose_reference_dem(dem_list, dem_valid_per_txt):
 
     return None
 
-def check_align_results(dem_tif, save_dir):
+def check_coreg_results(dem_tif, save_dir):
     dem_align = os.path.join(save_dir, 'dem_coreg', os.path.basename(io_function.get_name_by_adding_tail(dem_tif, 'coreg')))
     if os.path.isfile(dem_align):
         return True
     return False
+
+def check_align_folder(dem_tif):
+    # by default, dem_align.py save the results to where dem_tif is
+    res_dir = os.path.dirname(dem_tif)
+    align_folder = os.path.splitext(os.path.basename(dem_tif))[0] + '_dem_align'
+    align_dir = os.path.join(res_dir,align_folder)
+    # after dem_align.py usually have 9 files
+    align_outputs = io_function.get_file_list_by_pattern(align_dir,'*')
+    # print(align_outputs)
+    return align_outputs
+
 
 def move_align_results(ref_dem, dem_tif, save_dir):
 
@@ -70,12 +81,7 @@ def move_align_results(ref_dem, dem_tif, save_dir):
     if os.path.isdir(coreg_save_dir) is False:
         io_function.mkdir(coreg_save_dir)
 
-    # by default, dem_align.py save the results to where dem_tif is
-    res_dir = os.path.dirname(dem_tif)
-    align_folder = os.path.splitext(os.path.basename(dem_tif))[0]
-    align_dir = os.path.join(res_dir,align_folder)
-    # after dem_align.py usually have 9 files
-    align_outputs = io_function.get_file_list_by_pattern(align_dir,'*')
+    align_outputs = check_align_folder(dem_tif)
     if len(align_outputs) < 9:
         raise ValueError('the output of dem_align.py is less than 9 files')
 
@@ -119,18 +125,21 @@ def move_align_results(ref_dem, dem_tif, save_dir):
     # move results to another folder
 
 def co_registration_one_dem(ref_dem, dem_tif, save_dir):
-    if check_align_results(dem_tif,save_dir):
+    if check_coreg_results(dem_tif,save_dir):
         return 0
 
-    commond_str = dem_dem_align + ' ' + ref_dem + ' ' + dem_tif
-    print(commond_str)
-    res = os.system(commond_str)
-    if res != 0:
-        sys.exit(1)
+    align_outputs = check_align_folder(dem_tif)
+    if len(align_outputs) >= 9:
+        print('%s has been co-registered, skip'%dem_tif)
+    else:
+        commond_str = dem_dem_align + ' ' + ref_dem + ' ' + dem_tif
+        print(commond_str)
+        res = os.system(commond_str)
+        if res != 0:
+            sys.exit(1)
 
-    move_align_results(ref_dem, dem_tif, save_dir)
+    return move_align_results(ref_dem, dem_tif, save_dir)
 
-    return res
 
 def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num):
     print('ref_dem', ref_dem)
