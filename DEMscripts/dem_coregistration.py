@@ -126,14 +126,15 @@ def move_align_results(ref_dem, dem_tif, save_dir):
 
 def co_registration_one_dem(ref_dem, dem_tif, save_dir):
     if check_coreg_results(dem_tif,save_dir):
+        basic.outputlogMessage('co-registeration results for %s exists, skip'%dem_tif)
         return 0
 
     align_outputs = check_align_folder(dem_tif)
     if len(align_outputs) >= 9:
-        print('%s has been co-registered, skip'%dem_tif)
+        basic.outputlogMessage('%s has been co-registered, skip'%dem_tif)
     else:
         commond_str = dem_dem_align + ' ' + ref_dem + ' ' + dem_tif
-        print(commond_str)
+        basic.outputlogMessage(commond_str)
         res = os.system(commond_str)
         if res != 0:
             sys.exit(1)
@@ -165,7 +166,9 @@ def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num):
         sub_process = Process(target=co_registration_one_dem, args=(ref_dem, dem_tif,save_dir))
         sub_process.start()
         sub_tasks.append(sub_process)
-        time.sleep(10)   # wait 10 seconds
+        time.sleep(1)
+        if sub_process.exitcode is None:    # even the function has return, sub_process.alive still true for now
+            time.sleep(10)   # wait 10 seconds
         if sub_process.exitcode is not None and sub_process.exitcode != 0:
             sys.exit(1)
 
