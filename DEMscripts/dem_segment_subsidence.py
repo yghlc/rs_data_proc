@@ -57,7 +57,7 @@ def segment_subsidence_on_dem_diff(dem_diff_tif, save_dir):
     # print("mean value is: %.4f"%mean)
     # one_band_img = one_band_img - mean    # cannot use mean which may affect by some Outliers
     out_labels = np.zeros_like(one_band_img,dtype=np.uint8)
-    out_labels[ one_band_img < -1 ] = 1     # end in a lot of noise
+    out_labels[ one_band_img < -2 ] = 1     # end in a lot of noise, change to -2, -1 results in a lot of polygons
 
     # apply median filter
     out_labels = cv2.medianBlur(out_labels, 3)  # with kernal=3
