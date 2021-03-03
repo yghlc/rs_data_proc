@@ -105,6 +105,13 @@ def move_align_results(ref_dem, dem_tif, save_dir):
     dem_diff_filt = [out for out in align_outputs if out.endswith('align_diff_filt.tif')][0]
     io_function.movefiletodir(dem_diff_filt,ele_diff_folder, overwrite=True)
 
+    coreg_png_plot_folder = os.path.join(save_dir,'demcoreg_png_plot')
+    if os.path.isdir(coreg_png_plot_folder):
+        io_function.mkdir(coreg_png_plot_folder)
+    coreg_pngs = [out for out in align_outputs if out.endswith('.png')]
+    for png in coreg_pngs:
+        io_function.movefiletodir(png, coreg_png_plot_folder, overwrite=True)
+
     return True
 
 
