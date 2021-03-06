@@ -63,6 +63,37 @@ def read_date_dem_to_memory(pair_idx, pair, date_pair_list_sorted,dem_data_dict,
 
     return data_old, data_new
 
+def dem_diff_new_old_min_neg_diff_patch(idx, patch, patch_count,date_pair_list_sorted,dem_groups_date):
+    # conduct difference by keep the maximum subsidence (negative values)
+    print('tile: %d / %d' % (idx + 1, patch_count))
+
+    patch_w = patch[2]
+    patch_h = patch[3]
+    patch_date_diff = np.zeros((patch_h, patch_w), dtype=np.uint16)
+    patch_dem_diff = np.empty((patch_h, patch_w), dtype=np.float32)
+    patch_dem_diff[:] = 9999  # positive 9999
+
+    # use dict to read data from disk (only need)
+    dem_data_dict = {}
+    for p_idx, pair in enumerate(date_pair_list_sorted):
+        diff_days = (pair[1] - pair[0]).days
+
+        data_old, data_new = read_date_dem_to_memory(p_idx, pair, date_pair_list_sorted, dem_data_dict, dem_groups_date,
+                                                     boundary=patch)
+        diff_two = data_new - data_old
+
+        # fill the element
+        new_ele = np.where(patch_dem_diff < diff_two)   # keep the negative values
+
+        patch_dem_diff[new_ele] = diff_two[new_ele]
+        patch_date_diff[new_ele] = diff_days
+
+    # for locations where valid value
+    patch_dem_diff[patch_dem_diff == 9999] = np.nan
+
+    return patch, patch_dem_diff, patch_date_diff
+
+
 def dem_diff_newest_oldest_a_patch(idx, patch, patch_count,date_pair_list_sorted,dem_groups_date):
     print('tile: %d / %d' % (idx + 1, patch_count))
 
@@ -103,7 +134,7 @@ def dem_diff_newest_oldest_a_patch(idx, patch, patch_count,date_pair_list_sorted
 
     return patch,patch_dem_diff,patch_date_diff
 
-def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff, process_num):
+def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff, process_num, b_max_subsidence=False):
     '''
     get DEM difference, for each pixel, newest vaild value - oldest valid value
     :param dem_list:
@@ -164,7 +195,10 @@ def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff, process_nu
 
     theadPool = Pool(process_num)
     parameters_list = [ (idx, patch, patch_count,date_pair_list_sorted,dem_groups_date) for idx, patch in enumerate(image_patches)]
-    results = theadPool.starmap(dem_diff_newest_oldest_a_patch, parameters_list)
+    if b_max_subsidence is False:
+        results = theadPool.starmap(dem_diff_newest_oldest_a_patch, parameters_list)
+    else:
+        results = theadPool.starmap(dem_diff_new_old_min_neg_diff_patch , parameters_list)
     for res in results:
         patch, patch_dem_diff, patch_date_diff = res
         # copy to the entire image
@@ -289,7 +323,7 @@ def main(options, args):
 
             dem_list = crop_dem_list
 
-    dem_diff_newest_oldest(dem_list, save_dem_diff, save_date_diff,process_num)
+    dem_diff_newest_oldest(dem_list, save_dem_diff, save_date_diff,process_num, b_max_subsidence=options.max_subsidence)
 
 
 
@@ -310,6 +344,9 @@ if __name__ == '__main__':
                       action="store", dest="extent_shp",
                       help="the extent file for cropping")
 
+    parser.add_option("-m", "--max_subsidence",
+                      action="store_true", dest="max_subsidence",default=False,
+                      help="for each pixel, keep the maximum elevation reduction values")
 
 
     (options, args) = parser.parse_args()
