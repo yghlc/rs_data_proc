@@ -83,7 +83,7 @@ def dem_diff_new_old_min_neg_diff_patch(idx, patch, patch_count,date_pair_list_s
         diff_two = data_new - data_old
 
         # fill the element
-        new_ele = np.where(patch_dem_diff < diff_two)   # keep the negative values
+        new_ele = np.where(diff_two < patch_dem_diff )   # keep the negative values
 
         patch_dem_diff[new_ele] = diff_two[new_ele]
         patch_date_diff[new_ele] = diff_days
