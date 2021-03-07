@@ -78,11 +78,12 @@ def get_grid_20(extent_shp_or_id_txt, grid_polys, ids):
 
         if len(extent_polys) != 1:
             raise ValueError('Only support one extent polygon')
-        grid_index = vector_gpd.get_poly_index_within_extent(grid_polys, extent_polys)
+        grid_index = vector_gpd.get_poly_index_within_extent(grid_polys, extent_polys[0])
         basic.outputlogMessage('find %d grids within the extent (%s)' % (len(grid_index), os.path.basename(extent_shp_or_id_txt)) )
 
         grid_ids = [ ids[idx] for idx in grid_index]
-        io_function.save_list_to_txt(file_name_base+'_grid_ids.txt',grid_ids)
+        grid_ids_str = [str(item) for item in grid_ids ]
+        io_function.save_list_to_txt(file_name_base+'_grid_ids.txt',grid_ids_str)
 
     id_index = [ids.index(id) for id in grid_ids]
     selected_grid_polys = [grid_polys[idx] for idx in id_index ]
