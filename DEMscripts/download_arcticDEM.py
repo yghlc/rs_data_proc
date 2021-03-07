@@ -30,7 +30,7 @@ def get_total_size(url_list):
             total_size += size
     return total_size/(1024.0*1024.0*1024.0)    # GB
 
-def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg_tif_dir=None):
+def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg_tif_dir=None, poly_ids=None):
     # read dem polygons and url
     dem_polygons, dem_urls = vector_gpd.read_polygons_attributes_list(dem_index_shp, 'fileurl',b_fix_invalid_polygon=False)
 
@@ -38,11 +38,14 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
 
     dem_tar_ball_list = []
     reg_tifs_list = []
+    curr_dir = os.getcwd()
+    if poly_ids is None:
+        poly_ids = [idx for idx in range(len(extent_polys)) ]
 
-    for idx, ext_poly in enumerate(extent_polys):
+    for idx, ext_poly in zip(poly_ids, extent_polys):
         basic.outputlogMessage('get data for the %d th extent (%d in total)' % ((idx + 1), len(extent_polys)))
 
-        save_txt_path = os.path.join(save_folder, pre_name + '_dem_urls_poly_%d.txt' % idx)
+        save_txt_path = pre_name + '_dem_urls_poly_%d.txt' % idx
         if os.path.isfile(save_txt_path):
             urls = io_function.read_list_from_txt(save_txt_path)
             basic.outputlogMessage('read %d dem urls from %s' % (len(urls),save_txt_path))
@@ -80,11 +83,13 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                 else:
                     # download the dem
                     basic.outputlogMessage('starting downloading %d th DEM (%d in total)'%((ii+1),len(urls)))
+                    os.chdir(save_folder)
                     cmd_str = 'wget %s' % url
                     status, result = basic.exec_command_string(cmd_str)
                     if status != 0:
                         print(result)
                         sys.exit(status)
+                    os.chdir(curr_dir)
 
                 dem_tar_ball_list.append(save_dem_path)
 

@@ -61,6 +61,7 @@ def get_grid_20(extent_shp_or_id_txt, grid_polys, ids):
 
     if extent_shp_or_id_txt.endswith('.txt'):
         grid_ids = io_function.read_list_from_txt(extent_shp_or_id_txt)
+        grid_ids = [int(item) for item in grid_ids ]
     else:
         # extent polygons and projection (proj4)
         extent_shp_prj = map_projection.get_raster_or_vector_srs_info_proj4(extent_shp_or_id_txt)
@@ -100,6 +101,8 @@ def get_existing_dem_diff(dem_diff_dir, grid_base_name, grid_ids):
             existing_tif.append(dem_diff)
             continue
         grid_id_no_dem_tiff.append(id)
+    if len(existing_tif) > 0:
+        basic.outputlogMessage('%d existing grid dem diff files'%len(existing_tif))
     return existing_tif, grid_id_no_dem_tiff
 
 def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs, b_mosaic_id,b_mosaic_date,keep_dem_percent,o_res,process_num=4):
@@ -157,7 +160,8 @@ def main(options, args):
             grid_polys = [grid_polys[idx] for idx in id_index]
 
         # download ArcticDEM and applying registration
-        tarballs, reg_tifs = download_dem_tarball(dem_strip_shp, grid_polys, arcticDEM_tarball_dir, grid_base_name, reg_tif_dir=arcticDEM_reg_tif_dir)
+        tarballs, reg_tifs = download_dem_tarball(dem_strip_shp, grid_polys, arcticDEM_tarball_dir, grid_base_name, 
+                                                reg_tif_dir=arcticDEM_reg_tif_dir, poly_ids=grid_ids_no_demDiff)
 
         # unpack and applying registration
         if len(tarballs) > 0:
