@@ -30,6 +30,69 @@ def get_total_size(url_list):
             total_size += size
     return total_size/(1024.0*1024.0*1024.0)    # GB
 
+def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg_tif_dir=None):
+    # read dem polygons and url
+    dem_polygons, dem_urls = vector_gpd.read_polygons_attributes_list(dem_index_shp, 'fileurl',b_fix_invalid_polygon=False)
+
+    basic.outputlogMessage('%d dem polygons in %s' % (len(dem_polygons), dem_index_shp))
+
+    dem_tar_ball_list = []
+    reg_tifs_list = []
+
+    for idx, ext_poly in enumerate(extent_polys):
+        basic.outputlogMessage('get data for the %d th extent (%d in total)' % ((idx + 1), len(extent_polys)))
+
+        save_txt_path = os.path.join(save_folder, pre_name + '_dem_urls_poly_%d.txt' % idx)
+        if os.path.isfile(save_txt_path):
+            urls = io_function.read_list_from_txt(save_txt_path)
+            basic.outputlogMessage('read %d dem urls from %s' % (len(urls),save_txt_path))
+        else:
+            # get fileurl
+            dem_poly_ids = vector_gpd.get_poly_index_within_extent(dem_polygons,ext_poly)
+            basic.outputlogMessage('find %d DEM within %d th extent' % (len(dem_poly_ids), (idx + 1)))
+            urls = [dem_urls[id] for id in dem_poly_ids]
+
+            # save to txt
+            io_function.save_list_to_txt(save_txt_path, urls)
+            basic.outputlogMessage('save dem urls to %s' % save_txt_path)
+
+        if len(urls) > 0:
+
+            total_size_GB = get_total_size(urls)
+            basic.outputlogMessage('the size of files will be downloaded is %.4lf GB for the %d th extent '%(total_size_GB,(idx+1)))
+            # time.sleep(5)   # wait 5 seconds
+
+            # download them using wget one by one
+            for ii, url in enumerate(urls):
+                tmp = urlparse(url)
+                filename = os.path.basename(tmp.path)
+                save_dem_path = os.path.join(save_folder,filename)
+                if reg_tif_dir is not None:
+                    tar_base = os.path.basename(filename)[:-7]
+                    reg_tifs = io_function.get_file_list_by_pattern(reg_tif_dir,tar_base+'*dem_reg.tif')
+                    if len(reg_tifs) > 0:
+                        basic.outputlogMessage('warning, unpack and registrated tif for %s already exists, skip downloading' % filename)
+                        reg_tifs_list.append(reg_tifs[0])
+                        continue
+
+                if os.path.isfile(save_dem_path):
+                    basic.outputlogMessage('warning, %s already exists, skip downloading'%filename)
+                else:
+                    # download the dem
+                    basic.outputlogMessage('starting downloading %d th DEM (%d in total)'%((ii+1),len(urls)))
+                    cmd_str = 'wget %s' % url
+                    status, result = basic.exec_command_string(cmd_str)
+                    if status != 0:
+                        print(result)
+                        sys.exit(status)
+
+                dem_tar_ball_list.append(save_dem_path)
+
+        else:
+            basic.outputlogMessage('Warning, can not find DEMs within %d th extent'%(idx+1))
+
+    return dem_tar_ball_list, reg_tifs_list
+
 def main(options, args):
 
     extent_shp = args[0]
@@ -57,53 +120,7 @@ def main(options, args):
     else:
         basic.outputlogMessage('%d extent polygons in %s'%(len(extent_polys),extent_shp))
 
-    # read dem polygons and url
-    dem_polygons, dem_urls = vector_gpd.read_polygons_attributes_list(dem_index_shp, 'fileurl',b_fix_invalid_polygon=False)
-
-    basic.outputlogMessage('%d dem polygons in %s' % (len(dem_polygons), extent_shp))
-
-    for idx, ext_poly in enumerate(extent_polys):
-        basic.outputlogMessage('get data for the %d th extent (%d in total)' % ((idx + 1), len(extent_polys)))
-
-        save_txt_path = os.path.join(save_folder, extent_shp_base + '_dem_urls_poly_%d.txt' % idx)
-        if os.path.isfile(save_txt_path):
-            urls = io_function.read_list_from_txt(save_txt_path)
-            basic.outputlogMessage('read %d dem urls from %s' % (len(urls),save_txt_path))
-        else:
-            # get fileurl
-            dem_poly_ids = vector_gpd.get_poly_index_within_extent(dem_polygons,ext_poly)
-            basic.outputlogMessage('find %d DEM within %d th extent' % (len(dem_poly_ids), (idx + 1)))
-            urls = [dem_urls[id] for id in dem_poly_ids]
-
-            # save to txt
-            io_function.save_list_to_txt(save_txt_path, urls)
-            basic.outputlogMessage('save dem urls to %s' % save_txt_path)
-
-        if len(urls) > 0:
-
-            total_size_GB = get_total_size(urls)
-            basic.outputlogMessage('the size of files will be downloaded is %.4lf GB for the %d th extent '%(total_size_GB,(idx+1)))
-            # time.sleep(5)   # wait 5 seconds
-
-            # download them using wget one by one
-            for ii, url in enumerate(urls):
-                tmp = urlparse(url)
-                filename = os.path.basename(tmp.path)
-                save_dem_path = os.path.join(save_folder,filename)
-                if os.path.isfile(save_dem_path):
-                    basic.outputlogMessage('warning, %s already exists, skip downloading'%filename)
-                else:
-                    # download the dem
-                    basic.outputlogMessage('starting downloading %d th DEM (%d in total)'%((ii+1),len(urls)))
-                    cmd_str = 'wget %s' % url
-                    status, result = basic.exec_command_string(cmd_str)
-                    if status != 0:
-                        print(result)
-                        sys.exit(status)
-
-        else:
-            basic.outputlogMessage('Warning, can not find DEMs within %d th extent'%(idx+1))
-
+    download_dem_tarball(dem_index_shp,extent_polys,save_folder,extent_shp_base)
 
 
 if __name__ == "__main__":

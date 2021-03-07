@@ -278,7 +278,7 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
             dem_tif_list = check_dem_valid_per(dem_tif_list,mosaic_yeardate_dir,process_num=process_num, move_dem_threshold = keep_dem_percent,area_pixel_num=area_pixel_count)
 
 
-    pass
+    return dem_tif_list
 
 def get_dem_tif_ext_polygons(dem_list):
     bounding_box_list = [ raster_io.get_image_bound_box(tif) for tif in dem_list ]

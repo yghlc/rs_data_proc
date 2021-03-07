@@ -96,6 +96,7 @@ def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, a
         io_function.mkdir(save_dir)
 
     out_dir_list = []
+    out_reg_tifs = []
     for idx, targz in enumerate(tar_list):
         tar_base = os.path.basename(targz)[:-7]
 
@@ -120,6 +121,7 @@ def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, a
         if os.path.isfile(matchtag_tif_log):
             io_function.movefiletodir(matchtag_tif_log, save_dir)
 
+        out_reg_tifs.append(os.path.join(save_dir, os.path.basename(out_tif)))
         # remove folder
         if remove_inter_data:
             io_function.delete_file_or_dir(out_dir)
@@ -130,6 +132,8 @@ def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, a
         for dir in out_dir_list:
             if os.path.isdir(dir):
                 io_function.delete_file_or_dir(dir)
+
+    return out_reg_tifs
 
 def main(options, args):
 
