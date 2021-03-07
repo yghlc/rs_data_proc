@@ -52,7 +52,7 @@ elif machine_name == 'ubuntu':  # tesia
     arcticDEM_reg_tif_dir = '/home/lihu9680/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/registration_tifs'
     grid_dem_diff_dir     = '/home/lihu9680/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/grid_dem_diffs'
 else:
-    raise ValueError('unknown machine')
+    raise ValueError('unknown machine:%s'%machine_name)
 
 def get_grid_20(extent_shp_or_id_txt, grid_polys, ids):
 
