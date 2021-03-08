@@ -30,7 +30,7 @@ time_hour_thr = 1
 
 def check_file_or_dir_is_old(file_folder, time_hour_thr):
     # if not exists, then return False
-    if os.path.isfile(file_folder) is False or os.path.isdir(file_folder) is False:
+    if os.path.isfile(file_folder) is False and os.path.isdir(file_folder) is False:
         return False
     now = datetime.now()
     m_time = datetime.fromtimestamp(os.path.getmtime(file_folder))
@@ -47,13 +47,16 @@ def main():
 
     reg_tif_dir = 'arcticdem_registration_tifs'
     while True:
+        print(str(datetime.now()),'start moving or removing files or folders')
         reg_files = io_function.get_file_list_by_pattern(reg_tif_dir, '*')
+        print('file count: %d in %s'%(len(reg_files),reg_tif_dir ))
         for file in reg_files:
             if check_file_or_dir_is_old(file,time_hour_thr):
                 print('%s is older than %f hours, will be moved to archieved dir'%(file, time_hour_thr))
                 io_function.movefiletodir(file, arcticDEM_reg_tif_dir)
 
         SETSM_dir = io_function.get_file_list_by_pattern('./', 'SETSM_*2m_v3.0')
+        print('folder count: %d in %s'%(len(SETSM_dir),'./' ))
         for folder in SETSM_dir:
             if check_file_or_dir_is_old(folder,time_hour_thr):
                 print('%s is older than %f hours, will be removed'%(folder, time_hour_thr))
