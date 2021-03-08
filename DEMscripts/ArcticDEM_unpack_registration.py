@@ -105,9 +105,9 @@ def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, a
             continue
 
         out_tif, out_dir = process_dem_one_tarball(targz,work_dir,apply_registration)
-        out_dir_list.append(out_dir)
         if out_tif is None:
             continue
+        out_dir_list.append(out_dir)
 
         # move file to save_dir
         io_function.movefiletodir(out_tif,save_dir)
