@@ -128,8 +128,8 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs, b_mosaic_id
         # dem co-registration (cancel, the result in not good with the default setting)
 
         # dem differencing
-        save_dem_diff = os.path.join(save_dir, pre_name + '_DEM_diff_grid%d.tif'%grid_id)
-        save_date_diff = os.path.join(save_dir, pre_name + '_date_diff_grid%d.tif'%grid_id)
+        save_dem_diff = os.path.join(grid_dem_diff_dir, pre_name + '_DEM_diff_grid%d.tif'%grid_id)
+        save_date_diff = os.path.join(grid_dem_diff_dir, pre_name + '_date_diff_grid%d.tif'%grid_id)
 
         if dem_diff_newest_oldest(mosaic_tif_list, save_dem_diff, save_date_diff, process_num,
                                b_max_subsidence=b_max_subsidence,b_save_cm=True):
