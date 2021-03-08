@@ -49,9 +49,10 @@ def check_files_existence(dir, pre_name):
         return True
     else:
         # check if in the archived dir
-        file_list_archived = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir, pre_name + '*')
-        if len(file_list_archived) > 1:
-            return True
+        if os.path.isdir(arcticDEM_reg_tif_dir):
+            file_list_archived = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir, pre_name + '*')
+            if len(file_list_archived) > 1:
+                return True
         return False
 
 def arcticDEM_strip_registration(strip_dir):
