@@ -101,7 +101,7 @@ def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, a
         tar_base = os.path.basename(targz)[:-7]
 
         if check_files_existence(save_dir,tar_base):
-            print(" results of %s already in the save_folder, skip"%targz)
+            print("registration result of %s already exists, skip"%targz)
             continue
 
         out_tif, out_dir = process_dem_one_tarball(targz,work_dir,apply_registration)
