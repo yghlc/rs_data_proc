@@ -36,7 +36,7 @@ from dem_difference import dem_diff_newest_oldest
 
 # some parameters
 b_mosaic_id = True
-b_mosaic_date = False
+b_mosaic_date = True        # mosaic dem with one days
 b_max_subsidence = False        # apply max_subsidence make results worse
 
 grid_20_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp/ArcticDEM_grid_20km.shp')

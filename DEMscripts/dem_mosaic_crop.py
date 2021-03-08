@@ -251,7 +251,7 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
 
 
     # groups DEM with original images acquired at the same year months
-    dem_groups_date = group_demTif_yearmonthDay(dem_tif_list,diff_days=31)
+    dem_groups_date = group_demTif_yearmonthDay(dem_tif_list,diff_days=1)
     # sort based on yeardate in accending order : operator.itemgetter(0)
     dem_groups_date = dict(sorted(dem_groups_date.items(), key=operator.itemgetter(0)))
     # save to txt (json format)
