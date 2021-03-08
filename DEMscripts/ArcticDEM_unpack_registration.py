@@ -24,6 +24,15 @@ import basic_src.basic as basic
 
 reg_py=os.path.expanduser('~/codes/github_public_repositories/pgcdemtools/apply_setsm_registration.py')
 
+machine_name = os.uname()[1]
+# some folder paths
+if machine_name == 'uist':
+    arcticDEM_reg_tif_dir = '/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/registration_tifs'
+elif machine_name == 'ubuntu':  # tesia
+    arcticDEM_reg_tif_dir = '/home/lihu9680/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/registration_tifs'
+else:
+    arcticDEM_reg_tif_dir= ''
+
 def get_dem_path_in_unpack_tarball(out_dir, pre_name=None):
     file_end = ['_dem.tif','_reg_dem.tif']   # Arctic strip and tile (mosaic) version
     if pre_name is None:
@@ -39,6 +48,10 @@ def check_files_existence(dir, pre_name):
     if len(file_list) > 1:
         return True
     else:
+        # check if in the archived dir
+        file_list_archived = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir, pre_name + '*')
+        if len(file_list_archived) > 1:
+            return True
         return False
 
 def arcticDEM_strip_registration(strip_dir):
