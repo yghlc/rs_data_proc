@@ -44,14 +44,14 @@ def get_dem_path_in_unpack_tarball(out_dir, pre_name=None):
     return False
 
 def check_files_existence(dir, pre_name):
-    file_list = io_function.get_file_list_by_pattern(dir,pre_name + '*')
-    if len(file_list) > 1:
+    file_list = io_function.get_file_list_by_pattern(dir,pre_name + '*dem_reg.tif')
+    if len(file_list) > 0:
         return True
     else:
         # check if in the archived dir
         if os.path.isdir(arcticDEM_reg_tif_dir):
-            file_list_archived = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir, pre_name + '*')
-            if len(file_list_archived) > 1:
+            file_list_archived = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir, pre_name + '*dem_reg.tif')
+            if len(file_list_archived) > 0:
                 return True
         return False
 

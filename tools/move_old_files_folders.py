@@ -53,7 +53,7 @@ def main():
         for file in reg_files:
             if check_file_or_dir_is_old(file,time_hour_thr):
                 print('%s is older than %f hours, will be moved to archieved dir'%(file, time_hour_thr))
-                io_function.movefiletodir(file, arcticDEM_reg_tif_dir)
+                io_function.movefiletodir(file, arcticDEM_reg_tif_dir,overwrite=True)
 
         SETSM_dir = io_function.get_file_list_by_pattern('./', 'SETSM_*2m_v3.0')
         print('SETSM folder count: %d in %s'%(len(SETSM_dir),'./' ))
