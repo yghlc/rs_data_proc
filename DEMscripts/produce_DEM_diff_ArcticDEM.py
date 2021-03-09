@@ -156,7 +156,9 @@ def main(options, args):
     o_res = options.out_res
 
     # read grids and ids
+    time0 = time.time()
     all_grid_polys, all_ids = vector_gpd.read_polygons_attributes_list(grid_20_shp, 'id')
+    print('time cost of read polygons and attributes', time.time() - time0)
 
     # get grid ids based on input extent
     grid_base_name = os.path.splitext(os.path.basename(extent_shp_or_ids_txt))[0]
