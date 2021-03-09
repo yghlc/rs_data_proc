@@ -16,6 +16,8 @@ deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
 
 import basic_src.io_function as io_function
+import basic_src.basic as basic
+import raster_io
 
 machine_name = os.uname()[1]
 
@@ -30,22 +32,37 @@ else:
     raise ValueError('unknown machine:%s' % machine_name)
 
 # check valid tif
-def check_tif(tif_path):
-    command_str = 'gdalinfo ' + tif_path
-    res = os.system(command_str)
-    if res!=0:
-        print(tif_path, 'is invalid, and will be removed')
-        os.system('rm '+tif_path)
+def check_tif(tif_list):
+    # command_str = 'gdalinfo ' + tif_path
+    # res = os.system(command_str)
+    # print(tif_path)
+    invalid_list = []
+    for idx, tif_path in enumerate(tif_list):
+        if idx % 50 == 0:
+            print('checking %d/%d'%(idx,len(tif_list)))
+
+        try:
+            src = raster_io.open_raster_read(tif_path)
+        except:
+            basic.outputlogMessage(' invalid tif: %s'%tif_path)
+            invalid_list.append(tif_path)
+    return invalid_list
+
 
 def main():
 
     tifs = io_function.get_file_list_by_ext('.tif',arcticDEM_reg_tif_dir, bsub_folder=False)
-    for tif in tifs:
-        check_tif(tif)
+    invalid_tif = check_tif(tifs) 
+    for tif in invalid_tif:
+        print('removing %s'%tif)
+        io_function.delete_file_or_dir(tif)
+        
 
     tifs = io_function.get_file_list_by_ext('.tif', grid_dem_diff_dir, bsub_folder=False)
-    for tif in tifs:
-        check_tif(tif)
+    invalid_tif = check_tif(tifs)
+    for tif in invalid_tif:
+        print('removing %s'%tif)
+        io_function.delete_file_or_dir(tif)
 
 
 if __name__ == '__main__':
