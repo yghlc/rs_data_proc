@@ -13,7 +13,7 @@ add time: 06 March, 2021
 
 import os,sys
 from optparse import OptionParser
-
+import time
 machine_name = os.uname()[1]
 
 deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
@@ -113,6 +113,17 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs, b_mosaic_id
     for grid_id, grid_poly in zip(grid_ids, grid_polys):
 
         save_dir = 'grid_%d_tmp_files'%grid_id
+
+        # check free disk space
+        work_dir = './'
+        free_GB = io_function.get_free_disk_space_GB(work_dir)
+        total_wait_time = 0
+        while free_GB < 50 and total_wait_time < 60*60*12:
+            print(' The free disk space (%.4f) is less than 50 GB, wait 60 seconds'%free_GB)
+            time.sleep(60)
+            total_wait_time += 60
+            free_GB = io_function.get_free_disk_space_GB(work_dir)
+
 
         # get subset of tifs
         dem_poly_index = vector_gpd.get_poly_index_within_extent(dem_ext_polys, grid_poly)
