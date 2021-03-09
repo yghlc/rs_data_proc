@@ -116,7 +116,7 @@ def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, a
     for idx, targz in enumerate(tar_list):
         tar_base = os.path.basename(targz)[:-7]
         # check if no registraion information for this tarball
-        if tar_base in no_registration_strips:
+        if './'+tar_base in no_registration_strips:
             continue
 
         if check_files_existence(save_dir,tar_base):
