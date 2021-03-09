@@ -13,7 +13,7 @@ add time: 27 February, 2021
 
 import os,sys
 from optparse import OptionParser
-
+import time
 
 
 deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
@@ -117,6 +117,15 @@ def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, a
         if check_files_existence(save_dir,tar_base):
             print("registration result of %s already exists, skip"%targz)
             continue
+
+        # check free disk space
+        free_GB = io_function.get_free_disk_space_GB(work_dir)
+        total_wait_time = 0
+        while free_GB < 50 and total_wait_time < 60*60*12:
+            print(' The free disk space (%.4f) is less than 50 GB, wait 60 seconds'%free_GB)
+            time.sleep(60)
+            total_wait_time += 60
+            free_GB = io_function.get_free_disk_space_GB(work_dir)
 
         out_tif, out_dir = process_dem_one_tarball(targz,work_dir,apply_registration)
         if out_tif is None:
