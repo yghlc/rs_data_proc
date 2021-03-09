@@ -61,8 +61,8 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
 
         if len(urls) > 0:
 
-            total_size_GB = get_total_size(urls)
-            basic.outputlogMessage('the size of files will be downloaded is %.4lf GB for the %d th extent '%(total_size_GB,(idx+1)))
+            # total_size_GB = get_total_size(urls)  # internet access, parallel running may cause problem. The info is not important
+            # basic.outputlogMessage('the size of files will be downloaded is %.4lf GB for the %d th extent '%(total_size_GB,(idx+1)))
             # time.sleep(5)   # wait 5 seconds
 
             # download them using wget one by one
