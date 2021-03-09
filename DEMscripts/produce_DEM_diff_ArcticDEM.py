@@ -172,17 +172,19 @@ def main(options, args):
             id_index = [grid_ids.index(id) for id in grid_ids_no_demDiff]
             grid_polys = [grid_polys[idx] for idx in id_index]
 
-        # download ArcticDEM and applying registration
-        tarballs, reg_tifs = download_dem_tarball(dem_strip_shp, grid_polys, arcticDEM_tarball_dir, grid_base_name, 
-                                                reg_tif_dir=arcticDEM_reg_tif_dir, poly_ids=grid_ids_no_demDiff)
+        # # download ArcticDEM and applying registration
+        # tarballs, reg_tifs = download_dem_tarball(dem_strip_shp, grid_polys, arcticDEM_tarball_dir, grid_base_name,
+        #                                         reg_tif_dir=arcticDEM_reg_tif_dir, poly_ids=grid_ids_no_demDiff)
+        #
+        # # unpack and applying registration
+        # if len(tarballs) > 0:
+        #     basic.outputlogMessage('Processs %d dem tarballs'%len(tarballs))
+        #     out_reg_tifs = process_dem_tarball(tarballs,'./',arcticDEM_reg_tif_dir,remove_inter_data=True, apply_registration=True)
+        #     basic.outputlogMessage('Get %d new registration dem tifs' % len(out_reg_tifs))
+        #     reg_tifs.extend(out_reg_tifs)
 
-        # unpack and applying registration
-        if len(tarballs) > 0:
-            basic.outputlogMessage('Processs %d dem tarballs'%len(tarballs))
-            out_reg_tifs = process_dem_tarball(tarballs,'./',arcticDEM_reg_tif_dir,remove_inter_data=True, apply_registration=True)
-            basic.outputlogMessage('Get %d new registration dem tifs' % len(out_reg_tifs))
-            reg_tifs.extend(out_reg_tifs)
-
+        reg_tifs = io_function.get_file_list_by_ext('.tif',arcticDEM_reg_tif_dir,bsub_folder=False)
+        reg_tifs = [tif for tif in reg_tifs if 'matchtag' not in tif]  # remove matchtag
         # crop, mosacic, difference
         out_dem_diffs = produce_dem_diff_grids(grid_polys, grid_ids_no_demDiff, grid_base_name,reg_tifs,b_mosaic_id,b_mosaic_date,
                                                keep_dem_percent,o_res,process_num=process_num)
