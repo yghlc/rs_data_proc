@@ -83,6 +83,12 @@ def group_demTif_strip_pair_ID(demTif_list):
 
 def mosaic_dem_list(key, dem_list, save_tif_dir,resample_method,save_source, o_format, thread_num=1):
 
+    
+    # print('\n\n os.fork \n\n', os.fork())
+    # if os.fork()==0:
+    #     proc_id = multiprocessing.current_process().pid
+    #     basic.setlogfile('log_file_pid_%d.txt'%proc_id)
+    
     save_mosaic = os.path.join(save_tif_dir, key + '.tif')
     # check file existence
     # if os.path.isfile(save_mosaic):
@@ -115,6 +121,10 @@ def mosaic_dem_list(key, dem_list, save_tif_dir,resample_method,save_source, o_f
 def mosaic_dem_same_stripID(demTif_groups,save_tif_dir, resample_method, process_num=1, save_source=False, o_format='GTiff'):
     if os.path.isdir(save_tif_dir):
         io_function.mkdir(save_tif_dir)
+
+    #TODO: when run in parallel, it has "Finalize object, dead" after a while,  cannot figure out why?, so temporal set process_num = 1
+    # could related to the output logfile to disk. 
+    process_num = 1
 
     mosaic_list = []
     if process_num == 1:
