@@ -47,7 +47,7 @@ def group_demTif_yearmonthDay(demTif_list, diff_days=30):
     '''
     dem_groups = {}
     for tif in demTif_list:
-        yeardate =  timeTools.get_yeardate_yyyymmdd(os.path.basename(tif))
+        yeardate =  timeTools.get_yeardate_yyyymmdd(os.path.basename(tif)[:8])  # time year is at the begining
 
         b_assgined = False
         for time in dem_groups.keys():
