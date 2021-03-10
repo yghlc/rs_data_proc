@@ -157,6 +157,8 @@ def check_dem_valid_per(dem_tif_list, work_dir, process_num =1, move_dem_thresho
     keep_dem_list = []
     print('start getting valid pixel percent for %d files'%len(dem_tif_list))
     dem_tif_valid_per = {}
+    #TODO: when run in parallel, it has "Finalize object, dead" after a while,  cannot figure out why?, so temporal set process_num = 1
+    process_num = 1
     if process_num == 1:
         for idx,tif in enumerate(dem_tif_list):
             # RSImage.get_valid_pixel_count(tif)
