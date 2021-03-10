@@ -15,6 +15,7 @@ deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
 
 import basic_src.basic as basic
+from datetime import datetime
 
 import psutil
 
@@ -32,8 +33,10 @@ def output_prcess_info(proc_name_contain_str=None):
             if proc_name_contain_str is not None:
                 if proc_name_contain_str not in proc.name():
                     continue
-            print(proc.pid, proc.name(), 'user:',proc.username(), 'memory:', proc.memory_percent(),
-                  'cpu time:', proc.cpu_times, 'create_time:', proc.create_time(), 'is running: ',proc.is_running())
+
+            # 'cpu time:', proc.cpu_times
+            print(proc.pid, proc.name(), 'user:',proc.username(), 'memory: %.2f'%proc.memory_percent(),
+                   'create_time:', datetime.fromtimestamp(proc.create_time()), 'status:',proc.status(), 'is running: ',proc.is_running())
 
         except psutil.NoSuchProcess:
             print('Error: not such psutil.NoSuchProcess')
