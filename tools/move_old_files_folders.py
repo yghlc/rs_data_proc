@@ -15,6 +15,7 @@ from datetime import datetime
 deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
 import basic_src.io_function as io_function
+import basic_src.basic as basic
 
 
 machine_name = os.uname()[1]
@@ -68,6 +69,11 @@ def main():
             if check_file_or_dir_is_old(folder, time_hour_thr):
                 print('%s is older than %f hours, will be removed' % (folder, time_hour_thr))
                 io_function.delete_file_or_dir(folder)
+
+        open_files = basic.get_all_processes_openfiles('python')
+        print('open_files count by process with python name: %d'%len(open_files))
+        for item in open_files:
+            print(item)
 
         time.sleep(60)  # wait
 
