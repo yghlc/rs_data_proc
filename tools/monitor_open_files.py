@@ -32,7 +32,8 @@ def output_prcess_info(proc_name_contain_str=None):
             if proc_name_contain_str is not None:
                 if proc_name_contain_str not in proc.name():
                     continue
-            print(proc.pid, proc.name(), 'is running: ',proc.is_running())
+            print(proc.pid, proc.name(), 'user:',proc.username(), 'memory:', proc.memory_percent(),
+                  'cpu time:', proc.cpu_times, 'create_time:', proc.create_time(), 'is running: ',proc.is_running())
 
         except psutil.NoSuchProcess:
             print('Error: not such psutil.NoSuchProcess')
