@@ -123,7 +123,9 @@ def mosaic_dem_same_stripID(demTif_groups,save_tif_dir, resample_method, process
         io_function.mkdir(save_tif_dir)
 
     #TODO: when run in parallel, it has "Finalize object, dead" after a while,  cannot figure out why?, so temporal set process_num = 1
-    # could related to the output logfile to disk. 
+    # could related to the output logfile to disk.
+    # on tesia, it's fine, but on uist, the issue occurs just in a few minutes.
+    # could be useful: Why your multiprocessing Pool is stuck: https://pythonspeed.com/articles/python-multiprocessing/
     process_num = 1
 
     mosaic_list = []
