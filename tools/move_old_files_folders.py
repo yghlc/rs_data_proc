@@ -70,10 +70,7 @@ def main():
                 print('%s is older than %f hours, will be removed' % (folder, time_hour_thr))
                 io_function.delete_file_or_dir(folder)
 
-        open_files = basic.get_all_processes_openfiles('python')
-        print('open_files count by process with python name: %d'%len(open_files))
-        for item in open_files:
-            print(item)
+
 
         time.sleep(60)  # wait
 
