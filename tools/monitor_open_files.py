@@ -35,8 +35,8 @@ def output_prcess_info(proc_name_contain_str=None):
                     continue
 
             # 'cpu time:', proc.cpu_times
-            print(proc.pid, proc.name(), 'user:',proc.username(), 'memory: %.2f'%proc.memory_percent(),
-                   'create_time:', datetime.fromtimestamp(proc.create_time()), 'status:',proc.status(), 'is running: ',proc.is_running())
+            print(proc.pid, proc.name(), 'user:',proc.username(), 'memory per: %.2f'%proc.memory_percent(),
+                   'create_time:', datetime.fromtimestamp(proc.create_time()), 'status:',proc.status(), 'running: ',proc.is_running())
 
         except psutil.NoSuchProcess:
             print('Error: not such psutil.NoSuchProcess')
