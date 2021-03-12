@@ -5,6 +5,7 @@ __pycache__/
 
 .idea
 .vscode
+workspace.code-workspace
 
 # C extensions
 *.so
