@@ -22,6 +22,8 @@ def main():
     # get bash file (*.sh) list
     print('find *.sh files')
     sh_list = io_function.get_file_list_by_ext('.sh',org_dir,bsub_folder=True)
+    ini_list = io_function.get_file_list_by_ext('.ini',org_dir,bsub_folder=True)
+    sh_list.extend(ini_list)
     changed_list = []
     for sh in sh_list:
         new_path = bak_dir + sh.replace(org_dir,'')
