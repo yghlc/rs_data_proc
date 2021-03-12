@@ -20,7 +20,7 @@ def main():
     bak_dir='/home/lihu9680/scripts_para_bak'
 
     # get bash file (*.sh) list
-    print('find *.sh files')
+    print('find *.sh and *.ini files')
     sh_list = io_function.get_file_list_by_ext('.sh',org_dir,bsub_folder=True)
     ini_list = io_function.get_file_list_by_ext('.ini',org_dir,bsub_folder=True)
     sh_list.extend(ini_list)
