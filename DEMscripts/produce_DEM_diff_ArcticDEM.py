@@ -109,6 +109,8 @@ def get_existing_dem_diff(dem_diff_dir, grid_base_name, grid_ids):
         grid_id_no_dem_tiff.append(id)
     if len(existing_tif) > 0:
         basic.outputlogMessage('%d existing grid dem diff files'%len(existing_tif))
+    else:
+        basic.outputlogMessage('no existing grid dem diff files')
     return existing_tif, grid_id_no_dem_tiff
 
 def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs, b_mosaic_id,b_mosaic_date,keep_dem_percent,o_res,process_num=4):
