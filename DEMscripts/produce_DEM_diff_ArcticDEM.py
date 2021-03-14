@@ -101,7 +101,7 @@ def get_existing_dem_diff(dem_diff_dir, grid_base_name, grid_ids):
         #     existing_tif.append(dem_diff)
         #     continue
 
-        dem_diff_files = io_function.get_file_list_by_pattern(dem_diff_dir, '_DEM_diff_grid%d.tif'%id)
+        dem_diff_files = io_function.get_file_list_by_pattern(dem_diff_dir, '*_DEM_diff_grid%d.tif'%id)
         if len(dem_diff_files) > 0:
             existing_tif.append(dem_diff_files[0])
             continue
