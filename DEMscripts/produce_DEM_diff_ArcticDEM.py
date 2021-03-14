@@ -96,10 +96,16 @@ def get_existing_dem_diff(dem_diff_dir, grid_base_name, grid_ids):
     existing_tif = []
     grid_id_no_dem_tiff = []
     for id in grid_ids:
-        dem_diff = os.path.join(dem_diff_dir, grid_base_name + '_DEM_diff_grid%d.tif'%id)
-        if os.path.isfile(dem_diff):
-            existing_tif.append(dem_diff)
+        # dem_diff = os.path.join(dem_diff_dir, grid_base_name + '_DEM_diff_grid%d.tif'%id)
+        # if os.path.isfile(dem_diff):
+        #     existing_tif.append(dem_diff)
+        #     continue
+
+        dem_diff_files = io_function.get_file_list_by_pattern(dem_diff_dir, '_DEM_diff_grid%d.tif'%id)
+        if len(dem_diff_files) > 0:
+            existing_tif.append(dem_diff_files[0])
             continue
+
         grid_id_no_dem_tiff.append(id)
     if len(existing_tif) > 0:
         basic.outputlogMessage('%d existing grid dem diff files'%len(existing_tif))
