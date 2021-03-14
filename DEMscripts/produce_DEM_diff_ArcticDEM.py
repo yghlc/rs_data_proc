@@ -21,10 +21,11 @@ sys.path.insert(0, deeplabforRS)
 import vector_gpd
 import raster_io
 import basic_src.basic as basic
+import basic_src.timeTools as timeTools
 import basic_src.map_projection as map_projection
 import basic_src.io_function as io_function
 import basic_src.RSImageProcess as RSImageProcess
-import basic_src.map_projection as map_projection
+
 
 
 from download_arcticDEM import download_dem_tarball
@@ -102,9 +103,16 @@ def get_existing_dem_diff(dem_diff_dir, grid_base_name, grid_ids):
         #     continue
 
         dem_diff_files = io_function.get_file_list_by_pattern(dem_diff_dir, '*_DEM_diff_grid%d.tif'%id)
-        if len(dem_diff_files) > 0:
+        if len(dem_diff_files) == 1:
             existing_tif.append(dem_diff_files[0])
             continue
+        elif len(dem_diff_files) > 1:
+            existing_tif.append(dem_diff_files[0])
+            basic.outputlogMessage('warning, There are multiple DEM_diff tif for grid: %d'%id)
+            for item in dem_diff_files: basic.outputlogMessage(item)
+            continue
+        else:
+            pass
 
         grid_id_no_dem_tiff.append(id)
     if len(existing_tif) > 0:
@@ -162,6 +170,7 @@ def main(options, args):
     process_num = options.process_num
     keep_dem_percent = options.keep_dem_percent
     o_res = options.out_res
+    basic.setlogfile('produce_DEM_diff_ArcticDEM_log_%s.txt'%timeTools.get_now_time_str())
 
     # read grids and ids
     time0 = time.time()
