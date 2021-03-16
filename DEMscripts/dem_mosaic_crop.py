@@ -126,7 +126,12 @@ def mosaic_dem_same_stripID(demTif_groups,save_tif_dir, resample_method, process
     # could related to the output logfile to disk.
     # on tesia, it's fine, but on uist, the issue occurs just in a few minutes.
     # could be useful: Why your multiprocessing Pool is stuck: https://pythonspeed.com/articles/python-multiprocessing/
-    # process_num = 1  # update on 15 March, 2021. I changed the python from 3.8 on uist to 3.7 (same as tesia), then problem solved.
+
+    # update on 15 March, 2021. I changed the python from 3.8 on uist to 3.7 (same as tesia), then problem solved.
+    # but sometime, the program crash without specific reason (get killed)
+
+    # process_num = 1
+
 
     mosaic_list = []
     if process_num == 1:
