@@ -183,31 +183,32 @@ def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff, process_nu
     dem_diff_np = np.empty((height, width),dtype=np.float32)
     dem_diff_np[:] = np.nan
 
-    # for idx, patch in enumerate(image_patches):
-    #     _,patch_dem_diff,patch_date_diff = dem_diff_newest_oldest_a_patch(idx, patch, patch_count,date_pair_list_sorted,dem_groups_date)
-    #     # copy to the entire image
-    #     row_s = patch[1]
-    #     row_e = patch[1] + patch[3]
-    #     col_s = patch[0]
-    #     col_e = patch[0] + patch[2]
-    #     dem_diff_np[row_s:row_e, col_s:col_e] = patch_dem_diff
-    #     date_diff_np[row_s:row_e, col_s:col_e] = patch_date_diff
-
-    theadPool = Pool(process_num)
-    parameters_list = [ (idx, patch, patch_count,date_pair_list_sorted,dem_groups_date) for idx, patch in enumerate(image_patches)]
-    if b_max_subsidence is False:
-        results = theadPool.starmap(dem_diff_newest_oldest_a_patch, parameters_list)
+    if process_num == 1:
+        for idx, patch in enumerate(image_patches):
+            _,patch_dem_diff,patch_date_diff = dem_diff_newest_oldest_a_patch(idx, patch, patch_count,date_pair_list_sorted,dem_groups_date)
+            # copy to the entire image
+            row_s = patch[1]
+            row_e = patch[1] + patch[3]
+            col_s = patch[0]
+            col_e = patch[0] + patch[2]
+            dem_diff_np[row_s:row_e, col_s:col_e] = patch_dem_diff
+            date_diff_np[row_s:row_e, col_s:col_e] = patch_date_diff
     else:
-        results = theadPool.starmap(dem_diff_new_old_min_neg_diff_patch , parameters_list)
-    for res in results:
-        patch, patch_dem_diff, patch_date_diff = res
-        # copy to the entire image
-        row_s = patch[1]
-        row_e = patch[1] + patch[3]
-        col_s = patch[0]
-        col_e = patch[0] + patch[2]
-        dem_diff_np[row_s:row_e, col_s:col_e] = patch_dem_diff
-        date_diff_np[row_s:row_e, col_s:col_e] = patch_date_diff
+        theadPool = Pool(process_num)
+        parameters_list = [ (idx, patch, patch_count,date_pair_list_sorted,dem_groups_date) for idx, patch in enumerate(image_patches)]
+        if b_max_subsidence is False:
+            results = theadPool.starmap(dem_diff_newest_oldest_a_patch, parameters_list)
+        else:
+            results = theadPool.starmap(dem_diff_new_old_min_neg_diff_patch , parameters_list)
+        for res in results:
+            patch, patch_dem_diff, patch_date_diff = res
+            # copy to the entire image
+            row_s = patch[1]
+            row_e = patch[1] + patch[3]
+            col_s = patch[0]
+            col_e = patch[0] + patch[2]
+            dem_diff_np[row_s:row_e, col_s:col_e] = patch_dem_diff
+            date_diff_np[row_s:row_e, col_s:col_e] = patch_date_diff
 
     # save date diff to tif (16 bit)
     raster_io.save_numpy_array_to_rasterfile(date_diff_np,out_date_diff,dem_tif_list[0], nodata=0,compress='lzw',tiled='yes',bigtiff='if_safer')
