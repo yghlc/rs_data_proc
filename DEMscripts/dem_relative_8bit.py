@@ -40,7 +40,7 @@ relative_dem_dir = os.path.join(ArcticDEM_tmp_dir,'dem_relative_8bit')
 
 
 def dem_to_relative_8bit_a_patch(idx, patch, patch_count,dem_path, dst_nodata):
-    print('tile: %d / %d' % (idx + 1, patch_count))
+    # print('tile: %d / %d' % (idx + 1, patch_count))
     # patch_w = patch[2]
     # patch_h = patch[3]
 
@@ -109,14 +109,22 @@ def main():
     patch_height = 500
     process_num = 1
 
+    failed_tifs = []
+
     dem_reg_list = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir, '*dem_reg.tif')
     count = len(dem_reg_list)
     for idx, tif in enumerate(dem_reg_list):
         print('%d/%d convert %s to relative DEM (8bit)' % (idx + 1, count, tif))
         rel_dem_8bit = io_function.get_name_by_adding_tail(tif,'relDEM8bit')
         rel_dem_8bit = os.path.join(relative_dem_dir, os.path.basename(rel_dem_8bit))
-        dem_to_relative_dem(tif,rel_dem_8bit,patch_width,patch_height,process_num)
+        try:
+            dem_to_relative_dem(tif,rel_dem_8bit,patch_width,patch_height,process_num)
+        except:
+            failed_tifs.append(tif)
 
+    with open('to_relative_dem_failed_cases.txt') as f_obj:
+        for item in failed_tifs:
+            f_obj.writelines(item + '\n')
     pass
 
 if __name__ == '__main__':
