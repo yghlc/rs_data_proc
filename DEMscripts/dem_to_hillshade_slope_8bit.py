@@ -29,8 +29,8 @@ else:
 py8bit= os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/tools/convertTo8bit.py')
 
 arcticDEM_reg_tif_dir = os.path.join(ArcticDEM_tmp_dir,'registration_tifs')
-arcticDEM_hillshade_dir = os.path.join(ArcticDEM_tmp_dir,'grid_hillshade')
-arcticDEM_slope_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'grid_dem_slope_8bit')
+arcticDEM_hillshade_dir = os.path.join(ArcticDEM_tmp_dir,'dem_hillshade')
+arcticDEM_slope_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_slope_8bit')
 
 
 def slope_to_8bit(input, output):
