@@ -71,6 +71,9 @@ def dem_to_hillshade(input,output):
     if os.path.isfile(output):
         basic.outputlogMessage('%s exists, skip'%output)
         return True
+    if os.path.isfile(input) is False:
+        basic.outputlogMessage('Waring, %s does not exist'%input)
+        return False
 
     # use the default setting in QGIS
     # gdaldem hillshade ${dem} ${hillshade} -of GTiff -b 1 -z 1.0 -s 1.0 -az 315.0 -alt 45.0
