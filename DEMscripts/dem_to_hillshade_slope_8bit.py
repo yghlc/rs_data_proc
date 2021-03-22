@@ -96,18 +96,27 @@ def main():
     if os.path.isdir(arcticDEM_hillshade_dir) is False:
         io_function.mkdir(arcticDEM_hillshade_dir)
 
+    failed_tifs = []
+
     dem_reg_list = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir,'*dem_reg.tif')
     count = len(dem_reg_list)
     for idx, tif in enumerate(dem_reg_list):
         print('%d/%d convert %s to slope (8bit) and hillshade'%(idx+1, count, tif))
 
-        slope_8bit = io_function.get_name_by_adding_tail(tif,'slope8bit')
-        slope_8bit = os.path.join(arcticDEM_slope_8bit_dir, os.path.basename(slope_8bit))
-        dem_to_slope_save_8bit(tif, slope_8bit)
+        try:
+            slope_8bit = io_function.get_name_by_adding_tail(tif,'slope8bit')
+            slope_8bit = os.path.join(arcticDEM_slope_8bit_dir, os.path.basename(slope_8bit))
+            dem_to_slope_save_8bit(tif, slope_8bit)
 
-        hillshapde = io_function.get_name_by_adding_tail(tif,'hillshade')
-        hillshapde = os.path.join(arcticDEM_hillshade_dir, os.path.basename(hillshapde))
-        dem_to_hillshade(tif,hillshapde)
+            hillshapde = io_function.get_name_by_adding_tail(tif,'hillshade')
+            hillshapde = os.path.join(arcticDEM_hillshade_dir, os.path.basename(hillshapde))
+            dem_to_hillshade(tif,hillshapde)
+        except:
+            failed_tifs.append(tif)
+
+    with open('to_hillshade_slope8bit_failed_cases.txt') as f_obj:
+        for item in failed_tifs:
+            f_obj.writelines(item + '\n')
 
 if __name__ == '__main__':
     main()
