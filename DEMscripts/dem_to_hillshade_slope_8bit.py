@@ -54,6 +54,11 @@ def dem_to_slope_save_8bit(input,output):
     if os.path.isfile(output):
         basic.outputlogMessage('%s exists, skip'%output)
         return True
+
+    if os.path.isfile(input) is False:
+        basic.outputlogMessage('Waring, %s does not exist'%input)
+        return False
+
     slope_file = os.path.basename(io_function.get_name_by_adding_tail(input,'slope'))
 
     # # use the default setting in QGIS
