@@ -25,6 +25,8 @@ import multiprocessing
 from multiprocessing import Pool
 import numpy as np
 
+import cv2
+
 def segment_a_patch(idx, patch, patch_count,img_path):
 
     print('tile: %d / %d' % (idx + 1, patch_count))
@@ -34,10 +36,10 @@ def segment_a_patch(idx, patch, patch_count,img_path):
     # segmentation algorithm (the output of these algorithms is not alway good, need to chose the parameters carafully)
     # out_labels = watershed_segmentation(one_band_img)
     # out_labels = k_mean_cluster_segmentation(one_band_img)
-    # out_labels = quickshift_segmentaion(one_band_img,ratio=1.0, kernel_size=5, max_dist=10,
-    #                        sigma=0, convert2lab=False)
+    out_labels = quickshift_segmentaion(one_band_img,ratio=1.0, kernel_size=5, max_dist=10,
+                           sigma=0, convert2lab=False)
 
-    out_labels = mean_shift_segmentation(one_band_img)
+    # out_labels = mean_shift_segmentation(one_band_img)
 
     return patch, out_labels, nodata
 
@@ -75,6 +77,11 @@ def segment_a_grey_image(img_path, save_dir,process_num, dem_diff=None):
         current_min = np.max(save_labes)
         print('current_max',current_min)
         save_labes[row_s:row_e, col_s:col_e] = out_labels + current_min
+
+    # apply median filter (remove some noise)
+    label_blurs = cv2.medianBlur(np.float32(save_labes), 3)  # with kernal=3, cannot accept int32
+    # print(label_blurs, label_blurs.dtype)
+    save_labes = label_blurs.astype(np.int32)
 
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
