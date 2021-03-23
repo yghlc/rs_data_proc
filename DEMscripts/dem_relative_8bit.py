@@ -122,7 +122,7 @@ def main():
         except:
             failed_tifs.append(tif)
 
-    with open('to_relative_dem_failed_cases.txt') as f_obj:
+    with open('to_relative_dem_failed_cases.txt','w') as f_obj:
         for item in failed_tifs:
             f_obj.writelines(item + '\n')
     pass
