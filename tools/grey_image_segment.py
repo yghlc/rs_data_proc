@@ -16,10 +16,13 @@ sys.path.insert(0, deeplabforRS)
 import vector_gpd
 import raster_io
 import basic_src.io_function as io_function
+import basic_src.basic as basic
 import split_image
 
 from image_segment import quickshift_segmentaion
 from image_segment import mean_shift_segmentation
+
+from skimage import measure
 
 import multiprocessing
 from multiprocessing import Pool
@@ -27,7 +30,17 @@ import numpy as np
 
 import cv2
 
-def segment_a_patch(idx, patch, patch_count,img_path):
+def get_stastics_from_array(in_array, nodata,range=None):
+    data_1d = in_array.flatten()
+    data_1d = data_1d[ data_1d != nodata]
+    data_1d = data_1d[~np.isnan(data_1d)]  # remove nan value
+
+    # current, only calculate the mean
+    values = []
+    values.append(np.mean(data_1d)) # if data_1d is empty, then it returns None.
+    return values
+
+def segment_a_patch(idx, patch, patch_count,img_path, org_raster):
 
     print('tile: %d / %d' % (idx + 1, patch_count))
     # read imag
@@ -36,18 +49,43 @@ def segment_a_patch(idx, patch, patch_count,img_path):
     # segmentation algorithm (the output of these algorithms is not alway good, need to chose the parameters carafully)
     # out_labels = watershed_segmentation(one_band_img)
     # out_labels = k_mean_cluster_segmentation(one_band_img)
-    out_labels = quickshift_segmentaion(one_band_img,ratio=1.0, kernel_size=5, max_dist=10,
-                           sigma=0, convert2lab=False)
-
+    out_labels = quickshift_segmentaion(one_band_img,ratio=0.3, kernel_size=3, max_dist=10,
+                           sigma=1, convert2lab=False)
+    #
+    #
     # out_labels = mean_shift_segmentation(one_band_img)
 
-    return patch, out_labels, nodata
+    print('min and max labels of out_labels', np.min(out_labels), np.max(out_labels))
+    # calculate the attributes based on orginal data for original data
+    object_attributes = {}  # object id (label) and attributes (list)
+    if org_raster is not None:
+        org_img_b1, org_nodata = raster_io.read_raster_one_band_np(img_path, boundary=patch)
 
-def segment_a_grey_image(img_path, save_dir,process_num, dem_diff=None):
+        # get regions (the labels output by segmentation is not unique for superpixels)
+        regions = measure.regionprops(out_labels, intensity_image=org_img_b1)     # regions is based on out_labels, so it has the same issue.
+        print(len(regions))
+
+        label_list = np.unique(out_labels)
+        # get statistics for each segmented object (label)
+        for label in label_list:
+            in_array = org_img_b1[ out_labels == label ]
+            object_attributes[label] = get_stastics_from_array(in_array, org_nodata)
+
+        return patch, out_labels, nodata, object_attributes
+
+    return patch, out_labels, nodata, None
+
+def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None):
 
     out_pre = os.path.splitext(os.path.basename(img_path))[0]
     height, width, band_num, date_type = raster_io.get_height_width_bandnum_dtype(img_path)
     print('input image: height, width, band_num, date_type',height, width, band_num, date_type)
+
+    # if the original data is available, then calculate the attributes based on that
+    if org_raster is not None:
+        org_height, org_width, org_band_num, org_date_type = raster_io.get_height_width_bandnum_dtype(org_raster)
+        if org_height != height or org_width != width:
+            raise ValueError('%s and %s do not have the same size'%(img_path,org_raster))
 
     save_labes = np.zeros((height,width),dtype=np.int32)
     # divide the image the many small patches, then calcuate one by one, solving memory issues.
@@ -64,11 +102,12 @@ def segment_a_grey_image(img_path, save_dir,process_num, dem_diff=None):
     #     save_labes[row_s:row_e, col_s:col_e] = out_labels
 
     theadPool = Pool(process_num)
-    parameters_list = [ (idx, patch, patch_count,img_path) for idx, patch in enumerate(image_patches)]
+    parameters_list = [ (idx, patch, patch_count,img_path, org_raster) for idx, patch in enumerate(image_patches)]
     results = theadPool.starmap(segment_a_patch, parameters_list)
-    current_min = 0
+
+    object_attributes = {}  # object id (label) and attributes (list)
     for res in results:
-        patch, out_labels, nodata = res
+        patch, out_labels, nodata, attributes = res
         # copy to the entire image
         row_s = patch[1]
         row_e = patch[1] + patch[3]
@@ -77,6 +116,12 @@ def segment_a_grey_image(img_path, save_dir,process_num, dem_diff=None):
         current_min = np.max(save_labes)
         print('current_max',current_min)
         save_labes[row_s:row_e, col_s:col_e] = out_labels + current_min
+        if attributes is not None:
+            update_label_attr = {}
+            for key in attributes:
+                update_label_attr[ key + current_min] = attributes[key]
+            # add to the attributes
+            object_attributes.update(update_label_attr)
 
     # apply median filter (remove some noise)
     label_blurs = cv2.medianBlur(np.float32(save_labes), 3)  # with kernal=3, cannot accept int32
@@ -85,9 +130,18 @@ def segment_a_grey_image(img_path, save_dir,process_num, dem_diff=None):
 
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
+
+    # save attributes
+    attribute_path = os.path.join(save_dir, out_pre + '_attributes.txt')
+    io_function.save_dict_to_txt_json(attribute_path,object_attributes)
+
     # save the label
     label_path = os.path.join(save_dir, out_pre + '_label.tif')
     raster_io.save_numpy_array_to_rasterfile(save_labes, label_path, img_path) # do not set nodata
+
+    # remove nodato (it was copy from the input image)
+    command_str = 'gdal_edit.py -unsetnodata ' + label_path
+    basic.os_system_exit_code(command_str)
 
     # convert the label to shapefile
     out_shp = os.path.join(save_dir, out_pre + '.shp')
@@ -96,9 +150,9 @@ def segment_a_grey_image(img_path, save_dir,process_num, dem_diff=None):
     if res != 0:
         sys.exit(1)
 
-    if dem_diff is not None:
-        # do something of polygon merging
-        pass
+
+    return out_shp
+
 
 def main(options, args):
 
@@ -108,7 +162,7 @@ def main(options, args):
     process_num = options.process_num
     org_elevation_diff = options.elevation_diff
 
-    segment_a_grey_image(img_path,save_dir,process_num,dem_diff=org_elevation_diff)
+    segment_a_grey_image(img_path,save_dir,process_num,org_raster=org_elevation_diff)
 
 
 if __name__ == "__main__":

@@ -22,6 +22,11 @@ import cv2
 import numpy as np
 import pandas as pd
 
+code_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+sys.path.insert(0,code_dir)
+sys.path.insert(0,os.path.join(code_dir,'tools'))   # for some modules in this folder
+from tools.grey_image_segment import segment_a_grey_image
+
 def post_processing_subsidence(in_shp):
     polygons = vector_gpd.read_polygons_gpd(in_shp)
 
@@ -77,6 +82,59 @@ def segment_subsidence_on_dem_diff(dem_diff_tif, save_dir):
 
     # post-processing
     post_processing_subsidence(out_shp)
+
+def get_mean_from_array(in_array, nodata,range=None):
+    data_1d = in_array.flatten()
+    data_1d = data_1d[ data_1d != nodata]
+    data_1d = data_1d[~np.isnan(data_1d)]  # remove nan value
+    value = np.mean(data_1d)
+    return value
+
+def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, min_area=40, max_area=100000000):
+
+    polygons = vector_gpd.read_polygons_gpd(in_shp)
+    print('Read %d polygons'%len(polygons))
+
+
+    # get shapeinfo
+    # poly_shapeinfo_list = []
+    save_polyons = []
+    for poly in polygons:
+        if poly.area < 90:    # remove the one with area smaller than 40 m^2
+            continue
+        save_polyons.append(poly)
+
+    save_pd = pd.DataFrame({'Polygon': save_polyons})
+    wkt = map_projection.get_raster_or_vector_srs_info_wkt(in_shp)
+    save_shp = io_function.get_name_by_adding_tail(in_shp,'post')
+    vector_gpd.save_polygons_to_files(save_pd,'Polygon',wkt,save_shp)
+
+
+
+def segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff, save_dir,process_num, min_area=40, max_area=100000000):
+    '''
+    segment subsidence areas based on 8bit dem difference
+    :param dem_diff_grey_8bit:
+    :param dem_diff:
+    :param save_dir:
+    :param process_num:
+    :param min_area: min size in m^2 (defualt is 40 m^2, 10 pixels on ArcticDEM)
+    :param max_area: min size in m^2 (default is 10km by 10 km)
+    :return:
+    '''
+
+    # get initial polygons
+    segment_shp_path = segment_a_grey_image(dem_diff_grey_8bit,save_dir,process_num)
+
+    # get DEM diff information for each polygon.
+
+
+def test_get_dem_subscidence_polygons():
+    in_shp = os.path.expanduser('~/Data/Arctic/canada_arctic/DEM/WR_dem_diff/segment_parallel/WR_dem_diff_DEM_diff_prj_8bit_edit.shp')
+    dem_diff_tif = os.path.expanduser('~/Data/Arctic/canada_arctic/DEM/WR_dem_diff/WR_dem_diff_DEM_diff_prj.tif')
+    get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, min_area=40, max_area=100000000)
+
+
 
 def main(options, args):
 
