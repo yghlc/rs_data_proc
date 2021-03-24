@@ -123,10 +123,10 @@ def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None):
             # add to the attributes
             object_attributes.update(update_label_attr)
 
-    # apply median filter (remove some noise)
-    label_blurs = cv2.medianBlur(np.float32(save_labes), 3)  # with kernal=3, cannot accept int32
-    # print(label_blurs, label_blurs.dtype)
-    save_labes = label_blurs.astype(np.int32)
+    # # apply median filter (remove some noise), #  we should not use median  filter, because it's labels, not images.
+    # label_blurs = cv2.medianBlur(np.float32(save_labes), 3)  # with kernal=3, cannot accept int32
+    # # print(label_blurs, label_blurs.dtype)
+    # save_labes = label_blurs.astype(np.int32)
 
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
