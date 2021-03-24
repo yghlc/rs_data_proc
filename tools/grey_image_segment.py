@@ -63,7 +63,7 @@ def segment_a_patch(idx, patch, patch_count,img_path, org_raster):
 
         # get regions (the labels output by segmentation is not unique for superpixels)
         regions = measure.regionprops(out_labels, intensity_image=org_img_b1)     # regions is based on out_labels, so it has the same issue.
-        print(len(regions))
+        print('region count from sk-image measure:',len(regions))
 
         label_list = np.unique(out_labels)
         # get statistics for each segmented object (label)
