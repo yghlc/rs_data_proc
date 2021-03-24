@@ -49,7 +49,7 @@ def segment_a_patch(idx, patch, patch_count,img_path, org_raster):
     # segmentation algorithm (the output of these algorithms is not alway good, need to chose the parameters carafully)
     # out_labels = watershed_segmentation(one_band_img)
     # out_labels = k_mean_cluster_segmentation(one_band_img)
-    out_labels = quickshift_segmentaion(one_band_img,ratio=0.3, kernel_size=3, max_dist=10,
+    out_labels = quickshift_segmentaion(one_band_img,ratio=0.3, kernel_size=5, max_dist=10,
                            sigma=1, convert2lab=False)
     #
     #
