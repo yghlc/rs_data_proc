@@ -55,15 +55,16 @@ def segment_a_patch(idx, patch, patch_count,img_path, org_raster):
     #
     # out_labels = mean_shift_segmentation(one_band_img)
 
-    print('min and max labels of out_labels', np.min(out_labels), np.max(out_labels))
+    # print('min and max labels of out_labels', np.min(out_labels), np.max(out_labels))
+
     # calculate the attributes based on orginal data for original data
     object_attributes = {}  # object id (label) and attributes (list)
     if org_raster is not None:
-        org_img_b1, org_nodata = raster_io.read_raster_one_band_np(img_path, boundary=patch)
+        org_img_b1, org_nodata = raster_io.read_raster_one_band_np(org_raster, boundary=patch)
 
         # get regions (the labels output by segmentation is not unique for superpixels)
-        regions = measure.regionprops(out_labels, intensity_image=org_img_b1)     # regions is based on out_labels, so it has the same issue.
-        print('region count from sk-image measure:',len(regions))
+        # regions = measure.regionprops(out_labels, intensity_image=org_img_b1)     # regions is based on out_labels, so it has the same issue.
+        # print('region count from sk-image measure:',len(regions))
 
         label_list = np.unique(out_labels)
         # get statistics for each segmented object (label)
