@@ -22,6 +22,32 @@ from skimage import segmentation
 
 # import pymeanshift as pms
 
+import cv2
+
+def to_unique_label_for_superpixels(seg_label_image):
+    # input is the label image output by segmentation algorithm,
+    # sometime, two separate superpixels has the same label, cause problem later.
+
+    # use findContours to make each superpixel only have the unique pixel.
+    # findContours: https://docs.opencv.org/3.4/d3/dc0/group__imgproc__shape.html#ga17ed9f5d79ae97bd4c7cf18403e1689a
+
+
+    # notes: not working, need more understanding and test
+
+    # mode equals to RETR_CCOMP or RETR_FLOODFILL, the input can also be a 32-bit integer image of labels
+    contours, hierarchy = cv2.findContours(seg_label_image, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    print('contours count', len(contours))
+    new_labels = np.zeros_like(seg_label_image)
+    for idx, cont in enumerate(contours):
+        # print(idx)
+        cv2.drawContours(new_labels, contours, idx, idx, thickness=-1) # ,hierarchy=hierarchy, maxLevel=2
+        # cv2.drawContours(new_labels, cont, 0, idx, thickness=-1) # hierarchy=hierarchy, maxLevel=2
+
+    print('hierarchy shape',hierarchy.shape)
+
+    return new_labels
+
+
 def watershed_segmentation(img_2d_one_band):
     # the result is so bad when we applied this one to dem difference (float32), maybe we need choose some markers.
     out_labels = segmentation.watershed(img_2d_one_band)
