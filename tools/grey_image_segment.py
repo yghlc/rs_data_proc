@@ -37,7 +37,7 @@ def get_stastics_from_array(in_array, nodata,range=None):
 
     # current, only calculate the mean
     values = []
-    values.append(np.mean(data_1d)) # if data_1d is empty, then it returns None.
+    values.append(np.mean(data_1d).astype(np.float64)) # if data_1d is empty, then it returns None.     # save to float64 for json
     return values
 
 def segment_a_patch(idx, patch, patch_count,img_path, org_raster):
