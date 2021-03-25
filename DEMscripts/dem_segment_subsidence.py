@@ -96,6 +96,11 @@ def get_mean_from_array(in_array, nodata,range=None):
 
 def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, min_area=40, max_area=100000000, process_num=1):
 
+    save_shp = io_function.get_name_by_adding_tail(in_shp, 'post')
+    if os.path.isfile(save_shp):
+        basic.outputlogMessage('%s exists, skip'%save_shp)
+        return save_shp
+
     shp_pre = os.path.splitext(os.path.basename(in_shp))[0]
     # read polygons and label from segment algorithm, note: some polygons may have the same label
     polygons, seg_labels = vector_gpd.read_polygons_attributes_list(in_shp,'DN')
@@ -161,7 +166,7 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
 
     save_pd = pd.DataFrame({'poly_ids':poly_ids,'poly_area':poly_areas,'Polygon': remain_polyons})
     wkt = map_projection.get_raster_or_vector_srs_info_wkt(in_shp)
-    save_shp = io_function.get_name_by_adding_tail(in_shp,'post')
+
     vector_gpd.save_polygons_to_files(save_pd,'Polygon',wkt,save_shp)
 
     raster_statistic.zonal_stats_multiRasters(save_shp,dem_diff_tif,stats=['mean','std'],prefix='demD')
