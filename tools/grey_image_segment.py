@@ -81,6 +81,11 @@ def segment_a_patch(idx, patch, patch_count,img_path, org_raster):
 def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None):
 
     out_pre = os.path.splitext(os.path.basename(img_path))[0]
+    out_shp = os.path.join(save_dir, out_pre + '.shp')
+    if os.path.isfile(out_shp):
+        basic.outputlogMessage('%s exist, skip segmentation'%out_shp)
+        return out_shp
+
     height, width, band_num, date_type = raster_io.get_height_width_bandnum_dtype(img_path)
     print('input image: height, width, band_num, date_type',height, width, band_num, date_type)
 
@@ -147,7 +152,6 @@ def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None):
     basic.os_system_exit_code(command_str)
 
     # convert the label to shapefile
-    out_shp = os.path.join(save_dir, out_pre + '.shp')
     command_string = 'gdal_polygonize.py -8 %s -b 1 -f "ESRI Shapefile" %s' % (label_path, out_shp)
     res = os.system(command_string)
     if res != 0:
