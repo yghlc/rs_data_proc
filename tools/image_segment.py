@@ -20,7 +20,7 @@ import basic_src.io_function as io_function
 import numpy as np
 from skimage import segmentation
 
-import pymeanshift as pms
+# import pymeanshift as pms
 
 def watershed_segmentation(img_2d_one_band):
     # the result is so bad when we applied this one to dem difference (float32), maybe we need choose some markers.
