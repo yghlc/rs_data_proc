@@ -131,27 +131,28 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
 
     print('remove %d polygons based on min_area, %d polygons based on dem_diff_threshold, remain %d ones'%(rm_min_area_count, rm_diff_thr_count,len(remain_polyons)))
 
-    # we should only merge polygon with similar reduction, but we already remove polygons with mean reduction > threshhold
-    # merge touch polygons
-    print(timeTools.get_now_time_str(), 'start building adjacent_matrix')
-    adjacent_matrix = vector_features.build_adjacent_map_of_polygons(remain_polyons)
-    print(timeTools.get_now_time_str(), 'finish building adjacent_matrix')
+    if len(remain_polyons) > 1:
+        # we should only merge polygon with similar reduction, but we already remove polygons with mean reduction > threshhold
+        # merge touch polygons
+        print(timeTools.get_now_time_str(), 'start building adjacent_matrix')
+        adjacent_matrix = vector_features.build_adjacent_map_of_polygons(remain_polyons)
+        print(timeTools.get_now_time_str(), 'finish building adjacent_matrix')
 
-    if adjacent_matrix is False:
-        return False
-    merged_polygons = vector_features.merge_touched_polygons(remain_polyons,adjacent_matrix)
-    print(timeTools.get_now_time_str(), 'finish merging touched polygons, get %d ones'%(len(merged_polygons)))
+        if adjacent_matrix is False:
+            return False
+        merged_polygons = vector_features.merge_touched_polygons(remain_polyons,adjacent_matrix)
+        print(timeTools.get_now_time_str(), 'finish merging touched polygons, get %d ones'%(len(merged_polygons)))
 
-    # remove large ones
-    remain_polyons = []
-    rm_max_area_count = 0
-    for poly in merged_polygons:
-        if poly.area > max_area:
-            rm_max_area_count += 1
-            continue
-        remain_polyons.append(poly)
+        # remove large ones
+        remain_polyons = []
+        rm_max_area_count = 0
+        for poly in merged_polygons:
+            if poly.area > max_area:
+                rm_max_area_count += 1
+                continue
+            remain_polyons.append(poly)
 
-    print('remove %d polygons based on max_area, remain %d'%(rm_max_area_count, len(remain_polyons)))
+        print('remove %d polygons based on max_area, remain %d'%(rm_max_area_count, len(remain_polyons)))
 
     # calcualte attributes of remain ones: area, dem_diff: mean, std
     poly_areas = [ poly.area for poly in remain_polyons ]
