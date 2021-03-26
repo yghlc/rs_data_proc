@@ -160,16 +160,77 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
 
         print('remove %d polygons based on max_area, remain %d'%(rm_max_area_count, len(remain_polyons)))
 
-    # calcualte attributes of remain ones: area, dem_diff: mean, std
-    poly_areas = [ poly.area for poly in remain_polyons ]
-    poly_ids = [ item+1  for item in range(len(remain_polyons)) ]
-
-    save_pd = pd.DataFrame({'poly_ids':poly_ids,'poly_area':poly_areas,'Polygon': remain_polyons})
     wkt = map_projection.get_raster_or_vector_srs_info_wkt(in_shp)
 
-    vector_gpd.save_polygons_to_files(save_pd,'Polygon',wkt,save_shp)
+    polyons_noMulti = [ vector_gpd.MultiPolygon_to_polygons(idx,poly) for idx,poly in enumerate(remain_polyons) ]
+    remain_polyons = []
+    for polys in polyons_noMulti:
+        remain_polyons.extend(polys)
+    print('convert MultiPolygon to polygons, remain %d' % (len(remain_polyons)))
 
-    raster_statistic.zonal_stats_multiRasters(save_shp,dem_diff_tif,stats=['mean','std','count'],prefix='demD',process_num=process_num)
+
+    # based on the merged polygons, calculate the mean dem diff, relative dem_diff
+    buffer_surrounding = 20  # meters
+    surrounding_polygons = vector_gpd.get_surrounding_polygons(remain_polyons,buffer_surrounding)
+    surrounding_shp = io_function.get_name_by_adding_tail(in_shp, 'surrounding')
+    surr_pd = pd.DataFrame({'Polygon': surrounding_polygons})
+    vector_gpd.save_polygons_to_files(surr_pd, 'Polygon', wkt, surrounding_shp)
+    raster_statistic.zonal_stats_multiRasters(surrounding_shp, dem_diff_tif, stats=['mean', 'std', 'count'], prefix='demD',process_num=process_num)
+
+
+    # calcualte attributes of remain ones: area, dem_diff: mean, std
+    merged_pd = pd.DataFrame({'Polygon': remain_polyons})
+    merged_shp = io_function.get_name_by_adding_tail(in_shp, 'merged')
+    vector_gpd.save_polygons_to_files(merged_pd, 'Polygon', wkt, merged_shp)
+    raster_statistic.zonal_stats_multiRasters(merged_shp, dem_diff_tif, stats=['mean','std','count'], prefix='demD', process_num=process_num)
+
+    # calculate the relative dem diff
+    surr_dem_diff_list = vector_gpd.read_attribute_values_list(surrounding_shp,'demD_mean')
+    merge_poly_dem_diff_list = vector_gpd.read_attribute_values_list(merged_shp,'demD_mean')
+    if len(surr_dem_diff_list) != len(merge_poly_dem_diff_list):
+        raise ValueError('The number of surr_dem_diff_list and merge_poly_dem_diff_list is different')
+    relative_dem_diff_list = [  mer - sur for sur, mer in zip(surr_dem_diff_list, merge_poly_dem_diff_list) ]
+
+    merge_poly_demD_std_list = vector_gpd.read_attribute_values_list(merged_shp,'demD_std')
+    merge_poly_demD_count_list = vector_gpd.read_attribute_values_list(merged_shp,'demD_count')
+
+    # remove large ones
+    save_polyons = []
+    save_demD_mean_list = []
+    save_demD_std_list = []
+    save_demD_count_list = []
+    save_rel_diff_list = []
+    save_surr_demD_list = []
+    rm_rel_dem_diff_count = 0
+    rm_min_area_count = 0
+    for idx in range(len(remain_polyons)):
+        # relative dem diff
+        if relative_dem_diff_list[idx] > dem_diff_thread_m:  #
+            rm_rel_dem_diff_count += 1
+            continue
+
+        # when convert MultiPolygon to Polygon, may create some small polygons
+        if remain_polyons[idx].area < min_area:
+            rm_min_area_count += 1
+            continue
+
+
+        save_polyons.append(remain_polyons[idx])
+        save_demD_mean_list.append(merge_poly_dem_diff_list[idx])
+        save_demD_std_list.append(merge_poly_demD_std_list[idx])
+        save_demD_count_list.append(merge_poly_demD_count_list[idx])
+        save_rel_diff_list.append(relative_dem_diff_list[idx])
+        save_surr_demD_list.append(surr_dem_diff_list[idx])
+
+    print('remove %d polygons based on relative rel_demD and %d based on min_area, remain %d' % (rm_rel_dem_diff_count, rm_min_area_count, len(save_polyons)))
+
+    poly_ids = [ item+1  for item in range(len(save_polyons)) ]
+    poly_areas = [poly.area for poly in save_polyons]
+
+    save_pd = pd.DataFrame({'poly_id':poly_ids, 'poly_area':poly_areas,'demD_mean':save_demD_mean_list, 'demD_std':save_demD_std_list,
+                             'demD_count':save_demD_count_list, 'surr_demD':save_surr_demD_list, 'rel_demD':save_rel_diff_list ,'Polygon': save_polyons})
+
+    vector_gpd.save_polygons_to_files(save_pd, 'Polygon', wkt, save_shp)
 
     return save_shp
 
