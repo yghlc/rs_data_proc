@@ -25,6 +25,9 @@ import raster_statistic
 import cv2
 import numpy as np
 import pandas as pd
+import re
+
+import dem_common
 
 code_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.insert(0,code_dir)
@@ -93,6 +96,21 @@ def get_mean_from_array(in_array, nodata,range=None):
     data_1d = data_1d[~np.isnan(data_1d)]  # remove nan value
     value = np.mean(data_1d)
     return value
+
+def get_dem_diff_8bit(dem_diff_path):
+    # find 8bit one
+    tif_8bit = io_function.get_name_by_adding_tail(dem_diff_path, '8bit')
+    demD_8bit= os.path.join(dem_common.grid_dem_diffs_8bit_dir, os.path.basename(tif_8bit))
+    if os.path.isfile(demD_8bit) is False:
+        basic.outputlogMessage('error, 8bit DEM diff not exists: %s '%demD_8bit)
+        return None
+    return demD_8bit
+
+def get_save_dir(dem_diff_path):
+
+    grid_id = int(re.findall('grid\d+',os.path.basename(dem_diff_path))[0][4:])
+    save_dir = os.path.join(dem_common.grid_dem_diffs_segment_dir, 'segment_result_grid%d'%grid_id)
+    return save_dir
 
 def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, min_area=40, max_area=100000000, process_num=1):
 
@@ -306,6 +324,12 @@ def main(options, args):
     # segment_subsidence_on_dem_diff(dem_diff_path,save_dir)
 
     dem_diff_grey_8bit = options.dem_diff_8bit
+    if dem_diff_grey_8bit is None:
+        dem_diff_grey_8bit  = get_dem_diff_8bit(dem_diff_path)
+
+    if save_dir is None:
+        save_dir = get_save_dir(dem_diff_path)
+
     ele_diff_thr = options.ele_diff_thr
     min_area = options.min_area
     max_area = options.max_area
@@ -322,7 +346,7 @@ if __name__ == "__main__":
     parser.description = 'Introduction: segment subsidence based on DEM difference  '
 
     parser.add_option("-d", "--save_dir",
-                      action="store", dest="save_dir",default='./',
+                      action="store", dest="save_dir",
                       help="the folder to save results")
 
     parser.add_option("-g", "--dem_diff_8bit",
