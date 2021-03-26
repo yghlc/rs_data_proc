@@ -233,6 +233,13 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
 
     vector_gpd.save_polygons_to_files(save_pd, 'Polygon', wkt, save_shp)
 
+    # add date difference if there are available
+    date_diff_base = os.path.basename(dem_diff_tif).replace('DEM_diff','date_diff')
+    date_diff_tif = os.path.join(os.path.dirname(dem_diff_tif) , date_diff_base)
+    if os.path.isfile(date_diff_tif):
+        raster_statistic.zonal_stats_multiRasters(save_shp, date_diff_tif, stats=['mean', 'std'], prefix='dateD',
+                                              process_num=process_num)
+
     return save_shp
 
 
