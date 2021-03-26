@@ -91,6 +91,10 @@ def submit_segment_dem_diff_job(dem_diff_list, idx):
             print('The folder: %s already exist and the job has been submitted, skip submitting a new job'%work_dir)
             return
 
+        # job is completed
+        if os.path.isfile('done.txt'):
+            return
+
 
     # submit the job
     # sometime, when submit a job, end with: singularity: command not found,and exist, wired, then try run submit a job in scomplie note
