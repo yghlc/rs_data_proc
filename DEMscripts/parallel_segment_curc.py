@@ -62,9 +62,10 @@ def copy_curc_seg_job_files(sh_dir, work_dir):
 def submit_segment_dem_diff_job(dem_diff_list, idx):
 
     while True:
+        max_job_count = 10
         job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr='seg')
-        if job_count >= 10:
-            print(machine_name, datetime.now(),'You have submitted 50 or more jobs, wait ')
+        if job_count >= max_job_count:
+            print(machine_name, datetime.now(),'You have submitted %d or more jobs, wait '%max_job_count)
             time.sleep(60) #
             continue
         break
