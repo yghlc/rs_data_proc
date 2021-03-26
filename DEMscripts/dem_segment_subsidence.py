@@ -161,6 +161,10 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
         # merge touch polygons
         print(timeTools.get_now_time_str(), 'start building adjacent_matrix')
         # adjacent_matrix = vector_features.build_adjacent_map_of_polygons(remain_polyons)
+        machine_name = os.uname()[1]
+        if 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:
+            print('Warning, some problem of parallel running in build_adjacent_map_of_polygons on curc, but ok in my laptop and uist, change process_num = 1')
+            process_num = 1
         adjacent_matrix = vector_gpd.build_adjacent_map_of_polygons(remain_polyons, process_num=process_num)
         print(timeTools.get_now_time_str(), 'finish building adjacent_matrix')
 
