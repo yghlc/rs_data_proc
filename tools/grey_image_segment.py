@@ -48,6 +48,9 @@ def segment_a_patch(idx, patch, patch_count,img_path, org_raster):
     # read imag
     one_band_img, nodata = raster_io.read_raster_one_band_np(img_path, boundary=patch)
 
+    # # apply median filter to image (remove some noise)
+    one_band_img = cv2.medianBlur(one_band_img, 3)  # with kernal=3, cannot accept int32
+
     # segmentation algorithm (the output of these algorithms is not alway good, need to chose the parameters carafully)
     # out_labels = watershed_segmentation(one_band_img)
     # out_labels = k_mean_cluster_segmentation(one_band_img)
@@ -139,9 +142,10 @@ def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None):
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
 
-    # save attributes
-    attribute_path = os.path.join(save_dir, out_pre + '_attributes.txt')
-    io_function.save_dict_to_txt_json(attribute_path,object_attributes)
+    # save attributes (if not empty)
+    if object_attributes:
+        attribute_path = os.path.join(save_dir, out_pre + '_attributes.txt')
+        io_function.save_dict_to_txt_json(attribute_path,object_attributes)
 
     # save the label
     label_path = os.path.join(save_dir, out_pre + '_label.tif')

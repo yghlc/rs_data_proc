@@ -103,18 +103,18 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
 
     shp_pre = os.path.splitext(os.path.basename(in_shp))[0]
     # read polygons and label from segment algorithm, note: some polygons may have the same label
-    polygons, seg_labels = vector_gpd.read_polygons_attributes_list(in_shp,'DN')
+    polygons, demD_mean_list = vector_gpd.read_polygons_attributes_list(in_shp,'demD_mean')
     print('Read %d polygons'%len(polygons))
 
 
     demD_height, demD_width, demD_band_num, demD_date_type = raster_io.get_height_width_bandnum_dtype(dem_diff_tif)
     # print(demD_date_type)
 
-    # read mean elevation difference
-    attributes_path = os.path.join(os.path.dirname(in_shp), shp_pre + '_attributes.txt')
-
-    # for each seg lable [mean, std, pixel count], if dem_diff_tif is float 32, then in meters, if int16, then in centimeter
-    poly_attributes = io_function.read_dict_from_txt_json(attributes_path)
+    # # read mean elevation difference
+    # attributes_path = os.path.join(os.path.dirname(in_shp), shp_pre + '_attributes.txt')
+    #
+    # # for each seg lable [mean, std, pixel count], if dem_diff_tif is float 32, then in meters, if int16, then in centimeter
+    # poly_attributes = io_function.read_dict_from_txt_json(attributes_path)
 
     # if int16, then it's in centimeter
     if demD_date_type == 'int16':
@@ -123,12 +123,12 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
     remain_polyons = []
     rm_min_area_count = 0
     rm_diff_thr_count = 0
-    for poly, label in zip(polygons, seg_labels):
+    for poly, demD_mean in zip(polygons, demD_mean_list):
         if poly.area < min_area:
             rm_min_area_count += 1
             continue
         # mean value: not subsidence
-        if poly_attributes[str(label)][0] > dem_diff_thread_m:  #
+        if demD_mean > dem_diff_thread_m:  #
             rm_diff_thr_count += 1
             continue
 
@@ -191,7 +191,11 @@ def segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff, save_dir,process
     io_function.is_file_exist(dem_diff_grey_8bit)
 
     # get initial polygons
-    segment_shp_path = segment_a_grey_image(dem_diff_grey_8bit,save_dir,process_num, org_raster=dem_diff)
+    # because the label from segmentation for superpixels are not unique, so we may need to get mean dem diff based on polygons, set org_raster=None
+    segment_shp_path = segment_a_grey_image(dem_diff_grey_8bit,save_dir,process_num, org_raster=None)
+
+    # get dem elevation information for each polygon
+    raster_statistic.zonal_stats_multiRasters(segment_shp_path, dem_diff, stats=['mean', 'std'], prefix='demD')
 
     # get DEM diff information for each polygon.
     dem_diff_shp = get_dem_subscidence_polygons(segment_shp_path, dem_diff, dem_diff_thread_m=subsidence_thr_m,
