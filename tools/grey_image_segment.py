@@ -114,7 +114,7 @@ def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None):
 
     theadPool = Pool(process_num)
     parameters_list = [ (idx, patch, patch_count,img_path, org_raster) for idx, patch in enumerate(image_patches)]
-    results = theadPool.starmap(segment_a_patch, parameters_list,chunksize=1)
+    results = theadPool.starmap(segment_a_patch, parameters_list)
 
     object_attributes = {}  # object id (label) and attributes (list)
     for res in results:
