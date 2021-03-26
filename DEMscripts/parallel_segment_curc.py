@@ -55,7 +55,7 @@ def seg_working_dir_string(trial_id, root=None):
 
 
 def copy_curc_seg_job_files(sh_dir, work_dir):
-    sh_list = ['seg_dem_diff.sh','job.sh','run_INsingularity_curc_GPU_tf.sh']
+    sh_list = ['seg_dem_diff.sh','job.sh','run_INsingularity_curc.sh']
     for sh in sh_list:
         io_function.copy_file_to_dst(os.path.join(sh_dir, sh), os.path.join(work_dir, sh)) #, overwrite=True
 

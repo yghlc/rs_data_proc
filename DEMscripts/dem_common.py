@@ -31,7 +31,7 @@ relative_dem_dir = os.path.join(ArcticDEM_tmp_dir,'dem_relative_8bit')
 
 grid_dem_diffs_dir = os.path.join(ArcticDEM_tmp_dir,'grid_dem_diffs')
 grid_dem_diffs_8bit_dir = os.path.join(ArcticDEM_tmp_dir,'grid_dem_diffs_8bit')
-grid_dem_diffs_segment_dir = os.path.join(ArcticDEM_tmp_dir,'grid_dem_diffs_8bit')
+grid_dem_diffs_segment_dir = os.path.join(ArcticDEM_tmp_dir,'grid_dem_diffs_segment_results')
 
 dem_slope_8bit_dir = os.path.join(ArcticDEM_tmp_dir,'dem_slope_8bit')
 dem_hillshade_dir = os.path.join(ArcticDEM_tmp_dir,'dem_hillshade')
