@@ -141,4 +141,4 @@ if __name__ == '__main__':
         max_job_count = int(sys.argv[1])
     print('max_job_count', max_job_count)
     print('\ncurrent folder before start: ', curr_dir_before_start, '\n')
-    # main()
+    main()
