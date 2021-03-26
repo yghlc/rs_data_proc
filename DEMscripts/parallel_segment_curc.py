@@ -116,7 +116,7 @@ def main():
 
     print('total %d DEM differnce tifs'%len(dem_diff_list))
 
-    n_tif_per_jobs = 50  # each job, have how many tif to segment
+    n_tif_per_jobs = 10  # each job, have how many tif to segment
     total_tif_count = len(dem_diff_list)
     # divide to many sub jobs
     tif_groups = [dem_diff_list[i:i + n_tif_per_jobs] for i in range(0, total_tif_count, n_tif_per_jobs)]
