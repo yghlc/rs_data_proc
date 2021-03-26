@@ -165,6 +165,7 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
     polyons_noMulti = [ vector_gpd.MultiPolygon_to_polygons(idx,poly) for idx,poly in enumerate(remain_polyons) ]
     remain_polyons = []
     for polys in polyons_noMulti:
+        polys = [poly for poly in polys if poly.area > min_area]    # remove tiny polygon before buffer
         remain_polyons.extend(polys)
     print('convert MultiPolygon to polygons, remain %d' % (len(remain_polyons)))
 
