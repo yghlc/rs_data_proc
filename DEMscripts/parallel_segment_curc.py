@@ -114,7 +114,7 @@ def main():
     if len(dem_diff_list) < 1:
         raise ValueError('No *DEM_diff*.tif in %s'%dem_common.grid_dem_diffs_dir)
 
-    print('total %d DEM differnce tifs'%dem_diff_list)
+    print('total %d DEM differnce tifs'%len(dem_diff_list))
 
     n_tif_per_jobs = 50  # each job, have how many tif to segment
     total_tif_count = len(dem_diff_list)
