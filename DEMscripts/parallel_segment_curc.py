@@ -62,7 +62,6 @@ def copy_curc_seg_job_files(sh_dir, work_dir):
 def submit_segment_dem_diff_job(dem_diff_list, idx):
 
     while True:
-        max_job_count = 50
         job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr='seg')
         if job_count >= max_job_count:
             print(machine_name, datetime.now(),'You have submitted %d or more jobs, wait '%max_job_count)
@@ -137,5 +136,9 @@ def main():
 
 if __name__ == '__main__':
     curr_dir_before_start = os.getcwd()
-    print('\n\ncurrent folder before start: ', curr_dir_before_start, '\n\n')
-    main()
+    max_job_count = 50
+    if len(sys.argv) > 1:
+        max_job_count = int(sys.argv[1])
+    print('max_job_count', max_job_count)
+    print('\ncurrent folder before start: ', curr_dir_before_start, '\n')
+    # main()
