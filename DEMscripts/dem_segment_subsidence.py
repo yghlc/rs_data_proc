@@ -190,12 +190,28 @@ def segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff, save_dir,process
 
     io_function.is_file_exist(dem_diff_grey_8bit)
 
+    out_pre = os.path.splitext(os.path.basename(dem_diff_grey_8bit))[0]
+    segment_shp_path = os.path.join(save_dir, out_pre + '.shp')
+
     # get initial polygons
     # because the label from segmentation for superpixels are not unique, so we may need to get mean dem diff based on polygons, set org_raster=None
-    segment_shp_path = segment_a_grey_image(dem_diff_grey_8bit,save_dir,process_num, org_raster=None)
+    label_path = segment_a_grey_image(dem_diff_grey_8bit,save_dir,process_num, org_raster=None)
 
-    # get dem elevation information for each polygon
-    raster_statistic.zonal_stats_multiRasters(segment_shp_path, dem_diff, stats=['mean', 'std','count'], prefix='demD',process_num=process_num)
+    if os.path.isfile(segment_shp_path):
+        basic.outputlogMessage('%s exists, skip'%segment_shp_path)
+    else:
+        # remove nodato (it was copy from the input image)
+        command_str = 'gdal_edit.py -unsetnodata ' + label_path
+        basic.os_system_exit_code(command_str)
+
+        # convert the label to shapefile
+        command_string = 'gdal_polygonize.py -8 %s -b 1 -f "ESRI Shapefile" %s' % (label_path, segment_shp_path)
+        res = os.system(command_string)
+        if res != 0:
+            sys.exit(1)
+
+        # get dem elevation information for each polygon
+        raster_statistic.zonal_stats_multiRasters(segment_shp_path, dem_diff, stats=['mean', 'std','count'], prefix='demD',process_num=process_num)
 
     # get DEM diff information for each polygon.
     dem_diff_shp = get_dem_subscidence_polygons(segment_shp_path, dem_diff, dem_diff_thread_m=subsidence_thr_m,

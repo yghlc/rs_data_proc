@@ -84,10 +84,10 @@ def segment_a_patch(idx, patch, patch_count,img_path, org_raster):
 def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None):
 
     out_pre = os.path.splitext(os.path.basename(img_path))[0]
-    out_shp = os.path.join(save_dir, out_pre + '.shp')
-    if os.path.isfile(out_shp):
-        basic.outputlogMessage('%s exist, skip segmentation'%out_shp)
-        return out_shp
+    label_path = os.path.join(save_dir, out_pre + '_label.tif')
+    if os.path.isfile(label_path):
+        basic.outputlogMessage('%s exist, skip segmentation'%label_path)
+        return label_path
 
     height, width, band_num, date_type = raster_io.get_height_width_bandnum_dtype(img_path)
     print('input image: height, width, band_num, date_type',height, width, band_num, date_type)
@@ -148,21 +148,10 @@ def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None):
         io_function.save_dict_to_txt_json(attribute_path,object_attributes)
 
     # save the label
-    label_path = os.path.join(save_dir, out_pre + '_label.tif')
     raster_io.save_numpy_array_to_rasterfile(save_labes, label_path, img_path) # do not set nodata
 
-    # remove nodato (it was copy from the input image)
-    command_str = 'gdal_edit.py -unsetnodata ' + label_path
-    basic.os_system_exit_code(command_str)
 
-    # convert the label to shapefile
-    command_string = 'gdal_polygonize.py -8 %s -b 1 -f "ESRI Shapefile" %s' % (label_path, out_shp)
-    res = os.system(command_string)
-    if res != 0:
-        sys.exit(1)
-
-
-    return out_shp
+    return label_path
 
 
 def main(options, args):
