@@ -123,6 +123,8 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
     # read polygons and label from segment algorithm, note: some polygons may have the same label
     polygons, demD_mean_list = vector_gpd.read_polygons_attributes_list(in_shp,'demD_mean')
     print('Read %d polygons'%len(polygons))
+    if demD_mean_list is None:
+        raise ValueError('demD_mean not in %s, need to remove it and then re-create'%in_shp)
 
 
     demD_height, demD_width, demD_band_num, demD_date_type = raster_io.get_height_width_bandnum_dtype(dem_diff_tif)
