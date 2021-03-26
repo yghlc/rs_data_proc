@@ -195,7 +195,7 @@ def segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff, save_dir,process
     segment_shp_path = segment_a_grey_image(dem_diff_grey_8bit,save_dir,process_num, org_raster=None)
 
     # get dem elevation information for each polygon
-    raster_statistic.zonal_stats_multiRasters(segment_shp_path, dem_diff, stats=['mean', 'std'], prefix='demD')
+    raster_statistic.zonal_stats_multiRasters(segment_shp_path, dem_diff, stats=['mean', 'std'], prefix='demD',process_num=process_num)
 
     # get DEM diff information for each polygon.
     dem_diff_shp = get_dem_subscidence_polygons(segment_shp_path, dem_diff, dem_diff_thread_m=subsidence_thr_m,
