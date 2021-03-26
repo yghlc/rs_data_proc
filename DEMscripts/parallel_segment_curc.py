@@ -124,7 +124,7 @@ def main():
     for idx, tif_group in enumerate(tif_groups):
 
         print(datetime.now(), 'processing %d group of DEM diff, total %d ones'%(idx, len(tif_groups)))
-        submit_segment_dem_diff_job(dem_diff_list, idx)
+        submit_segment_dem_diff_job(tif_group, idx)
 
 
     pass
