@@ -55,7 +55,7 @@ def main():
 # for the one with task of 30, it seems the default chunksize is 2.
 
 # if the computing time for each time is the same (time.sleep(1)), we got results as follows,
-# so, still, chunksize=1 run faster.
+# so, still, chunksize=1 run faster.  # However, for some function with complex step or use large memory,chunksize=1 may not be the best
 
 # chunksize 1 total cost time: 5.007109880447388 seconds
 # chunksize 2 total cost time: 6.0046021938323975 seconds
