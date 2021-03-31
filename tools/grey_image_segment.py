@@ -42,9 +42,19 @@ def get_stastics_from_array(in_array, nodata,range=None):
     values.append(data_1d.size)
     return values
 
-def segment_a_patch(idx, patch, patch_count,img_path, org_raster):
+def segment_a_patch(idx, patch, patch_count,img_path, org_raster,b_save_patch_label):
 
     print('tile: %d / %d' % (idx + 1, patch_count))
+    image_name_no_ext = io_function.get_name_no_ext(img_path)
+    patch_dir = image_name_no_ext + '_patch%d'%idx
+    patch_label_path = os.path.join(patch_dir, image_name_no_ext+'_patch%d_label.tif'%idx)
+    if b_save_patch_label is True:
+        if os.path.isdir(patch_dir) is False:
+            io_function.mkdir(patch_dir)
+        if os.path.isfile(patch_label_path):
+            print('%s exists, skip'%patch_label_path)
+            return patch, patch_label_path, None, None
+
     # read imag
     one_band_img, nodata = raster_io.read_raster_one_band_np(img_path, boundary=patch)
 
@@ -61,6 +71,11 @@ def segment_a_patch(idx, patch, patch_count,img_path, org_raster):
     # out_labels = mean_shift_segmentation(one_band_img)
 
     # print('min and max labels of out_labels', np.min(out_labels), np.max(out_labels))
+
+    if b_save_patch_label is True:
+        # save the label
+        raster_io.save_numpy_array_to_rasterfile(out_labels, patch_label_path, img_path) # it copy nodata, need to unset it later
+        return patch, patch_label_path, None, None
 
     # calculate the attributes based on orginal data for original data
     object_attributes = {}  # object id (label) and attributes (list)
@@ -81,7 +96,7 @@ def segment_a_patch(idx, patch, patch_count,img_path, org_raster):
 
     return patch, out_labels, nodata, None
 
-def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None):
+def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None,b_save_patch_label=False):
 
     out_pre = os.path.splitext(os.path.basename(img_path))[0]
     label_path = os.path.join(save_dir, out_pre + '_label.tif')
@@ -113,31 +128,39 @@ def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None):
     #     save_labes[row_s:row_e, col_s:col_e] = out_labels
 
     theadPool = Pool(process_num)
-    parameters_list = [ (idx, patch, patch_count,img_path, org_raster) for idx, patch in enumerate(image_patches)]
+    parameters_list = [ (idx, patch, patch_count,img_path, org_raster,b_save_patch_label) for idx, patch in enumerate(image_patches)]
     results = theadPool.starmap(segment_a_patch, parameters_list)
 
+    patch_label_path_list = []
     object_attributes = {}  # object id (label) and attributes (list)
     for res in results:
         patch, out_labels, nodata, attributes = res
-        # copy to the entire image
-        row_s = patch[1]
-        row_e = patch[1] + patch[3]
-        col_s = patch[0]
-        col_e = patch[0] + patch[2]
-        current_min = np.max(save_labes)
-        print('current_max',current_min)
-        save_labes[row_s:row_e, col_s:col_e] = out_labels + current_min
-        if attributes is not None:
-            update_label_attr = {}
-            for key in attributes:
-                update_label_attr[ key + current_min] = attributes[key]
-            # add to the attributes
-            object_attributes.update(update_label_attr)
+        if os.path.isfile(out_labels):  #if it's a label file
+            patch_label_path_list.append(out_labels)
+        else:
+            # copy to the entire image
+            row_s = patch[1]
+            row_e = patch[1] + patch[3]
+            col_s = patch[0]
+            col_e = patch[0] + patch[2]
+            current_min = np.max(save_labes)
+            print('current_max',current_min)
+            save_labes[row_s:row_e, col_s:col_e] = out_labels + current_min
+            if attributes is not None:
+                update_label_attr = {}
+                for key in attributes:
+                    update_label_attr[ key + current_min] = attributes[key]
+                # add to the attributes
+                object_attributes.update(update_label_attr)
 
     # # apply median filter (remove some noise), #  we should not use median  filter, because it's labels, not images.
     # label_blurs = cv2.medianBlur(np.float32(save_labes), 3)  # with kernal=3, cannot accept int32
     # # print(label_blurs, label_blurs.dtype)
     # save_labes = label_blurs.astype(np.int32)
+
+    # return a list of labels saved in current working folder.
+    if b_save_patch_label:
+        return patch_label_path_list
 
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
@@ -152,6 +175,16 @@ def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None):
 
 
     return label_path
+
+
+def test_segment_a_grey_image():
+    data_dir = os.path.expanduser('~/Data/Arctic/canada_arctic/DEM/WR_dem_diff')
+    img_path = os.path.join(data_dir,'WR_extent_grid_ids_DEM_diff_grid9274_8bit.tif')
+    # org_raster = os.path.join(data_dir,'WR_extent_grid_ids_DEM_diff_grid9274.tif')
+    save_dir = os.path.join(data_dir,'segment_parallel_9274')
+    process_num = 8
+    b_save_patch_label = True
+    segment_a_grey_image(img_path, save_dir, process_num, org_raster=None, b_save_patch_label=b_save_patch_label)
 
 
 def main(options, args):
