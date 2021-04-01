@@ -74,7 +74,7 @@ def segment_a_patch(idx, patch, patch_count,img_path, org_raster,b_save_patch_la
 
     if b_save_patch_label is True:
         # save the label
-        raster_io.save_numpy_array_to_rasterfile(out_labels, patch_label_path, img_path) # it copy nodata, need to unset it later
+        raster_io.save_numpy_array_to_rasterfile(out_labels, patch_label_path, img_path, boundary=patch) # it copy nodata, need to unset it later
         return patch, patch_label_path, None, None
 
     # calculate the attributes based on orginal data for original data
