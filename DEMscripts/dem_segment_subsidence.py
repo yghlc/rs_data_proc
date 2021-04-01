@@ -395,8 +395,12 @@ def main(options, args):
     min_area = options.min_area
     max_area = options.max_area
 
-    segment_subsidence_grey_image_v2(dem_diff_grey_8bit, dem_diff_path, save_dir, process_num, subsidence_thr_m=ele_diff_thr,
+    segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff_path, save_dir, process_num, subsidence_thr_m=ele_diff_thr,
                                   min_area=min_area, max_area=max_area)
+
+    # the resut is a litte worse
+    # segment_subsidence_grey_image_v2(dem_diff_grey_8bit, dem_diff_path, save_dir, process_num, subsidence_thr_m=ele_diff_thr,
+    #                               min_area=min_area, max_area=max_area)
 
     pass
 
