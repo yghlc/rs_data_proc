@@ -33,6 +33,7 @@ code_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.insert(0,code_dir)
 sys.path.insert(0,os.path.join(code_dir,'tools'))   # for some modules in this folder
 from tools.grey_image_segment import segment_a_grey_image
+from tools.seg_polygonize_cal_attributes import polygonize_label_images
 
 def post_processing_subsidence(in_shp):
     polygons = vector_gpd.read_polygons_gpd(in_shp)
@@ -193,6 +194,8 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
         remain_polyons.extend(polys)
     print('convert MultiPolygon to polygons, remain %d' % (len(remain_polyons)))
 
+    if len(remain_polyons) < 1:
+        return None
 
     # based on the merged polygons, calculate the mean dem diff, relative dem_diff
     buffer_surrounding = 20  # meters
@@ -248,6 +251,10 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
         save_surr_demD_list.append(surr_dem_diff_list[idx])
 
     print('remove %d polygons based on relative rel_demD and %d based on min_area, remain %d' % (rm_rel_dem_diff_count, rm_min_area_count, len(save_polyons)))
+
+    if len(save_polyons) < 1:
+        print('Warning, no polygons after remove based on relative demD')
+        return None
 
     poly_ids = [ item+1  for item in range(len(save_polyons)) ]
     poly_areas = [poly.area for poly in save_polyons]
@@ -313,6 +320,52 @@ def segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff, save_dir,process
     basic.outputlogMessage('obtain elevation reduction polygons: %s'%dem_diff_shp)
     return True
 
+def segment_subsidence_grey_image_v2(dem_diff_grey_8bit, dem_diff, save_dir,process_num, subsidence_thr_m=-0.5, min_area=40, max_area=100000000):
+    '''
+    segment subsidence areas based on 8bit dem difference
+    :param dem_diff_grey_8bit:
+    :param dem_diff:
+    :param save_dir:
+    :param process_num:
+    :param subsidence_thr_m: mean value less than this one consider as subsidence (in meter)
+    :param min_area: min size in m^2 (defualt is 40 m^2, 10 pixels on ArcticDEM)
+    :param max_area: min size in m^2 (default is 10km by 10 km)
+    :return:
+    '''
+
+    io_function.is_file_exist(dem_diff_grey_8bit)
+
+    out_pre = os.path.splitext(os.path.basename(dem_diff_grey_8bit))[0]
+    segment_shp_path = os.path.join(save_dir, out_pre + '.shp')
+
+    # get initial polygons
+    # because the label from segmentation for superpixels are not unique, so we may need to get mean dem diff based on polygons, set org_raster=None
+    label_path_list = segment_a_grey_image(dem_diff_grey_8bit,save_dir,process_num, org_raster=None,b_save_patch_label=True)
+
+    patch_shp_list = polygonize_label_images(label_path_list, org_raster=dem_diff, stats=['mean', 'std', 'count'], prefix='demD',
+                            process_num=process_num, b_remove_nodata=True)
+
+    # post-processing for each patch shp
+    post_patch_shp_list = []
+    for idx, shp in enumerate(patch_shp_list):
+        # get DEM diff information for each polygon.
+        post_shp = get_dem_subscidence_polygons(shp, dem_diff, dem_diff_thread_m=subsidence_thr_m,
+                                     min_area=min_area, max_area=max_area, process_num=1)
+        if post_shp is not None:
+            post_patch_shp_list.append(post_shp)
+
+    # merge shapefile
+    if os.path.isdir(save_dir) is False:
+        io_function.mkdir(save_dir)
+    vector_gpd.merge_shape_files(post_patch_shp_list,segment_shp_path)
+
+    # post-processing again
+    dem_diff_shp = get_dem_subscidence_polygons(segment_shp_path, dem_diff, dem_diff_thread_m=subsidence_thr_m,
+                                            min_area=min_area, max_area=max_area, process_num=1)
+
+    basic.outputlogMessage('obtain elevation reduction polygons: %s'%dem_diff_shp)
+    return True
+
 
 def test_get_dem_subscidence_polygons():
     # in_shp = os.path.expanduser('~/Data/Arctic/canada_arctic/DEM/WR_dem_diff/segment_parallel_sub/WR_dem_diff_DEM_diff_prj_8bit_sub.shp')
@@ -342,7 +395,7 @@ def main(options, args):
     min_area = options.min_area
     max_area = options.max_area
 
-    segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff_path, save_dir, process_num, subsidence_thr_m=ele_diff_thr,
+    segment_subsidence_grey_image_v2(dem_diff_grey_8bit, dem_diff_path, save_dir, process_num, subsidence_thr_m=ele_diff_thr,
                                   min_area=min_area, max_area=max_area)
 
     pass
