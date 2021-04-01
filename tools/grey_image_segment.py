@@ -135,7 +135,7 @@ def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None,b_save_
     object_attributes = {}  # object id (label) and attributes (list)
     for res in results:
         patch, out_labels, nodata, attributes = res
-        if os.path.isfile(out_labels):  #if it's a label file
+        if isinstance(out_labels, str) and os.path.isfile(out_labels):  #if it's a label file
             patch_label_path_list.append(out_labels)
         else:
             # copy to the entire image
