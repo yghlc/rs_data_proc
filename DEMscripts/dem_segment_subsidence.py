@@ -297,9 +297,14 @@ def segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff, save_dir,process
     # because the label from segmentation for superpixels are not unique, so we may need to get mean dem diff based on polygons, set org_raster=None
     label_path = segment_a_grey_image(dem_diff_grey_8bit,save_dir,process_num, org_raster=None)
 
-    if os.path.isfile(segment_shp_path):
+    if os.path.isfile(segment_shp_path) and vector_gpd.is_field_name_in_shp(segment_shp_path,'demD_mean'):
         basic.outputlogMessage('%s exists, skip'%segment_shp_path)
     else:
+
+        # remove segment_shp_path if it exist, but don't have demD_mean
+        if os.path.isfile(segment_shp_path):
+            io_function.delete_shape_file(segment_shp_path)
+
         # remove nodato (it was copy from the input image)
         command_str = 'gdal_edit.py -unsetnodata ' + label_path
         basic.os_system_exit_code(command_str)
