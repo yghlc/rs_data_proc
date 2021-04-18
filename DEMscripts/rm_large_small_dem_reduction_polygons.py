@@ -30,9 +30,11 @@ def list_to_dict(list_dict):
     return out_dict
 
 def refine_dem_reduction_polygons(input_shp,min_area,max_area):
-    # rm_min_max_area = os.path.basename(io_function.get_name_by_adding_tail(input_shp, 'MinMaxArea'))
-    # vector_gpd.remove_polygons_not_in_range(input_shp,'poly_area', min_area, max_area,rm_min_max_area)
-    rm_min_max_area = input_shp
+
+    rm_min_max_area = os.path.basename(io_function.get_name_by_adding_tail(input_shp, 'MinMaxArea'))
+    vector_gpd.remove_polygons_not_in_range(input_shp,'poly_area', min_area, max_area,rm_min_max_area)
+
+    # rm_min_max_area = input_shp
 
     # add some shape info
     shapefile = gpd.read_file(rm_min_max_area)
