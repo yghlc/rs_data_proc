@@ -32,6 +32,8 @@ arcticDEM_reg_tif_dir = os.path.join(ArcticDEM_tmp_dir,'registration_tifs')
 arcticDEM_hillshade_dir = os.path.join(ArcticDEM_tmp_dir,'dem_hillshade')
 arcticDEM_slope_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_slope_8bit')
 
+arcticDEM_mosaic_reg_tif_dir = os.path.join(ArcticDEM_tmp_dir,'arcticdem_mosaic_reg_tifs')
+arcticdem_mosaic_hillshade_dir = os.path.join(ArcticDEM_tmp_dir,'arcticdem_mosaic_hillshade')
 
 def slope_to_8bit(input, output):
 
