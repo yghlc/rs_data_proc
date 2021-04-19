@@ -83,7 +83,7 @@ def check_files_existence(dir, pre_name):
                 if len(file_list_archived) > 0:
                     return True
 
-            return False
+    return False
 
 def arcticDEM_strip_registration(strip_dir):
     command_str = 'python '+ reg_py + ' ' +strip_dir
