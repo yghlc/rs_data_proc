@@ -66,22 +66,24 @@ def get_dem_path_in_unpack_tarball(out_dir, pre_name=None):
     return False
 
 def check_files_existence(dir, pre_name):
-    file_list = io_function.get_file_list_by_pattern(dir,pre_name + '*dem_reg.tif')
-    if len(file_list) > 0:
-        return True
-    else:
-        # check if in the archived dir
-        if os.path.isdir(arcticDEM_reg_tif_dir):
-            file_list_archived = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir, pre_name + '*dem_reg.tif')
-            if len(file_list_archived) > 0:
-                return True
+    file_pattern = ['*dem_reg.tif', '*reg_dem.tif'] # Arctic strip and tile (mosaic) version
+    for pattern in file_pattern:
+        file_list = io_function.get_file_list_by_pattern(dir,pre_name + pattern)
+        if len(file_list) > 0:
+            return True
+        else:
+            # check if in the archived dir
+            if os.path.isdir(arcticDEM_reg_tif_dir):
+                file_list_archived = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir, pre_name + pattern)
+                if len(file_list_archived) > 0:
+                    return True
 
-        if os.path.isdir(arcticDEM_mosaic_reg_tif_dir):
-            file_list_archived = io_function.get_file_list_by_pattern(arcticDEM_mosaic_reg_tif_dir, pre_name + '*dem_reg.tif')
-            if len(file_list_archived) > 0:
-                return True
+            if os.path.isdir(arcticDEM_mosaic_reg_tif_dir):
+                file_list_archived = io_function.get_file_list_by_pattern(arcticDEM_mosaic_reg_tif_dir, pre_name + pattern)
+                if len(file_list_archived) > 0:
+                    return True
 
-        return False
+            return False
 
 def arcticDEM_strip_registration(strip_dir):
     command_str = 'python '+ reg_py + ' ' +strip_dir
