@@ -22,6 +22,8 @@ sys.path.insert(0, deeplabforRS)
 import basic_src.io_function as io_function
 import basic_src.basic as basic
 
+import re
+
 reg_py=os.path.expanduser('~/codes/github_public_repositories/pgcdemtools/apply_setsm_registration.py')
 
 machine_name = os.uname()[1]
@@ -32,6 +34,26 @@ elif machine_name == 'ubuntu':  # tesia
     arcticDEM_reg_tif_dir = '/home/lihu9680/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/registration_tifs'
 else:
     arcticDEM_reg_tif_dir= ''
+
+arcticDEM_mosaic_reg_tif_dir = arcticDEM_reg_tif_dir.replace('registration_tifs','arcticdem_mosaic_reg_tifs')
+
+def is_ArcticDEM_tiles(tar_list):
+    '''
+    check whether it is mosaic version (tiles) of DEM
+    :param tar_list:
+    :return:
+    '''
+    tile_pattern = '^\d{2}_\d{2}_'
+    for tar in tar_list:
+        tar_base = os.path.basename(tar)
+        tiles = re.findall(tile_pattern,tar_base)
+        if len(tiles) == 1:
+            pass
+        else:
+            basic.outputlogMessage('%s is not a tile of ArcticDEM'%tar)
+            return False
+
+    return True
 
 def get_dem_path_in_unpack_tarball(out_dir, pre_name=None):
     file_end = ['_dem.tif','_reg_dem.tif']   # Arctic strip and tile (mosaic) version
@@ -53,6 +75,12 @@ def check_files_existence(dir, pre_name):
             file_list_archived = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir, pre_name + '*dem_reg.tif')
             if len(file_list_archived) > 0:
                 return True
+
+        if os.path.isdir(arcticDEM_mosaic_reg_tif_dir):
+            file_list_archived = io_function.get_file_list_by_pattern(arcticDEM_mosaic_reg_tif_dir, pre_name + '*dem_reg.tif')
+            if len(file_list_archived) > 0:
+                return True
+
         return False
 
 def arcticDEM_strip_registration(strip_dir):
@@ -109,7 +137,10 @@ def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, a
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
 
-    no_registration_strips = io_function.read_list_from_txt('no_registration_strips.txt')
+    if os.path.isfile('no_registration_strips.txt'):
+        no_registration_strips = io_function.read_list_from_txt('no_registration_strips.txt')
+    else:
+        no_registration_strips = []
 
     out_dir_list = []
     out_reg_tifs = []
@@ -118,6 +149,9 @@ def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, a
         # check if no registraion information for this tarball
         if './'+tar_base in no_registration_strips:
             continue
+
+        if is_ArcticDEM_tiles(targz):
+            apply_registration = False
 
         if check_files_existence(save_dir,tar_base):
             print("registration result of %s already exists, skip"%targz)
