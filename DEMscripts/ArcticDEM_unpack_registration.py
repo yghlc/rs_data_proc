@@ -150,9 +150,6 @@ def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, a
         if './'+tar_base in no_registration_strips:
             continue
 
-        if is_ArcticDEM_tiles(targz):
-            apply_registration = False
-
         if check_files_existence(save_dir,tar_base):
             print("registration result of %s already exists, skip"%targz)
             continue
@@ -211,8 +208,13 @@ def main(options, args):
         if tar_count < 1:
             raise ValueError('No input tar.gz files in %s' % tar_dir)
 
+    if is_ArcticDEM_tiles(tar_list):
+        apply_registration = False
+    else:
+        apply_registration = True
+
     work_dir = './'
-    process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=b_rm_inter, apply_registration=True)
+    process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=b_rm_inter, apply_registration=apply_registration)
 
 
 
