@@ -120,17 +120,20 @@ def dem_to_hillshade(input,output):
 
 def main(options, args):
     b_mosaic_ArcticDEM = options.b_mosaic_ArcticDEM
+
     if b_mosaic_ArcticDEM:
         print('Input is the mosaic version of AricticDEM')
         arcticDEM_reg_tif_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_reg_tifs')
         arcticDEM_hillshade_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_hillshade')
         arcticDEM_slope_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_slope_8bit')
         arcticDEM_tpi_8bit_dir = os.path.join(ArcticDEM_tmp_dir,'arcticdem_mosaic_tpi_8bit')
+        dem_pattern = '*reg_dem.tif'
     else:
         arcticDEM_reg_tif_dir = os.path.join(ArcticDEM_tmp_dir, 'registration_tifs')
         arcticDEM_hillshade_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_hillshade')
         arcticDEM_slope_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_slope_8bit')
         arcticDEM_tpi_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_tpi_8bit')
+        dem_pattern = '*dem_reg.tif'
 
     basic.setlogfile('log_dem_to_slope8bit_hillshade.txt')
 
@@ -143,8 +146,9 @@ def main(options, args):
 
     failed_tifs = []
 
-    dem_reg_list = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir,'*dem_reg.tif')
+    dem_reg_list = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir,dem_pattern)
     count = len(dem_reg_list)
+    print('Find %d DEM in %s, with pattern: %s'%(count,arcticDEM_reg_tif_dir,dem_pattern))
     for idx, tif in enumerate(dem_reg_list):
         print('%d/%d convert %s to slope (8bit) and hillshade'%(idx+1, count, tif))
 
