@@ -30,6 +30,8 @@ def main(options, args):
     if len(img_list) < 1:
         raise ValueError('No images in %s with pattern: %s'%(img_dir, img_pattern))
 
+    print('Find %d rasters in %s'%(len(img_list),img_dir))
+
     # check projections?
     prj4_1st = raster_io.get_projection(img_list[0],'proj4')
     for idx in range(1, len(img_list)):
@@ -46,6 +48,7 @@ def main(options, args):
 
     save_pd = pd.DataFrame({'raster':img_list, 'Polygon':img_box_polygons})
     vector_gpd.save_polygons_to_files(save_pd,'Polygon',wkt,output)
+    print('save raster extents to %s'%output)
 
     return
 
@@ -68,3 +71,5 @@ if __name__ == "__main__":
     if len(sys.argv) < 2 or len(args) < 1:
         parser.print_help()
         sys.exit(2)
+
+    main(options, args)
