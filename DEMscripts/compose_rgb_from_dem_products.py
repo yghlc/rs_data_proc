@@ -35,6 +35,9 @@ def find_only_one_file(folder, pattern):
     return False
 
 def combine_hillshade_slope_tip(hillshade, slope, tpi,save_path):
+    if os.path.isfile(save_path):
+        print('%s exists, skip'%save_path)
+        return
 
     # combine them.
     command_str = 'gdal_merge.py -o %s -separate -of GTiff %s %s %s'%(save_path, hillshade, slope, tpi)
