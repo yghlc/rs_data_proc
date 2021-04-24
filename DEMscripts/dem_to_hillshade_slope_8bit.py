@@ -28,7 +28,7 @@ else:
 
 py8bit= os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/tools/convertTo8bit.py')
 
-
+from multiprocessing import Pool
 
 def slope_to_8bit(input, output):
 
@@ -117,9 +117,29 @@ def dem_to_hillshade(input,output):
     basic.os_system_exit_code(command_str)
     return True
 
+def process_one_dem(idx, count, tif, arcticDEM_slope_8bit_dir, arcticDEM_hillshade_dir,arcticDEM_tpi_8bit_dir):
+    print('%d/%d convert %s to slope (8bit) and hillshade' % (idx + 1, count, tif))
+
+    try:
+        slope_8bit = io_function.get_name_by_adding_tail(tif, 'slope8bit')
+        slope_8bit = os.path.join(arcticDEM_slope_8bit_dir, os.path.basename(slope_8bit))
+        dem_to_slope_save_8bit(tif, slope_8bit)
+
+        hillshapde = io_function.get_name_by_adding_tail(tif, 'hillshade')
+        hillshapde = os.path.join(arcticDEM_hillshade_dir, os.path.basename(hillshapde))
+        dem_to_hillshade(tif, hillshapde)
+
+        tip_8bit = io_function.get_name_by_adding_tail(tif, 'TPI8bit')
+        tip_8bit = os.path.join(arcticDEM_tpi_8bit_dir, os.path.basename(tip_8bit))
+        dem_to_tpi_save_8bit(tif, tip_8bit)
+
+        return True
+    except:
+        return tif
 
 def main(options, args):
     b_mosaic_ArcticDEM = options.b_mosaic_ArcticDEM
+    process_num = options.process_num
 
     if b_mosaic_ArcticDEM:
         print('Input is the mosaic version of AricticDEM')
@@ -149,24 +169,20 @@ def main(options, args):
     dem_reg_list = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir,dem_pattern)
     count = len(dem_reg_list)
     print('Find %d DEM in %s, with pattern: %s'%(count,arcticDEM_reg_tif_dir,dem_pattern))
-    for idx, tif in enumerate(dem_reg_list):
-        print('%d/%d convert %s to slope (8bit) and hillshade'%(idx+1, count, tif))
+    if process_num == 1:
+        for idx, tif in enumerate(dem_reg_list):
+            res = process_one_dem(idx, count, tif, arcticDEM_slope_8bit_dir, arcticDEM_hillshade_dir,arcticDEM_tpi_8bit_dir)
+            if res is not True:
+                failed_tifs.append(res)
+    else:
+        parameters_list = [(idx, count, tif, arcticDEM_slope_8bit_dir, arcticDEM_hillshade_dir,arcticDEM_tpi_8bit_dir) for
+                           idx, tif in enumerate(dem_reg_list)]
+        theadPool = Pool(process_num)
+        results = theadPool.starmap(process_one_dem, parameters_list)
+        for res in results:
+            if res is not True:
+                failed_tifs.append(res)
 
-        try:
-            slope_8bit = io_function.get_name_by_adding_tail(tif,'slope8bit')
-            slope_8bit = os.path.join(arcticDEM_slope_8bit_dir, os.path.basename(slope_8bit))
-            dem_to_slope_save_8bit(tif, slope_8bit)
-
-            hillshapde = io_function.get_name_by_adding_tail(tif,'hillshade')
-            hillshapde = os.path.join(arcticDEM_hillshade_dir, os.path.basename(hillshapde))
-            dem_to_hillshade(tif,hillshapde)
-
-            tip_8bit = io_function.get_name_by_adding_tail(tif,'TPI8bit')
-            tip_8bit = os.path.join(arcticDEM_tpi_8bit_dir, os.path.basename(tip_8bit))
-            dem_to_tpi_save_8bit(tif,tip_8bit)
-
-        except:
-            failed_tifs.append(tif)
 
     with open('to_hillshade_slope8bit_failed_cases.txt','w') as f_obj:
         for item in failed_tifs:
@@ -181,6 +197,11 @@ if __name__ == '__main__':
     parser.add_option("-m", "--b_mosaic_ArcticDEM",
                       action="store_true", dest="b_mosaic_ArcticDEM",default=False,
                       help="whether indicate the input is ArcticDEM mosaic version")
+
+    parser.add_option("", "--process_num",
+                      action="store", dest="process_num", type=int, default=4,
+                      help="number of processes to create the mosaic")
+
 
     (options, args) = parser.parse_args()
 
