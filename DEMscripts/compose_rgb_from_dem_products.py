@@ -40,7 +40,7 @@ def combine_hillshade_slope_tip(hillshade, slope, tpi,save_path):
         return
 
     # combine them.
-    command_str = 'gdal_merge.py -o %s -separate -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer %s %s %s'%(save_path, hillshade, slope, tpi)
+    command_str = 'gdal_merge.py -o %s -separate -a_nodata 255 -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer %s %s %s'%(save_path, hillshade, slope, tpi)
     basic.os_system_exit_code(command_str)
 
 
