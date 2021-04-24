@@ -59,7 +59,7 @@ if __name__ == "__main__":
                       action="store", dest="image_pattern", default='*.tif',
                       help="the image pattern of the image file")
 
-    parser.add_option("-e", "--output",
+    parser.add_option("-o", "--output",
                       action="store", dest="output",
                       help="the output shapefile")
 
