@@ -309,8 +309,8 @@ def segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff, save_dir,process
         command_str = 'gdal_edit.py -unsetnodata ' + label_path
         basic.os_system_exit_code(command_str)
 
-        # convert the label to shapefile
-        command_string = 'gdal_polygonize.py -8 %s -b 1 -f "ESRI Shapefile" %s' % (label_path, segment_shp_path)
+        # convert the label to shapefile # remove -8 (to use 4 connectedness.)
+        command_string = 'gdal_polygonize.py %s -b 1 -f "ESRI Shapefile" %s' % (label_path, segment_shp_path)
         res = os.system(command_string)
         if res != 0:
             sys.exit(1)
