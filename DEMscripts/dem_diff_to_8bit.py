@@ -54,6 +54,8 @@ def test_dem_tif_to_8bit():
 
 def main():
     basic.setlogfile('log_convet_dem_diff_to8bit.txt')
+    if os.path.isdir(grid_dem_diffs_8bit_dir) is False:
+        io_function.mkdir(grid_dem_diffs_8bit_dir)
 
     dem_diff_list = io_function.get_file_list_by_pattern(grid_dem_diffs_dir,'*DEM_diff_grid*.tif')
     count = len(dem_diff_list)
