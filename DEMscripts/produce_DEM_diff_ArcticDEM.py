@@ -45,16 +45,8 @@ grid_20_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp/ArcticDEM_gri
 dem_strip_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/BROWSE_SERVER/indexes/ArcticDEM_Strip_Index_Rel7/ArcticDEM_Strip_Index_Rel7.shp')
 
 # some folder paths
-if machine_name == 'uist':
-    arcticDEM_tarball_dir = '/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/tarballs'
-    arcticDEM_reg_tif_dir = '/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/registration_tifs'
-    grid_dem_diff_dir     = '/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/grid_dem_diffs'
-elif machine_name == 'ubuntu':  # tesia
-    arcticDEM_tarball_dir = '/home/lihu9680/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/tarballs'
-    arcticDEM_reg_tif_dir = '/home/lihu9680/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/registration_tifs'
-    grid_dem_diff_dir     = '/home/lihu9680/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/grid_dem_diffs'
-else:
-    raise ValueError('unknown machine:%s'%machine_name)
+from dem_common import arcticDEM_reg_tif_dir,grid_dem_diffs_dir
+
 
 def get_grid_20(extent_shp_or_id_txt, grid_polys, ids):
 
@@ -156,8 +148,8 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
         # dem co-registration (cancel, the result in not good with the default setting)
 
         # dem differencing
-        save_dem_diff = os.path.join(grid_dem_diff_dir, pre_name + '_DEM_diff_grid%d.tif'%grid_id)
-        save_date_diff = os.path.join(grid_dem_diff_dir, pre_name + '_date_diff_grid%d.tif'%grid_id)
+        save_dem_diff = os.path.join(grid_dem_diffs_dir, pre_name + '_DEM_diff_grid%d.tif'%grid_id)
+        save_date_diff = os.path.join(grid_dem_diffs_dir, pre_name + '_date_diff_grid%d.tif'%grid_id)
 
         if dem_diff_newest_oldest(mosaic_tif_list, save_dem_diff, save_date_diff, process_num,
                                b_max_subsidence=b_max_subsidence,b_save_cm=True):
@@ -172,6 +164,8 @@ def main(options, args):
     keep_dem_percent = options.keep_dem_percent
     o_res = options.out_res
     basic.setlogfile('produce_DEM_diff_ArcticDEM_log_%s.txt'%timeTools.get_now_time_str())
+    if os.path.isdir(grid_dem_diffs_dir) is  False:
+        io_function.mkdir(grid_dem_diffs_dir)
 
     # read grids and ids
     time0 = time.time()
@@ -183,7 +177,7 @@ def main(options, args):
     grid_polys, grid_ids = get_grid_20(extent_shp_or_ids_txt,all_grid_polys, all_ids)
 
     # check dem difference existence
-    grid_dem_tifs, grid_ids_no_demDiff = get_existing_dem_diff(grid_dem_diff_dir,grid_base_name,grid_ids)
+    grid_dem_tifs, grid_ids_no_demDiff = get_existing_dem_diff(grid_dem_diffs_dir,grid_base_name,grid_ids)
     if len(grid_ids_no_demDiff) > 0:
         # refine grid_polys
         if len(grid_ids) > len(grid_ids_no_demDiff):
