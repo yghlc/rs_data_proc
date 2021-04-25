@@ -244,11 +244,11 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
     area_pixel_count = int(extent_poly.area / (o_res*o_res))
     basic.outputlogMessage('Area pixel count: %d'%area_pixel_count)
 
-    dem_groups = group_demTif_strip_pair_ID(dem_tif_list)
-
     # create mosaic (dem with the same strip pair ID)
     mosaic_dir = os.path.join(save_dir, 'dem_stripID_mosaic_sub_%d' % extent_id)
     if b_mosaic_id:
+        dem_groups = group_demTif_strip_pair_ID(dem_tif_list)
+
         if os.path.isfile(os.path.join(mosaic_dir, 'dem_valid_percent.txt')):
             basic.outputlogMessage('mosaic based on stripID exists, skip mosaicking')
             with open(os.path.join(mosaic_dir, 'dem_valid_percent.txt')) as f_job:
@@ -270,17 +270,19 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
                                                move_dem_threshold=keep_dem_percent, area_pixel_num=area_pixel_count)
 
 
-    # groups DEM with original images acquired at the same year months
-    dem_groups_date = group_demTif_yearmonthDay(dem_tif_list,diff_days=1)
-    # sort based on yeardate in accending order : operator.itemgetter(0)
-    dem_groups_date = dict(sorted(dem_groups_date.items(), key=operator.itemgetter(0)))
-    # save to txt (json format)
-    year_date_txt = os.path.join(mosaic_dir, 'year_date_tif.txt')
-    io_function.save_dict_to_txt_json(year_date_txt,dem_groups_date)
+
 
     # merge DEM with close acquisition date
     mosaic_yeardate_dir = os.path.join(save_dir,'dem_date_mosaic_sub_%d'%extent_id)
     if b_mosaic_date:
+        # groups DEM with original images acquired at the same year months
+        dem_groups_date = group_demTif_yearmonthDay(dem_tif_list, diff_days=1)
+        # sort based on yeardate in accending order : operator.itemgetter(0)
+        dem_groups_date = dict(sorted(dem_groups_date.items(), key=operator.itemgetter(0)))
+        # save to txt (json format)
+        year_date_txt = os.path.join(mosaic_dir, 'year_date_tif.txt')
+        io_function.save_dict_to_txt_json(year_date_txt, dem_groups_date)
+
         if os.path.isfile(os.path.join(mosaic_yeardate_dir,'dem_valid_percent.txt')):
             basic.outputlogMessage('mosaic based on acquisition date exists, skip mosaicking')
             with open(os.path.join(mosaic_yeardate_dir,'dem_valid_percent.txt')) as f_job:
