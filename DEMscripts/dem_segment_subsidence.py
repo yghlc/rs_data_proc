@@ -197,6 +197,12 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
     if len(remain_polyons) < 1:
         return None
 
+    # calcualte attributes of remain ones: area, dem_diff: mean, std
+    merged_pd = pd.DataFrame({'Polygon': remain_polyons})
+    merged_shp = io_function.get_name_by_adding_tail(in_shp, 'merged')
+    vector_gpd.save_polygons_to_files(merged_pd, 'Polygon', wkt, merged_shp)
+    raster_statistic.zonal_stats_multiRasters(merged_shp, dem_diff_tif, stats=['mean','std','count'], prefix='demD', process_num=process_num)
+
     # based on the merged polygons, calculate the mean dem diff, relative dem_diff
     buffer_surrounding = 20  # meters
     surrounding_polygons = vector_gpd.get_surrounding_polygons(remain_polyons,buffer_surrounding)
@@ -206,11 +212,6 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
     raster_statistic.zonal_stats_multiRasters(surrounding_shp, dem_diff_tif, stats=['mean', 'std', 'count'], prefix='demD',process_num=process_num)
 
 
-    # calcualte attributes of remain ones: area, dem_diff: mean, std
-    merged_pd = pd.DataFrame({'Polygon': remain_polyons})
-    merged_shp = io_function.get_name_by_adding_tail(in_shp, 'merged')
-    vector_gpd.save_polygons_to_files(merged_pd, 'Polygon', wkt, merged_shp)
-    raster_statistic.zonal_stats_multiRasters(merged_shp, dem_diff_tif, stats=['mean','std','count'], prefix='demD', process_num=process_num)
 
     # calculate the relative dem diff
     surr_dem_diff_list = vector_gpd.read_attribute_values_list(surrounding_shp,'demD_mean')
