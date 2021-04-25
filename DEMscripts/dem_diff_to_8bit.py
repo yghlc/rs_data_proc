@@ -18,15 +18,8 @@ import basic_src.io_function as io_function
 import basic_src.basic as basic
 
 # some folder paths
-if machine_name == 'uist':
-    grid_dem_diff_dir  = '/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/grid_dem_diffs'
-    grid_dem_diffs_8bit_dir = '/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/grid_dem_diffs_8bit'
-elif machine_name == 'ubuntu':  # tesia
-    grid_dem_diff_dir     = '/home/lihu9680/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/grid_dem_diffs'
-    grid_dem_diffs_8bit_dir = '/home/lihu9680/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir/grid_dem_diffs_8bit'
-else:
-    grid_dem_diff_dir = './'
-    grid_dem_diffs_8bit_dir = './'
+
+from dem_common import grid_dem_diffs_dir, grid_dem_diffs_8bit_dir
 
 py8bit= os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/tools/convertTo8bit.py')
 
@@ -62,7 +55,7 @@ def test_dem_tif_to_8bit():
 def main():
     basic.setlogfile('log_convet_dem_diff_to8bit.txt')
 
-    dem_diff_list = io_function.get_file_list_by_pattern(grid_dem_diff_dir,'*DEM_diff_grid*.tif')
+    dem_diff_list = io_function.get_file_list_by_pattern(grid_dem_diffs_dir,'*DEM_diff_grid*.tif')
     count = len(dem_diff_list)
     for idx, tif in enumerate(dem_diff_list):
         print('%d/%d convert %s to 8 bit'%(idx+1, count, tif))
