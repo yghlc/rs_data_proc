@@ -378,8 +378,13 @@ def test_get_dem_subscidence_polygons():
     # dem_diff_tif = os.path.expanduser('~/Data/Arctic/canada_arctic/DEM/WR_dem_diff/WR_dem_diff_DEM_diff_prj.tif')
     # get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-1, min_area=40, max_area=100000000)
 
-    in_shp = os.path.expanduser('~/Data/Arctic/canada_arctic/DEM/WR_dem_diff/segment_result_grid8868/ala_north_slo_extent_latlon_grid_ids_DEM_diff_grid8868_8bit.shp')
-    dem_diff_tif = os.path.expanduser('~/Data/Arctic/canada_arctic/DEM/WR_dem_diff/ala_north_slo_extent_latlon_grid_ids_DEM_diff_grid8868.tif')
+    # in_shp = os.path.expanduser('~/Data/Arctic/canada_arctic/DEM/WR_dem_diff/segment_result_grid8868/ala_north_slo_extent_latlon_grid_ids_DEM_diff_grid8868_8bit.shp')
+    # dem_diff_tif = os.path.expanduser('~/Data/Arctic/canada_arctic/DEM/WR_dem_diff/ala_north_slo_extent_latlon_grid_ids_DEM_diff_grid8868.tif')
+    # get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-2, min_area=40, max_area=100000000, process_num=10)
+
+    # in_shp = os.path.expanduser('~/Data/Arctic/canada_arctic/DEM/WR_dem_diff/segment_result_grid9274/WR_extent_grid_ids_DEM_diff_grid9274_8bit.shp')
+    in_shp = os.path.expanduser('~/Data/Arctic/canada_arctic/DEM/WR_dem_diff/segment_result_grid9274/WR_extent_grid_ids_DEM_diff_grid9274_8bit_sub.shp')
+    dem_diff_tif = os.path.expanduser('~/Data/Arctic/canada_arctic/DEM/WR_dem_diff/WR_extent_grid_ids_DEM_diff_grid9274.tif')
     get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-2, min_area=40, max_area=100000000, process_num=10)
 
 def main(options, args):
