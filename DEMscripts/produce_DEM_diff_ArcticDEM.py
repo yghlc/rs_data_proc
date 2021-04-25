@@ -39,6 +39,7 @@ from dem_difference import dem_diff_newest_oldest
 b_mosaic_id = True
 b_mosaic_date = True        # mosaic dem with one days
 b_max_subsidence = False        # apply max_subsidence make results worse
+b_apply_matchtag = True
 
 grid_20_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp/ArcticDEM_grid_20km.shp')
 dem_strip_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/BROWSE_SERVER/indexes/ArcticDEM_Strip_Index_Rel7/ArcticDEM_Strip_Index_Rel7.shp')
@@ -121,7 +122,7 @@ def get_existing_dem_diff(dem_diff_dir, grid_base_name, grid_ids):
         basic.outputlogMessage('no existing grid dem diff files')
     return existing_tif, grid_id_no_dem_tiff
 
-def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs, b_mosaic_id,b_mosaic_date,keep_dem_percent,o_res,process_num=4):
+def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matchtag, b_mosaic_id,b_mosaic_date,keep_dem_percent,o_res,process_num=4):
 
     dem_ext_polys = get_dem_tif_ext_polygons(reg_tifs)
     dem_diff_tifs = []
@@ -149,7 +150,7 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs, b_mosaic_id
         dem_list_sub = [reg_tifs[index] for index in dem_poly_index]
 
         mosaic_tif_list = mosaic_crop_dem(dem_list_sub, save_dir, grid_id, grid_poly, b_mosaic_id, b_mosaic_date,
-                        process_num, keep_dem_percent, o_res, pre_name, resample_method='average')
+                        process_num, keep_dem_percent, o_res, pre_name, resample_method='average',b_mask_matchtag=b_apply_matchtag)
 
 
         # dem co-registration (cancel, the result in not good with the default setting)
@@ -203,7 +204,7 @@ def main(options, args):
         reg_tifs = io_function.get_file_list_by_ext('.tif',arcticDEM_reg_tif_dir,bsub_folder=False)
         reg_tifs = [tif for tif in reg_tifs if 'matchtag' not in tif]  # remove matchtag
         # crop, mosacic, difference
-        out_dem_diffs = produce_dem_diff_grids(grid_polys, grid_ids_no_demDiff, grid_base_name,reg_tifs,b_mosaic_id,b_mosaic_date,
+        out_dem_diffs = produce_dem_diff_grids(grid_polys, grid_ids_no_demDiff, grid_base_name,reg_tifs,b_apply_matchtag,b_mosaic_id,b_mosaic_date,
                                                keep_dem_percent,o_res,process_num=process_num)
         grid_dem_tifs.extend(out_dem_diffs)
 

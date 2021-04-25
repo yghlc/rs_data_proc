@@ -219,8 +219,67 @@ def check_dem_valid_per(dem_tif_list, work_dir, process_num =1, move_dem_thresho
 
     return keep_dem_list
 
+def mask_dem_by_matchtag(input_dem, mask_tif, save_path):
+    # check band, with, height
+    height, width, count, dtype = raster_io.get_height_width_bandnum_dtype(input_dem)
+    height_mask, width_mask, count_mask, dtype_mask = raster_io.get_height_width_bandnum_dtype(mask_tif)
+
+    if height_mask!=height or width_mask!=width or count_mask!=count:
+        raise ValueError('size different between %s and %s'%(input_dem, mask_tif))
+
+    if count != 1:
+        raise ValueError('DEM and Matchtag should only have one band')
+
+    dem_data, nodata = raster_io.read_raster_one_band_np(input_dem)
+    matchdata, mask_nodata = raster_io.read_raster_one_band_np(mask_tif)
+
+    # mask as nodata
+    dem_data[ matchdata == 0 ] = nodata
+    # save to file
+    raster_io.save_numpy_array_to_rasterfile(dem_data,save_path,input_dem,compress='lzw',tiled='yes',bigtiff='if_safer')
+
+    return save_path
+
+
+def mask_crop_dem_by_matchtag(org_dem_tif_list, crop_dem_list, extent_poly, extent_id, crop_tif_dir, o_res,process_num):
+
+    matchtag_crop_tif_list = []
+    mask_crop_dem_list = []
+    for o_tif, crop_dem in zip(org_dem_tif_list,crop_dem_list):
+        # find matchtag
+        matchtag_tif = o_tif.replace('_dem_reg.tif','_matchtag_reg.tif')
+        io_function.is_file_exist(matchtag_tif)
+
+        # crop matchtag
+        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(matchtag_tif, 'sub_poly_%d' % extent_id)) )
+        if os.path.isfile(save_crop_path):
+            basic.outputlogMessage('%s exists, skip cropping' % save_crop_path)
+            matchtag_crop_tif_list.append(save_crop_path)
+        else:
+            crop_tif = subset_image_by_polygon_box(matchtag_tif, save_crop_path, extent_poly, resample_m='near',
+                            o_format='VRT', out_res=o_res,same_extent=True,thread_num=process_num)
+            if crop_tif is False:
+                raise ValueError('warning, crop %s failed' % matchtag_tif)
+            matchtag_crop_tif_list.append(crop_tif)
+
+        # masking
+        crop_dem_mask = io_function.get_name_by_adding_tail(crop_dem,'mask')
+        if os.path.isfile(crop_dem_mask):
+            basic.outputlogMessage('%s exists, skip masking' % crop_dem_mask)
+            mask_crop_dem_list.append(crop_dem_mask)
+        else:
+            if mask_dem_by_matchtag(crop_dem,save_crop_path,crop_dem_mask) is False:
+                raise ValueError('warning, masking %s failed' % crop_dem)
+            mask_crop_dem_list.append(crop_dem_mask)
+
+    return mask_crop_dem_list, matchtag_crop_tif_list
+
+
+
 def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id, b_mosaic_date, process_num,
-                         keep_dem_percent, o_res, pre_name, resample_method='average'):
+                         keep_dem_percent, o_res, pre_name, resample_method='average', b_mask_matchtag=False):
+
+    org_dem_tif_list = dem_tif_list.copy()
 
     # crop to the same extent
     crop_tif_dir = os.path.join(save_dir, 'dem_crop_sub_%d' % extent_id)
@@ -239,6 +298,11 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
                 raise ValueError('warning, crop %s failed' % tif)
             crop_tif_list.append(crop_tif)
     dem_tif_list = crop_tif_list
+
+    # mask the dem by matchtag, only keep pixel derived from a stereo match
+    if b_mask_matchtag:
+        mask_crop_dem_list, matchtag_crop_tif_list = mask_crop_dem_by_matchtag(org_dem_tif_list, crop_tif_list, extent_poly, extent_id, crop_tif_dir, o_res,process_num)
+        dem_tif_list = mask_crop_dem_list
 
     # area pixel count
     area_pixel_count = int(extent_poly.area / (o_res*o_res))
