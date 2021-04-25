@@ -81,7 +81,8 @@ def sum_matchtag(input_tifs, save_path):
 
     sum_data = np.zeros((height,width),dtype=np.uint8)
     for tif in input_tifs:
-        data = raster_io.read_raster_one_band_np(tif)
+        data, nodata = raster_io.read_raster_one_band_np(tif)
+        # print(data.shape)
         sum_data += data
 
     # save to file
@@ -120,7 +121,7 @@ def produce_matchtag_sum_grids(grid_polys, grid_ids, pre_name, matchtag_tifs,o_r
                         process_num, 0, o_res, pre_name, resample_method='average')
 
         # sum matchtag
-        save_matchtag_sum = os.path.join(grid_matchtag_sum_dir, pre_name + '_count%d_'%len(mosaic_tif_list)
+        save_matchtag_sum = os.path.join(grid_matchtag_sum_dir, pre_name + '_count%d'%len(mosaic_tif_list)
                                          + '_matchtag_sum_grid%d.tif'%grid_id)
 
         if sum_matchtag(mosaic_tif_list, save_matchtag_sum):
