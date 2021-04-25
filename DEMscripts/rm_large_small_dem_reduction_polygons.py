@@ -53,7 +53,7 @@ def refine_dem_reduction_polygons(input_shp,min_area,max_area):
         shape_info = shape_info_list[idx]
 
         # remove quite large but narrow ones
-        if shape_info['INarea'] > 10000 and shape_info['circularit'] < 0.3 :
+        if shape_info['INarea'] > 10000 and shape_info['circularit'] < 0.1 :
             shapefile.drop(idx, inplace=True)
             remove_count += 1
 
