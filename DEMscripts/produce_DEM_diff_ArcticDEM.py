@@ -41,8 +41,8 @@ b_mosaic_date = True        # mosaic dem with one days
 b_max_subsidence = False        # apply max_subsidence make results worse
 b_apply_matchtag = True
 
-grid_20_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp/ArcticDEM_grid_20km.shp')
-dem_strip_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/BROWSE_SERVER/indexes/ArcticDEM_Strip_Index_Rel7/ArcticDEM_Strip_Index_Rel7.shp')
+
+from dem_common import grid_20_shp,dem_strip_shp
 
 # some folder paths
 from dem_common import arcticDEM_reg_tif_dir,grid_dem_diffs_dir
