@@ -248,7 +248,10 @@ def mask_crop_dem_by_matchtag(org_dem_tif_list, crop_dem_list, extent_poly, exte
     for o_tif, crop_dem in zip(org_dem_tif_list,crop_dem_list):
         # find matchtag
         matchtag_tif = o_tif.replace('_dem_reg.tif','_matchtag_reg.tif')
-        io_function.is_file_exist(matchtag_tif)
+        # io_function.is_file_exist(matchtag_tif)
+        if os.path.isfile(matchtag_tif) is False:
+            basic.outputlogMessage('Warning, %s not exists, skip'%matchtag_tif)
+            continue
 
         # crop matchtag
         save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(matchtag_tif, 'sub_poly_%d' % extent_id)) )
