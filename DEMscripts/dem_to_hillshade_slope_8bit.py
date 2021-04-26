@@ -110,7 +110,7 @@ def process_one_dem(idx, count, tif,product_list, arcticDEM_slope_dir,arcticDEM_
     print('%d/%d convert %s to slope (8bit) and hillshade' % (idx + 1, count, tif))
 
     try:
-        slope_file = os.path.basename(io_function.get_name_by_adding_tail(input, 'slope'))
+        slope_file = os.path.basename(io_function.get_name_by_adding_tail(tif, 'slope'))
         if 'slope' in product_list or 'slope_8bit' in product_list:
             dem_to_slope(tif,slope_file)
 
@@ -139,6 +139,7 @@ def process_one_dem(idx, count, tif,product_list, arcticDEM_slope_dir,arcticDEM_
 
         return True
     except:
+        print('failed in process %s'%tif)
         return tif
 
 def main(options, args):
