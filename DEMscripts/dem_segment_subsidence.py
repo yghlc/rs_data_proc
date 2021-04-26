@@ -265,6 +265,11 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
 
     vector_gpd.save_polygons_to_files(save_pd, 'Polygon', wkt, save_shp)
 
+    # add some shape info
+    shape_info_list = [ vector_gpd.calculate_polygon_shape_info(item)  for item in save_polyons]
+    shapeinfo_all_dict = vector_gpd.list_to_dict(shape_info_list)
+    vector_gpd.add_attributes_to_shp(save_pd,shapeinfo_all_dict)
+
     # add date difference if there are available
     date_diff_base = os.path.basename(dem_diff_tif).replace('DEM_diff','date_diff')
     date_diff_tif = os.path.join(os.path.dirname(dem_diff_tif) , date_diff_base)
