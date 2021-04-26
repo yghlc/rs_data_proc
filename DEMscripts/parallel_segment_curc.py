@@ -125,7 +125,7 @@ def run_segment_jobs(max_job_count,n_tif_per_jobs):
         print(datetime.now(), 'processing %d group of DEM diff, total %d ones'%(idx, len(tif_groups)))
         submit_segment_dem_diff_job(tif_group, idx,max_job_count)
 
-def submit_produce_dem_diff_job(ids_list, idx,max_job_count):
+def submit_produce_dem_diff_job(ids_list, idx,grid_base_name,max_job_count):
 
     while True:
         job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr='demD')
@@ -141,7 +141,7 @@ def submit_produce_dem_diff_job(ids_list, idx,max_job_count):
         io_function.mkdir(work_dir)
         os.chdir(work_dir)
 
-        io_function.save_list_to_txt('grid_ids.txt',ids_list)
+        io_function.save_list_to_txt(grid_base_name+'.txt',ids_list)
 
         # run segmentation
         sh_list = ['produce_dem_diff.sh', 'job_dem_diff.sh']
@@ -195,7 +195,7 @@ def run_dem_diff_jobs(max_job_count,n_tif_per_jobs):
     for idx, ids_group in enumerate(grid_ids_groups):
 
         print(datetime.now(), 'processing %d group for DEM diff, total %d ones'%(idx, len(grid_ids_groups)))
-        submit_produce_dem_diff_job(ids_group, idx,max_job_count)
+        submit_produce_dem_diff_job(ids_group, idx,grid_base_name, max_job_count)
 
 
 
