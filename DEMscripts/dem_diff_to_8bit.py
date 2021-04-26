@@ -39,8 +39,12 @@ def dem_tif_to_8bit(input,output):
     command_str += ' -m ' + MIN_MAX_VALUE
 
     print(command_str)
-    basic.os_system_exit_code(command_str)
-    return True
+    res = os.system(command_str)
+    # basic.os_system_exit_code(command_str)
+    if res == 0:
+        return True
+    else:
+        return False
 
 def test_dem_tif_to_8bit():
     dem_diff_list = io_function.get_file_list_by_pattern('./','*.tif')
@@ -59,11 +63,16 @@ def main():
 
     dem_diff_list = io_function.get_file_list_by_pattern(grid_dem_diffs_dir,'*DEM_diff_grid*.tif')
     count = len(dem_diff_list)
+    failed_tifs = []
     for idx, tif in enumerate(dem_diff_list):
         print('%d/%d convert %s to 8 bit'%(idx+1, count, tif))
         tif_8bit = io_function.get_name_by_adding_tail(tif, '8bit')
         output = os.path.join(grid_dem_diffs_8bit_dir, os.path.basename(tif_8bit))
-        dem_tif_to_8bit(tif,output)
+        if dem_tif_to_8bit(tif,output) is False:
+            failed_tifs.append(tif)
+
+    if len(failed_tifs)>0:
+        io_function.save_list_to_txt('failed_dem_diff_to8bit.txt',failed_tifs)
 
 
 if __name__ == '__main__':
