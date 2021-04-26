@@ -19,12 +19,7 @@ import basic_src.basic as basic
 machine_name = os.uname()[1]
 
 # some folder paths
-if machine_name == 'uist':
-    ArcticDEM_tmp_dir = '/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir'
-elif machine_name == 'ubuntu':  # tesia
-    ArcticDEM_tmp_dir = '/home/lihu9680/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir'
-else:
-    ArcticDEM_tmp_dir = './'
+from dem_common import ArcticDEM_tmp_dir
 
 py8bit= os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/tools/convertTo8bit.py')
 
@@ -46,7 +41,7 @@ def slope_to_8bit(input, output):
     basic.os_system_exit_code(command_str)
     return True
 
-def dem_to_slope_save_8bit(input,output):
+def dem_to_slope(input,output):
 
     if os.path.isfile(output):
         basic.outputlogMessage('%s exists, skip'%output)
@@ -56,15 +51,9 @@ def dem_to_slope_save_8bit(input,output):
         basic.outputlogMessage('Waring, %s does not exist'%input)
         return False
 
-    slope_file = os.path.basename(io_function.get_name_by_adding_tail(input,'slope'))
-
     # # use the default setting in QGIS
-    command_str = 'gdaldem slope %s %s -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer -b 1 -s 1.0'%(input,slope_file)
+    command_str = 'gdaldem slope %s %s -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer -b 1 -s 1.0'%(input,output)
     basic.os_system_exit_code(command_str)
-
-    # to 8bit
-    if slope_to_8bit(slope_file,output) is True:
-        io_function.delete_file_or_dir(slope_file)
     return True
 
 def tpi_to_8bit(input,output):
@@ -117,21 +106,36 @@ def dem_to_hillshade(input,output):
     basic.os_system_exit_code(command_str)
     return True
 
-def process_one_dem(idx, count, tif, arcticDEM_slope_8bit_dir, arcticDEM_hillshade_dir,arcticDEM_tpi_8bit_dir):
+def process_one_dem(idx, count, tif,product_list, arcticDEM_slope_dir,arcticDEM_slope_8bit_dir, arcticDEM_hillshade_dir,arcticDEM_tpi_8bit_dir):
     print('%d/%d convert %s to slope (8bit) and hillshade' % (idx + 1, count, tif))
 
     try:
-        slope_8bit = io_function.get_name_by_adding_tail(tif, 'slope8bit')
-        slope_8bit = os.path.join(arcticDEM_slope_8bit_dir, os.path.basename(slope_8bit))
-        dem_to_slope_save_8bit(tif, slope_8bit)
+        slope_file = os.path.basename(io_function.get_name_by_adding_tail(input, 'slope'))
+        if 'slope' in product_list or 'slope_8bit' in product_list:
+            dem_to_slope(tif,slope_file)
 
-        hillshapde = io_function.get_name_by_adding_tail(tif, 'hillshade')
-        hillshapde = os.path.join(arcticDEM_hillshade_dir, os.path.basename(hillshapde))
-        dem_to_hillshade(tif, hillshapde)
+        if 'slope_8bit' in product_list:
+            slope_8bit = io_function.get_name_by_adding_tail(tif, 'slope8bit')
+            slope_8bit = os.path.join(arcticDEM_slope_8bit_dir, os.path.basename(slope_8bit))
+            slope_to_8bit(slope_file, slope_8bit)
 
-        tip_8bit = io_function.get_name_by_adding_tail(tif, 'TPI8bit')
-        tip_8bit = os.path.join(arcticDEM_tpi_8bit_dir, os.path.basename(tip_8bit))
-        dem_to_tpi_save_8bit(tif, tip_8bit)
+        # delete or move the slope file
+        if 'slope' in product_list:
+            slope_file_new = os.path.join(arcticDEM_slope_dir, os.path.basename(slope_file))
+            io_function.move_file_to_dst(slope_file,slope_file_new)
+        else:
+            io_function.delete_file_or_dir(slope_file)
+
+
+        if 'hillshade' in product_list:
+            hillshapde = io_function.get_name_by_adding_tail(tif, 'hillshade')
+            hillshapde = os.path.join(arcticDEM_hillshade_dir, os.path.basename(hillshapde))
+            dem_to_hillshade(tif, hillshapde)
+
+        if 'tpi' in product_list:
+            tip_8bit = io_function.get_name_by_adding_tail(tif, 'TPI8bit')
+            tip_8bit = os.path.join(arcticDEM_tpi_8bit_dir, os.path.basename(tip_8bit))
+            dem_to_tpi_save_8bit(tif, tip_8bit)
 
         return True
     except:
@@ -140,19 +144,25 @@ def process_one_dem(idx, count, tif, arcticDEM_slope_8bit_dir, arcticDEM_hillsha
 def main(options, args):
     b_mosaic_ArcticDEM = options.b_mosaic_ArcticDEM
     process_num = options.process_num
+    product_list = args # subset of [slope, slope_8bit, hillshade, tpi]
 
     if b_mosaic_ArcticDEM:
         print('Input is the mosaic version of AricticDEM')
-        arcticDEM_reg_tif_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_reg_tifs')
-        arcticDEM_hillshade_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_hillshade')
-        arcticDEM_slope_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_slope_8bit')
-        arcticDEM_tpi_8bit_dir = os.path.join(ArcticDEM_tmp_dir,'arcticdem_mosaic_tpi_8bit')
+        from dem_common import arcticDEM_tile_reg_tif_dir,arcticDEM_tile_hillshade_dir,arcticDEM_tile_slope_8bit_dir,\
+            arcticDEM_tile_slope_dir,arcticDEM_tile_tpi_8bit_dir
+        arcticDEM_reg_tif_dir = arcticDEM_tile_reg_tif_dir
+        arcticDEM_hillshade_dir = arcticDEM_tile_hillshade_dir
+        arcticDEM_slope_8bit_dir = arcticDEM_tile_slope_8bit_dir
+        arcticDEM_slope_dir = arcticDEM_tile_slope_dir
+        arcticDEM_tpi_8bit_dir = arcticDEM_tile_tpi_8bit_dir
         dem_pattern = '*reg_dem.tif'
     else:
-        arcticDEM_reg_tif_dir = os.path.join(ArcticDEM_tmp_dir, 'registration_tifs')
-        arcticDEM_hillshade_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_hillshade')
-        arcticDEM_slope_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_slope_8bit')
-        arcticDEM_tpi_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_tpi_8bit')
+        from dem_common import arcticDEM_reg_tif_dir,dem_hillshade_dir,dem_slope_dir,dem_slope_8bit_dir,dem_tpi_8bit_dir
+        arcticDEM_reg_tif_dir = arcticDEM_reg_tif_dir
+        arcticDEM_hillshade_dir = dem_hillshade_dir
+        arcticDEM_slope_8bit_dir = dem_slope_8bit_dir
+        arcticDEM_slope_dir = dem_slope_dir
+        arcticDEM_tpi_8bit_dir = dem_tpi_8bit_dir
         dem_pattern = '*dem_reg.tif'
 
     basic.setlogfile('log_dem_to_slope8bit_hillshade.txt')
@@ -163,6 +173,8 @@ def main(options, args):
         io_function.mkdir(arcticDEM_hillshade_dir)
     if os.path.isdir(arcticDEM_tpi_8bit_dir) is False:
         io_function.mkdir(arcticDEM_tpi_8bit_dir)
+    if os.path.isdir(arcticDEM_slope_dir) is False:
+        io_function.mkdir(arcticDEM_slope_dir)
 
     failed_tifs = []
 
@@ -171,11 +183,11 @@ def main(options, args):
     print('Find %d DEM in %s, with pattern: %s'%(count,arcticDEM_reg_tif_dir,dem_pattern))
     if process_num == 1:
         for idx, tif in enumerate(dem_reg_list):
-            res = process_one_dem(idx, count, tif, arcticDEM_slope_8bit_dir, arcticDEM_hillshade_dir,arcticDEM_tpi_8bit_dir)
+            res = process_one_dem(idx, count, tif, product_list, arcticDEM_slope_dir,arcticDEM_slope_8bit_dir, arcticDEM_hillshade_dir,arcticDEM_tpi_8bit_dir)
             if res is not True:
                 failed_tifs.append(res)
     else:
-        parameters_list = [(idx, count, tif, arcticDEM_slope_8bit_dir, arcticDEM_hillshade_dir,arcticDEM_tpi_8bit_dir) for
+        parameters_list = [(idx, count, tif, product_list, arcticDEM_slope_dir,arcticDEM_slope_8bit_dir, arcticDEM_hillshade_dir,arcticDEM_tpi_8bit_dir) for
                            idx, tif in enumerate(dem_reg_list)]
         theadPool = Pool(process_num)
         results = theadPool.starmap(process_one_dem, parameters_list)
@@ -189,7 +201,7 @@ def main(options, args):
             f_obj.writelines(item + '\n')
 
 if __name__ == '__main__':
-    usage = "usage: %prog [options]  "
+    usage = "usage: %prog [options] products (slope, slope_8bit, hillshade, tpi) "
     parser = OptionParser(usage=usage, version="1.0 2021-3-20")
     parser.description = 'Introduction: producing DEM hillshade, slope, and TPI (Topographic Position Index), and save to 8bit '
 

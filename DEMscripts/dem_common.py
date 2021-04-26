@@ -36,7 +36,18 @@ grid_dem_diffs_segment_dir = os.path.join(ArcticDEM_tmp_dir,'grid_dem_diffs_segm
 grid_matchtag_sum_dir = os.path.join(ArcticDEM_tmp_dir,'grid_matchtag_sum_tifs')
 
 dem_slope_8bit_dir = os.path.join(ArcticDEM_tmp_dir,'dem_slope_8bit')
+dem_slope_dir = os.path.join(ArcticDEM_tmp_dir,'dem_slope')
 dem_hillshade_dir = os.path.join(ArcticDEM_tmp_dir,'dem_hillshade')
+dem_tpi_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_tpi_8bit')
+
+# the mosaic version of AricticDEM
+arcticDEM_tile_reg_tif_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_reg_tifs')
+arcticDEM_tile_hillshade_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_hillshade')
+arcticDEM_tile_slope_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_slope_8bit')
+arcticDEM_tile_slope_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_slope')
+arcticDEM_tile_tpi_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_tpi_8bit')
+# dem_pattern = '*reg_dem.tif'
+
 
 
 grid_20_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp/ArcticDEM_grid_20km.shp')
