@@ -145,6 +145,7 @@ def main(options, args):
     b_mosaic_ArcticDEM = options.b_mosaic_ArcticDEM
     process_num = options.process_num
     product_list = args # subset of [slope, slope_8bit, hillshade, tpi]
+    print('Will produce products includes: %s'%(product_list))
 
     if b_mosaic_ArcticDEM:
         print('Input is the mosaic version of AricticDEM')
