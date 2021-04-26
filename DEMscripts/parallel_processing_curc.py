@@ -141,6 +141,7 @@ def submit_produce_dem_diff_job(ids_list, idx,grid_base_name,max_job_count):
         io_function.mkdir(work_dir)
         os.chdir(work_dir)
 
+        ids_list = [str(item) for item in ids_list]
         io_function.save_list_to_txt(grid_base_name+'.txt',ids_list)
 
         # run segmentation
