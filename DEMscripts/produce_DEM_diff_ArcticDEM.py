@@ -59,7 +59,11 @@ def get_grid_20(extent_shp_or_id_txt, grid_polys, ids):
     else:
         # extent polygons and projection (proj4)
         extent_shp_prj = map_projection.get_raster_or_vector_srs_info_proj4(extent_shp_or_id_txt)
+        if extent_shp_prj == '':
+            raise ValueError('get proj4 of %s failed'%extent_shp_or_id_txt)
         grid_shp_prj = map_projection.get_raster_or_vector_srs_info_proj4(grid_20_shp)
+        if grid_shp_prj=='':
+            raise ValueError('get proj4 of %s failed' % grid_20_shp)
 
         if extent_shp_prj != grid_shp_prj:
             basic.outputlogMessage('%s and %s do not have the same projection, will reproject %s'
