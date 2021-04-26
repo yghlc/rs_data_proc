@@ -23,7 +23,7 @@ import dem_common
 from dem_segment_subsidence import segment_subsidence_grey_image
 
 root_dir = os.path.expanduser('/scratch/summit/lihu9680/Arctic/dem_processing')    # run in this folder
-jobsh_dir = os.path.expanduser('/scratch/summit/lihu9680/Arctic/dem_processing/dem_proc_jobs')
+jobsh_dir = os.path.expanduser('/projects/lihu9680/Data/Arctic/dem_proc_jobs')
 
 machine_name = os.uname()[1]
 curc_username = 'lihu9680'
@@ -55,7 +55,7 @@ def seg_working_dir_string(trial_id, root=None):
 
 
 def copy_curc_seg_job_files(sh_dir, work_dir):
-    sh_list = ['seg_dem_diff.sh','job.sh','run_INsingularity_curc.sh']
+    sh_list = ['seg_dem_diff.sh','job_segment.sh','run_INsingularity_curc.sh']
     for sh in sh_list:
         io_function.copy_file_to_dst(os.path.join(sh_dir, sh), os.path.join(work_dir, sh)) #, overwrite=True
 
@@ -80,7 +80,7 @@ def submit_segment_dem_diff_job(dem_diff_list, idx):
 
         # run segmentation
         copy_curc_seg_job_files(jobsh_dir, work_dir)
-        slurm_utility.modify_slurm_job_sh('job.sh', 'job-name', job_name)
+        slurm_utility.modify_slurm_job_sh('job_segment.sh', 'job-name', job_name)
 
     else:
         os.chdir(work_dir)
@@ -97,7 +97,7 @@ def submit_segment_dem_diff_job(dem_diff_list, idx):
 
     # submit the job
     # sometime, when submit a job, end with: singularity: command not found,and exist, wired, then try run submit a job in scomplie note
-    res = os.system('sbatch job.sh' )
+    res = os.system('sbatch job_segment.sh' )
     if res != 0:
         sys.exit(1)
 
