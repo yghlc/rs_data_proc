@@ -388,13 +388,13 @@ def segment_subsidence_grey_image_v2(dem_diff_grey_8bit, dem_diff, save_dir,proc
 #     get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-2, min_area=40, max_area=100000000, process_num=10)
 
 def test_merge_touched_polygons():
-    in_shp = os.path.expanduser('~/Data/Arctic/canada_arctic/DEM/WR_dem_diff/WR_extent_grid_ids_DEM_diff_grid9274_8bit_sub_rmdemDArea.shp')
+    in_shp = os.path.expanduser('~/Data/Arctic/canada_arctic/DEM/WR_dem_diff/segment_result_grid9274/'
+                                'WR_extent_grid_ids_DEM_diff_grid9274_8bit_sub_rmdemDArea_2.shp')
 
     remain_polyons = vector_gpd.read_polygons_gpd(in_shp)
 
     print(timeTools.get_now_time_str(), 'start building adjacent_matrix')
     # adjacent_matrix = vector_features.build_adjacent_map_of_polygons(remain_polyons)
-    machine_name = os.uname()[1]
 
     process_num = 1
     adjacent_matrix = vector_gpd.build_adjacent_map_of_polygons(remain_polyons, process_num=process_num)
@@ -407,8 +407,8 @@ def test_merge_touched_polygons():
 
     # save
     wkt = map_projection.get_raster_or_vector_srs_info_wkt(in_shp)
-    save_path = io_function.get_name_by_adding_tail(in_shp,'merged.shp')
-    save_pd = pd.DataFrame({'Polygon': remain_polyons})
+    save_path = io_function.get_name_by_adding_tail(in_shp,'merged')
+    save_pd = pd.DataFrame({'Polygon': merged_polygons})
     vector_gpd.save_polygons_to_files(save_pd, 'Polygon', wkt, save_path)
 
 
