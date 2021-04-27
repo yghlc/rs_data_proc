@@ -363,7 +363,7 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
     rm_shapeinfo_shp = io_function.get_name_by_adding_tail(in_shp, 'rmshapeinfo')
     area_limit = 10000
     circularit_limit = 0.1
-    holes_count = 10
+    holes_count = 20
     remove_polygons_based_shapeinfo(rm_reldemD_shp, rm_shapeinfo_shp, area_limit, circularit_limit, holes_count)
 
     # remove based on slope
