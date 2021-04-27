@@ -118,6 +118,21 @@ def get_existing_dem_diff(dem_diff_dir, grid_base_name, grid_ids):
         basic.outputlogMessage('no existing grid dem diff files')
     return existing_tif, grid_id_no_dem_tiff
 
+def filter_dem_by_month(dem_list):
+    allow_months=[6, 7, 8, 9]
+    year_dates = [timeTools.get_yeardate_yyyymmdd(os.path.basename(item), pattern='[0-9]{8}_') for item in dem_list]
+    month_list = [item.month for item in year_dates]
+
+    old_count = len(dem_list)
+    out_dem_list = []
+    for dem, month in zip(dem_list,month_list):
+        if month in allow_months:
+            out_dem_list.append(dem)
+
+    basic.outputlogMessage('Select %d from %d DEM within months %s'%(len(out_dem_list), old_count, str(allow_months)))
+
+    return out_dem_list
+
 def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matchtag, b_mosaic_id,b_mosaic_date,keep_dem_percent,o_res,process_num=4):
 
     dem_ext_polys = get_dem_tif_ext_polygons(reg_tifs)
@@ -144,6 +159,9 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
             basic.outputlogMessage('warning, no dem tifs within %d grid, skip' % grid_id)
             continue
         dem_list_sub = [reg_tifs[index] for index in dem_poly_index]
+
+        # filter by month
+        dem_list_sub = filter_dem_by_month(dem_list_sub)
 
         mosaic_tif_list = mosaic_crop_dem(dem_list_sub, save_dir, grid_id, grid_poly, b_mosaic_id, b_mosaic_date,
                         process_num, keep_dem_percent, o_res, pre_name, resample_method='average',b_mask_matchtag=b_apply_matchtag)
