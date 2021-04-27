@@ -25,6 +25,7 @@ import raster_statistic
 import cv2
 import numpy as np
 import pandas as pd
+import geopandas as gpd
 import re
 
 import dem_common
@@ -113,6 +114,188 @@ def get_save_dir(dem_diff_path):
     save_dir = os.path.join(dem_common.grid_dem_diffs_segment_dir, 'segment_result_grid%d'%grid_id)
     return save_dir
 
+def merge_polygons(remain_polyons,merged_shp,wkt, min_area,max_area,dem_diff_tif,process_num):
+
+    if os.path.isfile(merged_shp):
+        basic.outputlogMessage('%s exists, skip'%merged_shp)
+        return merged_shp
+
+    # we should only merge polygon with similar reduction, but we already remove polygons with mean reduction > threshhold
+    # merge touch polygons
+    print(timeTools.get_now_time_str(), 'start building adjacent_matrix')
+    # adjacent_matrix = vector_features.build_adjacent_map_of_polygons(remain_polyons)
+    machine_name = os.uname()[1]
+    if 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:
+        print('Warning, some problem of parallel running in build_adjacent_map_of_polygons on curc, '
+              'but ok in my laptop and uist, change process_num = 1')
+        process_num = 1
+    adjacent_matrix = vector_gpd.build_adjacent_map_of_polygons(remain_polyons, process_num=process_num)
+    print(timeTools.get_now_time_str(), 'finish building adjacent_matrix')
+
+    if adjacent_matrix is False:
+        return None
+    merged_polygons = vector_features.merge_touched_polygons(remain_polyons, adjacent_matrix)
+    print(timeTools.get_now_time_str(), 'finish merging touched polygons, get %d ones' % (len(merged_polygons)))
+
+    # remove large ones
+    remain_polyons = []
+    rm_max_area_count = 0
+    for poly in merged_polygons:
+        if poly.area > max_area:
+            rm_max_area_count += 1
+            continue
+        remain_polyons.append(poly)
+
+    print('remove %d polygons based on max_area, remain %d' % (rm_max_area_count, len(remain_polyons)))
+
+    polyons_noMulti = [vector_gpd.MultiPolygon_to_polygons(idx, poly) for idx, poly in enumerate(remain_polyons)]
+    remain_polyons = []
+    for polys in polyons_noMulti:
+        polys = [poly for poly in polys if poly.area > min_area]  # remove tiny polygon before buffer
+        remain_polyons.extend(polys)
+    print('convert MultiPolygon to polygons, remain %d' % (len(remain_polyons)))
+
+    if len(remain_polyons) < 1:
+        return None
+
+    # calcualte attributes of remain ones: area, dem_diff: mean, std
+    merged_pd = pd.DataFrame({'Polygon': remain_polyons})
+    vector_gpd.save_polygons_to_files(merged_pd, 'Polygon', wkt, merged_shp)
+
+    # based on the merged polygons, calculate the mean dem diff
+    raster_statistic.zonal_stats_multiRasters(merged_shp, dem_diff_tif, stats=['mean', 'std', 'count'], prefix='demD',
+                                              process_num=process_num)
+
+    return merged_shp
+
+def get_surrounding_polygons(remain_polyons,surrounding_shp,wkt, dem_diff_tif,buffer_surrounding,process_num):
+    if os.path.isfile(surrounding_shp):
+        basic.outputlogMessage('%s already exists, skip'%surrounding_shp)
+        return surrounding_shp
+
+    # based on the merged polygons, calculate the relative dem_diff
+    surrounding_polygons = vector_gpd.get_surrounding_polygons(remain_polyons, buffer_surrounding)
+    surr_pd = pd.DataFrame({'Polygon': surrounding_polygons})
+    vector_gpd.save_polygons_to_files(surr_pd, 'Polygon', wkt, surrounding_shp)
+    raster_statistic.zonal_stats_multiRasters(surrounding_shp, dem_diff_tif, stats=['mean', 'std', 'count'],
+                                              prefix='demD', process_num=process_num)
+    return surrounding_shp
+
+def remove_polygons_based_relative_dem_diff(remain_polyons,merged_shp,surrounding_shp,wkt, save_shp, min_area, dem_diff_thread_m):
+    if os.path.isfile(save_shp):
+        basic.outputlogMessage('%s exists, skip'%save_shp)
+        return save_shp
+
+    # calculate the relative dem diff
+    surr_dem_diff_list = vector_gpd.read_attribute_values_list(surrounding_shp,'demD_mean')
+    merge_poly_dem_diff_list = vector_gpd.read_attribute_values_list(merged_shp,'demD_mean')
+    if len(surr_dem_diff_list) != len(merge_poly_dem_diff_list):
+        raise ValueError('The number of surr_dem_diff_list and merge_poly_dem_diff_list is different')
+    relative_dem_diff_list = [  mer - sur for sur, mer in zip(surr_dem_diff_list, merge_poly_dem_diff_list) ]
+
+    merge_poly_demD_std_list = vector_gpd.read_attribute_values_list(merged_shp,'demD_std')
+    merge_poly_demD_count_list = vector_gpd.read_attribute_values_list(merged_shp,'demD_count')
+
+    # remove large ones
+    save_polyons = []
+    save_demD_mean_list = []
+    save_demD_std_list = []
+    save_demD_count_list = []
+    save_rel_diff_list = []
+    save_surr_demD_list = []
+    rm_rel_dem_diff_count = 0
+    rm_min_area_count = 0
+    for idx in range(len(remain_polyons)):
+        # relative dem diff
+        if relative_dem_diff_list[idx] > dem_diff_thread_m:  #
+            rm_rel_dem_diff_count += 1
+            continue
+
+        # when convert MultiPolygon to Polygon, may create some small polygons (in function merge shp)
+        if remain_polyons[idx].area < min_area:
+            rm_min_area_count += 1
+            continue
+
+
+        save_polyons.append(remain_polyons[idx])
+        save_demD_mean_list.append(merge_poly_dem_diff_list[idx])
+        save_demD_std_list.append(merge_poly_demD_std_list[idx])
+        save_demD_count_list.append(merge_poly_demD_count_list[idx])
+        save_rel_diff_list.append(relative_dem_diff_list[idx])
+        save_surr_demD_list.append(surr_dem_diff_list[idx])
+
+    print('remove %d polygons based on relative rel_demD and %d based on min_area, remain %d' % (rm_rel_dem_diff_count, rm_min_area_count, len(save_polyons)))
+
+    if len(save_polyons) < 1:
+        print('Warning, no polygons after remove based on relative demD')
+        return None
+
+    poly_ids = [ item+1  for item in range(len(save_polyons)) ]
+    poly_areas = [poly.area for poly in save_polyons]
+
+    save_pd = pd.DataFrame({'poly_id':poly_ids, 'poly_area':poly_areas,'demD_mean':save_demD_mean_list, 'demD_std':save_demD_std_list,
+                             'demD_count':save_demD_count_list, 'surr_demD':save_surr_demD_list, 'rel_demD':save_rel_diff_list ,'Polygon': save_polyons})
+
+    vector_gpd.save_polygons_to_files(save_pd, 'Polygon', wkt, save_shp)
+
+    return save_shp
+
+def remove_polygons_based_shapeinfo(in_shp, output_shp,area_limit,circularit_limit, holes_count ):
+    # remove polygons if they are larege (> area_limit) and narrow (<circularit_limit)
+    # if too many holse, may consider remove them as well.
+
+    # remove based on: INarea, INperimete,circularit,ratio_w_h, hole_count
+
+    if os.path.isfile(output_shp):
+        basic.outputlogMessage('%s exists, skip'%output_shp)
+        return output_shp
+
+    polygons = vector_gpd.read_polygons_gpd(in_shp)
+
+    # add some shape info
+    shape_info_list = [ vector_gpd.calculate_polygon_shape_info(item)  for item in polygons]
+    shapeinfo_all_dict = vector_gpd.list_to_dict(shape_info_list)
+    vector_gpd.add_attributes_to_shp(in_shp,shapeinfo_all_dict)
+
+    shapefile = gpd.read_file(in_shp)
+
+    # remove relative large but narrow ones.
+    remove_count = 0
+    for idx, row in shapefile.iterrows():
+        shape_info = shape_info_list[idx]
+
+        # remove quite large but narrow ones
+        if shape_info['INarea'] > area_limit and shape_info['circularit'] < circularit_limit :
+            shapefile.drop(idx, inplace=True)
+            remove_count += 1
+            continue
+
+        # remove holes
+        if shape_info['hole_count'] > holes_count:
+            shapefile.drop(idx, inplace=True)
+            remove_count += 1
+            continue
+
+    basic.outputlogMessage('remove %d polygons based on shapeinfo, remain %d ones saving to %s' %
+                           (remove_count, len(shapefile.geometry.values), output_shp))
+    # save results
+    shapefile.to_file(output_shp, driver='ESRI Shapefile')
+    return output_shp
+
+def remove_based_slope(in_shp, output_shp,slope_files, max_slope,process_num):
+    if os.path.isfile(output_shp):
+        basic.outputlogMessage('%s exists, skip')
+        return output_shp
+
+    # calcuate slope info
+    raster_statistic.zonal_stats_multiRasters(in_shp, slope_files, stats=['mean', 'std', 'count'], prefix='slope',
+                                              process_num=process_num)
+
+    # remove sloep greater than max_slope
+    bsmaller = False
+    vector_gpd.remove_polygons(in_shp,'slope_mean',max_slope,bsmaller,output_shp)
+    return output_shp
+
 def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, min_area=40, max_area=100000000, process_num=1):
 
     save_shp = io_function.get_name_by_adding_tail(in_shp, 'post')
@@ -156,121 +339,44 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
         remain_polyons.append(poly)
 
     print('remove %d polygons based on min_area, %d polygons based on dem_diff_threshold, remain %d ones'%(rm_min_area_count, rm_diff_thr_count,len(remain_polyons)))
-
-    if len(remain_polyons) > 1:
-        # we should only merge polygon with similar reduction, but we already remove polygons with mean reduction > threshhold
-        # merge touch polygons
-        print(timeTools.get_now_time_str(), 'start building adjacent_matrix')
-        # adjacent_matrix = vector_features.build_adjacent_map_of_polygons(remain_polyons)
-        machine_name = os.uname()[1]
-        if 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:
-            print('Warning, some problem of parallel running in build_adjacent_map_of_polygons on curc, but ok in my laptop and uist, change process_num = 1')
-            process_num = 1
-        adjacent_matrix = vector_gpd.build_adjacent_map_of_polygons(remain_polyons, process_num=process_num)
-        print(timeTools.get_now_time_str(), 'finish building adjacent_matrix')
-
-        if adjacent_matrix is False:
-            return False
-        merged_polygons = vector_features.merge_touched_polygons(remain_polyons,adjacent_matrix)
-        print(timeTools.get_now_time_str(), 'finish merging touched polygons, get %d ones'%(len(merged_polygons)))
-
-        # remove large ones
-        remain_polyons = []
-        rm_max_area_count = 0
-        for poly in merged_polygons:
-            if poly.area > max_area:
-                rm_max_area_count += 1
-                continue
-            remain_polyons.append(poly)
-
-        print('remove %d polygons based on max_area, remain %d'%(rm_max_area_count, len(remain_polyons)))
-
-    wkt = map_projection.get_raster_or_vector_srs_info_wkt(in_shp)
-
-    polyons_noMulti = [ vector_gpd.MultiPolygon_to_polygons(idx,poly) for idx,poly in enumerate(remain_polyons) ]
-    remain_polyons = []
-    for polys in polyons_noMulti:
-        polys = [poly for poly in polys if poly.area > min_area]    # remove tiny polygon before buffer
-        remain_polyons.extend(polys)
-    print('convert MultiPolygon to polygons, remain %d' % (len(remain_polyons)))
-
     if len(remain_polyons) < 1:
         return None
 
-    # calcualte attributes of remain ones: area, dem_diff: mean, std
-    merged_pd = pd.DataFrame({'Polygon': remain_polyons})
+    # merge polygons touch each others
+    wkt = map_projection.get_raster_or_vector_srs_info_wkt(in_shp)
     merged_shp = io_function.get_name_by_adding_tail(in_shp, 'merged')
-    vector_gpd.save_polygons_to_files(merged_pd, 'Polygon', wkt, merged_shp)
-    raster_statistic.zonal_stats_multiRasters(merged_shp, dem_diff_tif, stats=['mean','std','count'], prefix='demD', process_num=process_num)
-
-    # based on the merged polygons, calculate the mean dem diff, relative dem_diff
-    buffer_surrounding = 20  # meters
-    surrounding_polygons = vector_gpd.get_surrounding_polygons(remain_polyons,buffer_surrounding)
-    surrounding_shp = io_function.get_name_by_adding_tail(in_shp, 'surrounding')
-    surr_pd = pd.DataFrame({'Polygon': surrounding_polygons})
-    vector_gpd.save_polygons_to_files(surr_pd, 'Polygon', wkt, surrounding_shp)
-    raster_statistic.zonal_stats_multiRasters(surrounding_shp, dem_diff_tif, stats=['mean', 'std', 'count'], prefix='demD',process_num=process_num)
-
-
-
-    # calculate the relative dem diff
-    surr_dem_diff_list = vector_gpd.read_attribute_values_list(surrounding_shp,'demD_mean')
-    merge_poly_dem_diff_list = vector_gpd.read_attribute_values_list(merged_shp,'demD_mean')
-    if len(surr_dem_diff_list) != len(merge_poly_dem_diff_list):
-        raise ValueError('The number of surr_dem_diff_list and merge_poly_dem_diff_list is different')
-    relative_dem_diff_list = [  mer - sur for sur, mer in zip(surr_dem_diff_list, merge_poly_dem_diff_list) ]
-
-    merge_poly_demD_std_list = vector_gpd.read_attribute_values_list(merged_shp,'demD_std')
-    merge_poly_demD_count_list = vector_gpd.read_attribute_values_list(merged_shp,'demD_count')
-
-    # remove large ones
-    save_polyons = []
-    save_demD_mean_list = []
-    save_demD_std_list = []
-    save_demD_count_list = []
-    save_rel_diff_list = []
-    save_surr_demD_list = []
-    rm_rel_dem_diff_count = 0
-    rm_min_area_count = 0
-    for idx in range(len(remain_polyons)):
-        # relative dem diff
-        if relative_dem_diff_list[idx] > dem_diff_thread_m:  #
-            rm_rel_dem_diff_count += 1
-            continue
-
-        # when convert MultiPolygon to Polygon, may create some small polygons
-        if remain_polyons[idx].area < min_area:
-            rm_min_area_count += 1
-            continue
-
-
-        save_polyons.append(remain_polyons[idx])
-        save_demD_mean_list.append(merge_poly_dem_diff_list[idx])
-        save_demD_std_list.append(merge_poly_demD_std_list[idx])
-        save_demD_count_list.append(merge_poly_demD_count_list[idx])
-        save_rel_diff_list.append(relative_dem_diff_list[idx])
-        save_surr_demD_list.append(surr_dem_diff_list[idx])
-
-    print('remove %d polygons based on relative rel_demD and %d based on min_area, remain %d' % (rm_rel_dem_diff_count, rm_min_area_count, len(save_polyons)))
-
-    if len(save_polyons) < 1:
-        print('Warning, no polygons after remove based on relative demD')
+    if merge_polygons(remain_polyons, merged_shp, wkt, min_area, max_area, dem_diff_tif, process_num) is None:
         return None
 
-    poly_ids = [ item+1  for item in range(len(save_polyons)) ]
-    poly_areas = [poly.area for poly in save_polyons]
+    # in merge_polygons, it will remove some big polygons, convert MultiPolygon to Polygons, so neeed to update remain_polyons
+    remain_polyons = vector_gpd.read_polygons_gpd(merged_shp)
 
-    save_pd = pd.DataFrame({'poly_id':poly_ids, 'poly_area':poly_areas,'demD_mean':save_demD_mean_list, 'demD_std':save_demD_std_list,
-                             'demD_count':save_demD_count_list, 'surr_demD':save_surr_demD_list, 'rel_demD':save_rel_diff_list ,'Polygon': save_polyons})
+    # based on the merged polygons, surrounding polygons
+    buffer_surrounding = 20  # meters
+    surrounding_shp = io_function.get_name_by_adding_tail(in_shp, 'surrounding')
+    get_surrounding_polygons(remain_polyons, surrounding_shp, wkt, dem_diff_tif, buffer_surrounding, process_num)
 
-    vector_gpd.save_polygons_to_files(save_pd, 'Polygon', wkt, save_shp)
+    rm_reldemD_shp = io_function.get_name_by_adding_tail(in_shp, 'rmreldemD')
+    if remove_polygons_based_relative_dem_diff(remain_polyons, merged_shp, surrounding_shp, wkt, rm_reldemD_shp, min_area,dem_diff_thread_m) is None:
+        return None
 
-    # add some shape info
-    shape_info_list = [ vector_gpd.calculate_polygon_shape_info(item)  for item in save_polyons]
-    shapeinfo_all_dict = vector_gpd.list_to_dict(shape_info_list)
-    vector_gpd.add_attributes_to_shp(save_pd,shapeinfo_all_dict)
+    rm_shapeinfo_shp = io_function.get_name_by_adding_tail(in_shp, 'rmshapeinfo')
+    area_limit = 10000
+    circularit_limit = 0.1
+    holes_count = 10
+    remove_polygons_based_shapeinfo(in_shp, rm_shapeinfo_shp, area_limit, circularit_limit, holes_count)
 
-    # add date difference if there are available
+    # remove based on slope
+    # use the slope derived from ArcitcDEM mosaic
+    slope_tif_list = io_function.get_file_list_by_ext('.tif',dem_common.arcticDEM_tile_slope_dir,bsub_folder=False)
+    rm_slope_shp = io_function.get_name_by_adding_tail(in_shp, 'rmslope')
+    max_slope = 20
+    remove_based_slope(in_shp, rm_slope_shp,slope_tif_list, max_slope,process_num)
+
+    # copy
+    io_function.copy_shape_file(rm_slope_shp,save_shp)
+
+    # add date difference if they are available
     date_diff_base = os.path.basename(dem_diff_tif).replace('DEM_diff','date_diff')
     date_diff_tif = os.path.join(os.path.dirname(dem_diff_tif) , date_diff_base)
     if os.path.isfile(date_diff_tif):
