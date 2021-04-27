@@ -364,14 +364,14 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
     area_limit = 10000
     circularit_limit = 0.1
     holes_count = 10
-    remove_polygons_based_shapeinfo(in_shp, rm_shapeinfo_shp, area_limit, circularit_limit, holes_count)
+    remove_polygons_based_shapeinfo(rm_reldemD_shp, rm_shapeinfo_shp, area_limit, circularit_limit, holes_count)
 
     # remove based on slope
     # use the slope derived from ArcitcDEM mosaic
     slope_tif_list = io_function.get_file_list_by_ext('.tif',dem_common.arcticDEM_tile_slope_dir,bsub_folder=False)
     rm_slope_shp = io_function.get_name_by_adding_tail(in_shp, 'rmslope')
     max_slope = 20
-    remove_based_slope(in_shp, rm_slope_shp,slope_tif_list, max_slope,process_num)
+    remove_based_slope(rm_shapeinfo_shp, rm_slope_shp,slope_tif_list, max_slope,process_num)
 
     # copy
     io_function.copy_shape_file(rm_slope_shp,save_shp)
