@@ -114,11 +114,36 @@ def get_save_dir(dem_diff_path):
     save_dir = os.path.join(dem_common.grid_dem_diffs_segment_dir, 'segment_result_grid%d'%grid_id)
     return save_dir
 
-def merge_polygons(remain_polyons,merged_shp,wkt, min_area,max_area,dem_diff_tif,process_num):
+def filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,dem_diff_thread_m,process_num):
 
     if os.path.isfile(merged_shp):
         basic.outputlogMessage('%s exists, skip'%merged_shp)
         return merged_shp
+
+    # read polygons and label from segment algorithm, note: some polygons may have the same label
+    polygons, demD_mean_list = vector_gpd.read_polygons_attributes_list(in_shp,'demD_mean')
+    print('Read %d polygons'%len(polygons))
+    if demD_mean_list is None:
+        raise ValueError('demD_mean not in %s, need to remove it and then re-create'%in_shp)
+
+    remain_polyons = []
+    rm_min_area_count = 0
+    rm_diff_thr_count = 0
+    for poly, demD_mean in zip(polygons, demD_mean_list):
+        if poly.area < min_area:
+            rm_min_area_count += 1
+            continue
+        # mean value: not subsidence
+        if demD_mean > dem_diff_thread_m:  #
+            rm_diff_thr_count += 1
+            continue
+
+        remain_polyons.append(poly)
+
+    print('remove %d polygons based on min_area, %d polygons based on dem_diff_threshold, remain %d ones'%(rm_min_area_count, rm_diff_thr_count,len(remain_polyons)))
+    if len(remain_polyons) < 1:
+        return None
+
 
     # we should only merge polygon with similar reduction, but we already remove polygons with mean reduction > threshhold
     # merge touch polygons
@@ -303,13 +328,6 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
         basic.outputlogMessage('%s exists, skip'%save_shp)
         return save_shp
 
-    shp_pre = os.path.splitext(os.path.basename(in_shp))[0]
-    # read polygons and label from segment algorithm, note: some polygons may have the same label
-    polygons, demD_mean_list = vector_gpd.read_polygons_attributes_list(in_shp,'demD_mean')
-    print('Read %d polygons'%len(polygons))
-    if demD_mean_list is None:
-        raise ValueError('demD_mean not in %s, need to remove it and then re-create'%in_shp)
-
 
     demD_height, demD_width, demD_band_num, demD_date_type = raster_io.get_height_width_bandnum_dtype(dem_diff_tif)
     # print(demD_date_type)
@@ -324,28 +342,10 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
     if demD_date_type == 'int16':
         dem_diff_thread_m = dem_diff_thread_m*100
 
-    remain_polyons = []
-    rm_min_area_count = 0
-    rm_diff_thr_count = 0
-    for poly, demD_mean in zip(polygons, demD_mean_list):
-        if poly.area < min_area:
-            rm_min_area_count += 1
-            continue
-        # mean value: not subsidence
-        if demD_mean > dem_diff_thread_m:  #
-            rm_diff_thr_count += 1
-            continue
-
-        remain_polyons.append(poly)
-
-    print('remove %d polygons based on min_area, %d polygons based on dem_diff_threshold, remain %d ones'%(rm_min_area_count, rm_diff_thr_count,len(remain_polyons)))
-    if len(remain_polyons) < 1:
-        return None
-
     # merge polygons touch each others
     wkt = map_projection.get_raster_or_vector_srs_info_wkt(in_shp)
     merged_shp = io_function.get_name_by_adding_tail(in_shp, 'merged')
-    if merge_polygons(remain_polyons, merged_shp, wkt, min_area, max_area, dem_diff_tif, process_num) is None:
+    if filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,dem_diff_thread_m,process_num) is None:
         return None
 
     # in merge_polygons, it will remove some big polygons, convert MultiPolygon to Polygons, so neeed to update remain_polyons
@@ -369,6 +369,7 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
     # remove based on slope
     # use the slope derived from ArcitcDEM mosaic
     slope_tif_list = io_function.get_file_list_by_ext('.tif',dem_common.arcticDEM_tile_slope_dir,bsub_folder=False)
+    basic.outputlogMessage('Find %d slope files in %s'%(len(slope_tif_list), dem_common.arcticDEM_tile_slope_dir))
     rm_slope_shp = io_function.get_name_by_adding_tail(in_shp, 'rmslope')
     max_slope = 20
     remove_based_slope(rm_shapeinfo_shp, rm_slope_shp,slope_tif_list, max_slope,process_num)
