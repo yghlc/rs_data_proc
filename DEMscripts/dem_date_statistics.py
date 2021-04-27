@@ -35,7 +35,7 @@ def main():
     bins = np.arange(0, 12, 1)
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8, 8))
     n, bins, patches = ax.hist(value_list, bins=bins, alpha=0.75, ec="black", linewidth='1.5',
-                               color='k', hatch='',  rwidth=1)  # density = True, # label=labels,
+                               color='grey', hatch='',  rwidth=1)  # density = True, # label=labels,
 
     # ax.legend(prop={'size': 12})
     plt.xticks(bins)
