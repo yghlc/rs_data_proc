@@ -41,11 +41,14 @@ def slope_to_8bit(input, output):
     basic.os_system_exit_code(command_str)
     return True
 
-def dem_to_slope(input,output):
+def dem_to_slope(input,output,slope_file_bak):
 
     if os.path.isfile(output):
         basic.outputlogMessage('%s exists, skip'%output)
-        return True
+        return output
+    if os.path.isfile(slope_file_bak):
+        basic.outputlogMessage('%s exists, skip' % slope_file_bak)
+        return slope_file_bak
 
     if os.path.isfile(input) is False:
         basic.outputlogMessage('Waring, %s does not exist'%input)
@@ -54,7 +57,7 @@ def dem_to_slope(input,output):
     # # use the default setting in QGIS
     command_str = 'gdaldem slope %s %s -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer -b 1 -s 1.0'%(input,output)
     basic.os_system_exit_code(command_str)
-    return True
+    return output
 
 def tpi_to_8bit(input,output):
     dst_nodat = 255
@@ -111,20 +114,22 @@ def process_one_dem(idx, count, tif,product_list, arcticDEM_slope_dir,arcticDEM_
 
     try:
         slope_file = os.path.basename(io_function.get_name_by_adding_tail(tif, 'slope'))
+        slope_file_bak = os.path.join(arcticDEM_slope_dir, os.path.basename(slope_file))
         if 'slope' in product_list or 'slope_8bit' in product_list:
-            dem_to_slope(tif,slope_file)
+            slope_out = dem_to_slope(tif,slope_file,slope_file_bak)
+            if slope_out is False:
+                pass
+            else:
+                if 'slope_8bit' in product_list:
+                    slope_8bit = io_function.get_name_by_adding_tail(tif, 'slope8bit')
+                    slope_8bit = os.path.join(arcticDEM_slope_8bit_dir, os.path.basename(slope_8bit))
+                    slope_to_8bit(slope_file, slope_8bit)
 
-        if 'slope_8bit' in product_list:
-            slope_8bit = io_function.get_name_by_adding_tail(tif, 'slope8bit')
-            slope_8bit = os.path.join(arcticDEM_slope_8bit_dir, os.path.basename(slope_8bit))
-            slope_to_8bit(slope_file, slope_8bit)
-
-        # delete or move the slope file
-        if 'slope' in product_list:
-            slope_file_new = os.path.join(arcticDEM_slope_dir, os.path.basename(slope_file))
-            io_function.move_file_to_dst(slope_file,slope_file_new)
-        else:
-            io_function.delete_file_or_dir(slope_file)
+                # delete or move the slope file
+                if 'slope' in product_list:
+                    io_function.move_file_to_dst(slope_file,slope_file_bak)
+                else:
+                    io_function.delete_file_or_dir(slope_file)
 
 
         if 'hillshade' in product_list:
