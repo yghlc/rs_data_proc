@@ -309,7 +309,7 @@ def remove_polygons_based_shapeinfo(in_shp, output_shp,area_limit,circularit_lim
 
 def remove_based_slope(in_shp, output_shp,slope_files, max_slope,process_num):
     if os.path.isfile(output_shp):
-        basic.outputlogMessage('%s exists, skip')
+        basic.outputlogMessage('%s exists, skip'%output_shp)
         return output_shp
 
     # calcuate slope info
