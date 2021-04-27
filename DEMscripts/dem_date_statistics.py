@@ -26,7 +26,7 @@ def main():
     file_list = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir,'*_dem_reg.tif')
     print('Get %d dem_reg.tif from %s'%(len(file_list), arcticDEM_reg_tif_dir))
 
-    year_dates = [ timeTools.get_yeardate_yyyymmdd(item,pattern='[0-9]{8}_') for item in file_list]
+    year_dates = [ timeTools.get_yeardate_yyyymmdd(os.path.basename(item),pattern='[0-9]{8}_') for item in file_list]
     month_list = [item.month for item in year_dates]
     value_list = month_list
 
