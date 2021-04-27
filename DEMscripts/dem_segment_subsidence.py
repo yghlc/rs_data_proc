@@ -524,6 +524,21 @@ def test_get_dem_subscidence_polygons():
 #     vector_gpd.save_polygons_to_files(save_pd, 'Polygon', wkt, save_path)
 
 
+def test_remove_based_slope():
+
+    dir = os.path.expanduser('~/Data/dem_processing/segment_parallel_9274')
+    in_shp = os.path.join(dir,'WR_extent_grid_ids_DEM_diff_grid9274_8bit.shp')
+    rm_shapeinfo_shp = os.path.join(dir,'WR_extent_grid_ids_DEM_diff_grid9274_8bit_rmshapeinfo.shp')
+    process_num = 1
+
+    # remove based on slope
+    # use the slope derived from ArcitcDEM mosaic
+    slope_tif_list = io_function.get_file_list_by_ext('.tif',dem_common.arcticDEM_tile_slope_dir,bsub_folder=False)
+    basic.outputlogMessage('Find %d slope files in %s'%(len(slope_tif_list), dem_common.arcticDEM_tile_slope_dir))
+    rm_slope_shp = io_function.get_name_by_adding_tail(in_shp, 'rmslope')
+    max_slope = 20
+    remove_based_slope(rm_shapeinfo_shp, rm_slope_shp,slope_tif_list, max_slope,process_num)
+
 
 def main(options, args):
 
