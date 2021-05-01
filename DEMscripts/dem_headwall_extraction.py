@@ -38,12 +38,12 @@ def slope_tif_to_slope_shapefile(slope_tif,slope_bin_path,slope_threshold):
         bin_slope = np.zeros_like(slope_data,dtype=np.uint8)
         bin_slope[slope_data > slope_threshold] = 1
 
-        # Dilation or opening
-        # https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_morphological_ops/py_morphological_ops.html
-        kernel = np.ones((3, 3), np.uint8)  # if kernal is 5 or larger, will remove some narrow parts.
-        # bin_slope = cv2.dilate(bin_slope,kernel,iterations = 1)
-        bin_slope = cv2.morphologyEx(bin_slope, cv2.MORPH_OPEN, kernel)     # use opening to remove some noise
-        # bin_slope = cv2.morphologyEx(bin_slope, cv2.MORPH_CLOSE, kernel)    # closing small holes inside
+        # # Dilation or opening
+        # # https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_morphological_ops/py_morphological_ops.html
+        # kernel = np.ones((3, 3), np.uint8)  # if kernal is 5 or larger, will remove some narrow parts.
+        # # bin_slope = cv2.dilate(bin_slope,kernel,iterations = 1)
+        # bin_slope = cv2.morphologyEx(bin_slope, cv2.MORPH_OPEN, kernel)     # use opening to remove some noise
+        # # bin_slope = cv2.morphologyEx(bin_slope, cv2.MORPH_CLOSE, kernel)    # closing small holes inside
 
         # save
         slope_bin = bin_slope*255
@@ -90,6 +90,7 @@ def remove_based_on_shapeinfo(in_shp, save_shp, max_box_WH):
 
     shapefile = gpd.read_file(in_shp)
     polygons = shapefile.geometry.values
+    # print('\n Polygon Count',len(polygons))
     shape_info_list = [vector_gpd.calculate_polygon_shape_info(item) for item in polygons]
 
     # save shapeinfo to disk
