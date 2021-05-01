@@ -30,7 +30,7 @@ import pandas as pd
 from dem_common import dem_headwall_shp_dir
 
 
-def extract_headwall_from_slope(idx, total, slope_tif, work_dir, save_dir,slope_threshold, min_area, max_area):
+def extract_headwall_from_slope(idx, total, slope_tif, work_dir, save_dir,slope_threshold, min_area, max_area,max_width,process_num):
     '''
     extract RTS headwall from slope
     :param idx:
@@ -109,24 +109,56 @@ def extract_headwall_from_slope(idx, total, slope_tif, work_dir, save_dir,slope_
     shapeinfo_all_dict = vector_gpd.list_to_dict(shape_info_list)
     vector_gpd.add_attributes_to_shp(save_headwall_shp, shapeinfo_all_dict)
 
+    # calculate width based on medial axis
+    calculate_distance_medial_axis(save_headwall_shp,process_num=process_num)
 
     return save_headwall_shp
 
-def test_extract_headwall_from_slope():
-    print('\n')
-    slope = os.path.expanduser('~/Data/tmp_data/slope_sub.tif')
-    working_dir = './'
-    save_dir = dem_headwall_shp_dir
-    if os.path.isdir(working_dir) is False:
-        io_function.mkdir(working_dir)
-    if os.path.isdir(save_dir) is False:
-        io_function.mkdir(save_dir)
+def calculate_distance_medial_axis(input_shp, process_num=4):
+    print('calculating polygon width based on medial axis')
 
-    min_slope = 20
-    min_size = 400
-    max_size = 50000
+    code_dir = os.path.expanduser('~/codes/PycharmProjects/ChangeDet_DL/thawSlumpChangeDet')
+    sys.path.insert(0, code_dir)
+    # calculate width based on expanding areas
+    import cal_retreat_rate
+    if cal_retreat_rate.cal_expand_area_distance(input_shp,proc_num=process_num):
+        return True
 
-    extract_headwall_from_slope(0, 1, slope, working_dir, save_dir, min_slope, min_size, max_size)
+def test_calculate_distance_medial_axis():
+
+    # save polygons without holes
+    shp = os.path.join('dem_headwall_shp','slope_sub_headwall.shp')
+
+    polygons = vector_gpd.read_polygons_gpd(shp)
+    polygon_nohole = [ vector_gpd.fill_holes_in_a_polygon(item) for item in polygons]
+
+    wkt = map_projection.get_raster_or_vector_srs_info_wkt(shp)
+    save_nohole_shp = io_function.get_name_by_adding_tail(shp,'nohole')
+    save_pd = pd.DataFrame({'Polygon':polygon_nohole})
+    vector_gpd.save_polygons_to_files(save_pd,'Polygon',wkt,save_nohole_shp)
+
+    #
+    calculate_distance_medial_axis(save_nohole_shp, process_num=16)
+
+
+
+# def test_extract_headwall_from_slope():
+#     print('\n')
+#     slope = os.path.expanduser('~/Data/tmp_data/slope_sub.tif')
+#     working_dir = './'
+#     save_dir = dem_headwall_shp_dir
+#     if os.path.isdir(working_dir) is False:
+#         io_function.mkdir(working_dir)
+#     if os.path.isdir(save_dir) is False:
+#         io_function.mkdir(save_dir)
+#
+#     min_slope = 20
+#     min_size = 400
+#     max_size = 50000
+#     max_width = 50
+#     process_num = 10
+#
+#     extract_headwall_from_slope(0, 1, slope, working_dir, save_dir, min_slope, min_size, max_size,max_width,process_num)
 
 
 def main(options, args):
