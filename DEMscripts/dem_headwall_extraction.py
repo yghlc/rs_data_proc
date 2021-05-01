@@ -149,8 +149,8 @@ def main(options, args):
     failed_tifs = []
 
     min_slope = 20
-    max_size = 10000
-    min_size = 40
+    max_size = 50000
+    min_size = 400
     for idx, slope in enumerate(slope_tifs):
         if extract_headwall_from_slope(idx, len(slope_tifs), slope,working_dir,save_dir, min_slope,min_size,max_size) is False:
             failed_tifs.append(slope)
