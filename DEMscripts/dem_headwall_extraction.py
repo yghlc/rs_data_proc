@@ -47,7 +47,7 @@ def slope_tif_to_slope_shapefile(slope_tif,slope_bin_path,slope_threshold):
 
         # save
         slope_bin = bin_slope*255
-        raster_io.save_numpy_array_to_rasterfile(slope_bin,slope_bin_path,slope_tif,nodata=0)   # set nodata as 0
+        raster_io.save_numpy_array_to_rasterfile(slope_bin,slope_bin_path,slope_tif,nodata=0,compress='lzw',tiled='yes',bigtiff='if_safer')   # set nodata as 0
 
     # to shapefile
     slope_bin_shp = vector_gpd.raster2shapefile(slope_bin_path,connect8=True)
