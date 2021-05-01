@@ -273,7 +273,7 @@ def test_extract_headwall_from_slope():
     min_slope = 20
     min_size = 200
     max_size = 50000
-    max_axis_width = 50
+    max_axis_width = 80
     max_box_WH = 600
     process_num = 10
 
@@ -335,7 +335,7 @@ if __name__ == '__main__':
                       help="the maximum area")
 
     parser.add_option("", "--max_axis_width",
-                      action="store", dest="max_axis_width", type=float, default=50,
+                      action="store", dest="max_axis_width", type=float, default=80,
                       help="the maximum width based on medial axis")
 
     parser.add_option("", "--max_box_WH",
