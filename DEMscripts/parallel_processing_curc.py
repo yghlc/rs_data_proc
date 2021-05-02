@@ -253,6 +253,7 @@ def run_extract_headwall_jobs(max_job_count, n_tif_per_jobs):
 
     # get slope file list
     slope_tifs = io_function.get_file_list_by_ext('.tif',dem_slope_dir,bsub_folder=False)
+    print('Found %d tif in %s'%(len(slope_tifs), dem_slope_dir))
 
     # divide grid_ids to many groups
     slope_tif_count = len(slope_tifs)
