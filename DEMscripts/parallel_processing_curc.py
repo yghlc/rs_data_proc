@@ -198,6 +198,71 @@ def run_dem_diff_jobs(max_job_count,n_tif_per_jobs):
         print(datetime.now(), 'processing %d group for DEM diff, total %d ones'%(idx, len(grid_ids_groups)))
         submit_produce_dem_diff_job(ids_group, idx,grid_base_name, max_job_count)
 
+def submit_extract_headwall_job(slope_tifs, idx, max_job_count):
+
+    while True:
+        job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr='HW') # HW: headwall
+        if job_count >= max_job_count:
+            print(machine_name, datetime.now(),'You have submitted %d or more jobs, wait '%max_job_count)
+            time.sleep(60) #
+            continue
+        break
+
+    job_name = 'HW%d'%idx
+    work_dir = working_dir_string(idx, 'extract_headwall_', root=root_dir)
+    if os.path.isdir(work_dir) is False:
+        io_function.mkdir(work_dir)
+        os.chdir(work_dir)
+
+        io_function.save_list_to_txt('slope_tif_list.txt',slope_tifs)
+
+        # run segmentation
+        sh_list = ['job_healwall.sh', 'extract_headwall_from_slope.sh']
+        copy_curc_job_files(jobsh_dir, work_dir,sh_list)
+        slurm_utility.modify_slurm_job_sh('job_healwall.sh', 'job-name', job_name)
+
+    else:
+        os.chdir(work_dir)
+
+        # job is completed
+        if os.path.isfile('done.txt'):
+            return
+
+        submit_job_names = slurm_utility.get_submited_job_names(curc_username)
+        if job_name in submit_job_names:
+            print('The folder: %s already exist and the job has been submitted, skip submitting a new job'%work_dir)
+            return
+
+    # submit the job
+    # sometime, when submit a job, end with: singularity: command not found,and exist, wired, then try run submit a job in scomplie note
+    res = os.system('sbatch job_healwall.sh' )
+    if res != 0:
+        sys.exit(1)
+
+    os.chdir(curr_dir_before_start)
+
+    return
+
+
+def run_extract_headwall_jobs(max_job_count, n_tif_per_jobs):
+
+    from dem_common import dem_headwall_shp_dir,dem_slope_dir
+
+    if os.path.isdir(dem_headwall_shp_dir) is  False:
+        io_function.mkdir(dem_headwall_shp_dir)
+
+    # get slope file list
+    slope_tifs = io_function.get_file_list_by_ext('.tif',dem_slope_dir,bsub_folder=False)
+
+    # divide grid_ids to many groups
+    slope_tif_count = len(slope_tifs)
+    slope_tif_groups = [slope_tifs[i:i + n_tif_per_jobs] for i in range(0, slope_tif_count, n_tif_per_jobs)]
+
+    for idx, slope_tifs_group in enumerate(slope_tif_groups):
+
+        print(datetime.now(), 'processing %d group for DEM diff, total %d ones'%(idx, len(slope_tif_groups)))
+        submit_extract_headwall_job(slope_tifs_group, idx, max_job_count)
+
 
 
 def main(options, args):
@@ -211,6 +276,8 @@ def main(options, args):
         run_segment_jobs(max_job_count, n_tif_per_jobs)
     elif task_name == 'dem_diff':
         run_dem_diff_jobs(max_job_count, n_tif_per_jobs)
+    elif task_name == 'dem_headwall':
+        run_extract_headwall_jobs(max_job_count, n_tif_per_jobs)
     else:
         print('unknow task name: %s'%task_name)
         pass
@@ -218,7 +285,7 @@ def main(options, args):
 
 
 if __name__ == '__main__':
-    usage = "usage: %prog [options] task_name (dem_diff, segment) "
+    usage = "usage: %prog [options] task_name (dem_diff, segment, dem_headwall) "
     parser = OptionParser(usage=usage, version="1.0 2021-4-25")
     parser.description = 'Introduction:  parallel processing DEM on CURC '
 
