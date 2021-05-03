@@ -261,7 +261,7 @@ def run_extract_headwall_jobs(max_job_count, n_tif_per_jobs):
 
     for idx, slope_tifs_group in enumerate(slope_tif_groups):
 
-        print(datetime.now(), 'processing %d group for DEM diff, total %d ones'%(idx, len(slope_tif_groups)))
+        print(datetime.now(), 'processing %d group for extracting headwall, total %d ones'%(idx, len(slope_tif_groups)))
         submit_extract_headwall_job(slope_tifs_group, idx, max_job_count)
 
 
