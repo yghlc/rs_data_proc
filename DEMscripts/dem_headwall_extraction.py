@@ -124,7 +124,7 @@ def remove_based_medialAxis(in_shp, save_shp,process_num,max_axis_width):
     # calculate width based on medial axis
     buffer_size = 10    # buffer polgyons, to avoid calulate medial axis failed
     medial_dis_shp = io_function.get_name_by_adding_tail(in_shp, 'medialAxis')
-    if os.path.isfile(medial_dis_shp):
+    if os.path.isfile(medial_dis_shp) and vector_gpd.is_field_name_in_shp(medial_dis_shp,'e_max_dis') :
         print('%s exists, skip'%medial_dis_shp)
     else:
         calculate_distance_medial_axis(in_shp,medial_dis_shp,process_num=process_num,enlarge_m=buffer_size)
