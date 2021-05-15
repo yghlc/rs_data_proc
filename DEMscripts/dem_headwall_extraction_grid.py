@@ -25,7 +25,7 @@ import basic_src.io_function as io_function
 # some parameters
 b_mosaic_id = True          # mosaic dem with the same id
 b_mosaic_date = True        # mosaic dem within one day
-b_apply_matchtag = True
+b_apply_matchtag = False     # don't apply matchtag, it seems that matchtag make slope worse?
 
 # parameters for extracting headwall
 min_slope = 20
