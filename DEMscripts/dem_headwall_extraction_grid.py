@@ -64,7 +64,7 @@ def get_existing_grid_headwall_shp(headwall_shp_dir, grid_base_name, grid_ids):
     if len(existing_grid_headwall_shp) > 0:
         basic.outputlogMessage('%d existing grid headwall shps for the input grid_ids or extent'%len(existing_grid_headwall_shp))
     else:
-        basic.outputlogMessage('no existing grid matchtag_sum files')
+        basic.outputlogMessage('no existing grid headwall shps')
     return existing_grid_headwall_shp, grid_id_no_headwall_shp
 
 def dem_list_to_slope_list(dem_list, save_dir, extent_id, process_num=1):
