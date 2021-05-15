@@ -71,6 +71,8 @@ def dem_list_to_slope_list(dem_list, save_dir, extent_id, process_num=1):
 
     slope_list = []
     slope_tif_dir = os.path.join(save_dir, 'slope_sub_%d' % extent_id)
+    if os.path.isdir(slope_tif_dir) is False:
+        io_function.mkdir(slope_tif_dir)
 
     if process_num == 1:
         for idx, tif in enumerate(dem_list):
