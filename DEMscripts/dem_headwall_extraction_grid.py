@@ -22,6 +22,8 @@ import basic_src.timeTools as timeTools
 import basic_src.map_projection as map_projection
 import basic_src.io_function as io_function
 
+from multiprocessing import Pool
+
 # some parameters
 b_mosaic_id = True          # mosaic dem with the same id
 b_mosaic_date = True        # mosaic dem within one day
@@ -67,6 +69,11 @@ def get_existing_grid_headwall_shp(headwall_shp_dir, grid_base_name, grid_ids):
         basic.outputlogMessage('no existing grid headwall shps')
     return existing_grid_headwall_shp, grid_id_no_headwall_shp
 
+def one_dem_to_slope(tif, slope_tif_dir):
+    output = os.path.join(slope_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(tif, 'slope')))
+    slope_tif = dem_to_slope(tif, output, '')
+    return slope_tif
+
 def dem_list_to_slope_list(dem_list, save_dir, extent_id, process_num=1):
 
     slope_list = []
@@ -76,11 +83,17 @@ def dem_list_to_slope_list(dem_list, save_dir, extent_id, process_num=1):
 
     if process_num == 1:
         for idx, tif in enumerate(dem_list):
-            output = os.path.join(slope_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(tif, 'slope')))
-            slope_tif = dem_to_slope(tif,output,'')
-            slope_list.append(slope_tif)
+            slope_tif = one_dem_to_slope(tif,slope_tif_dir)
+            if slope_tif is not False:
+                slope_list.append(slope_tif)
     elif process_num > 1:
-        raise ValueError('not yet implemented')
+
+        # change backk to multi process of gdalwarp, when get mosaic, gdalwarp multi-thread cannot fully utlized CPUs
+        theadPool = Pool(process_num)  # multi processes
+
+        parameters_list = [(tif, slope_tif_dir) for idx, tif in enumerate(dem_list)]
+        results = theadPool.starmap(one_dem_to_slope, parameters_list)  # need python3
+        slope_list = [ out for out in results if out is not False]
     else:
         raise ValueError('Wrong process number: %s'%str(process_num))
 
@@ -124,7 +137,7 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
         # dem co-registration (cancel, the result in not good with the default setting)
 
         # to slope
-        slope_tifs = dem_list_to_slope_list(mosaic_tif_list,save_dir,grid_id,process_num=1)
+        slope_tifs = dem_list_to_slope_list(mosaic_tif_list,save_dir,grid_id,process_num=process_num)
 
         # extract headwall
         multi_headwall_shp_dir = os.path.join(save_dir, 'headwall_shp_sub_%d' % grid_id)
