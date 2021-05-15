@@ -128,6 +128,8 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
 
         # extract headwall
         multi_headwall_shp_dir = os.path.join(save_dir, 'headwall_shp_sub_%d' % grid_id)
+        if os.path.isdir(multi_headwall_shp_dir) is False:
+            io_function.mkdir(multi_headwall_shp_dir)
         for idx, slope in enumerate(slope_tifs):
             working_dir = os.path.join(save_dir,os.path.splitext(os.path.basename(slope))[0])
             if os.path.isdir(working_dir) is False:
