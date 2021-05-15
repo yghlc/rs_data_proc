@@ -41,6 +41,7 @@ dem_hillshade_dir = os.path.join(ArcticDEM_tmp_dir,'dem_hillshade')
 dem_tpi_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_tpi_8bit')
 
 dem_headwall_shp_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_headwall_shp')
+grid_dem_headwall_shp_dir = os.path.join(ArcticDEM_tmp_dir, 'grid_dem_headwall_shp')
 
 # the mosaic version of AricticDEM
 arcticDEM_tile_reg_tif_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_reg_tifs')
