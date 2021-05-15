@@ -37,6 +37,7 @@ def slope_tif_to_slope_shapefile(slope_tif,slope_bin_path,slope_threshold):
         slope_data, nodata = raster_io.read_raster_one_band_np(slope_tif)
         bin_slope = np.zeros_like(slope_data,dtype=np.uint8)
         bin_slope[slope_data > slope_threshold] = 1
+        bin_slope[slope_data > 88] = 0          # if slope is too large, it may caused by artifacts, so remove them
 
         # # Dilation or opening
         # # https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_morphological_ops/py_morphological_ops.html
