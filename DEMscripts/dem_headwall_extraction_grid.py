@@ -46,25 +46,25 @@ def get_existing_grid_headwall_shp(headwall_shp_dir, grid_base_name, grid_ids):
 
     existing_grid_headwall_shp = []
     grid_id_no_headwall_shp = []
-    # for id in grid_ids:
-    #
-    #     matchtag_sum_files = io_function.get_file_list_by_pattern(headwall_shp_dir, '*_matchtag_sum_grid%d.tif'%id)
-    #     if len(matchtag_sum_files) == 1:
-    #         existing_tif.append(matchtag_sum_files[0])
-    #         continue
-    #     elif len(matchtag_sum_files) > 1:
-    #         existing_tif.append(matchtag_sum_files[0])
-    #         basic.outputlogMessage('warning, There are multiple matchtag_sum tif for grid: %d'%id)
-    #         for item in matchtag_sum_files: basic.outputlogMessage(item)
-    #         continue
-    #     else:
-    #         pass
-    #
-    #     grid_id_no_matchtag_sum_tiff.append(id)
-    # if len(existing_tif) > 0:
-    #     basic.outputlogMessage('%d existing grid matchtag_sum files for the input grid_ids or extent'%len(existing_tif))
-    # else:
-    #     basic.outputlogMessage('no existing grid matchtag_sum files')
+    for id in grid_ids:
+
+        headwall_shps = io_function.get_file_list_by_pattern(headwall_shp_dir, '*_grid%d.shp'%id)
+        if len(headwall_shps) == 1:
+            existing_grid_headwall_shp.append(headwall_shps[0])
+            continue
+        elif len(headwall_shps) > 1:
+            existing_grid_headwall_shp.append(headwall_shps[0])
+            basic.outputlogMessage('warning, There are multiple headwall shps for grid: %d'%id)
+            for item in headwall_shps: basic.outputlogMessage(item)
+            continue
+        else:
+            pass
+
+        grid_id_no_headwall_shp.append(id)
+    if len(existing_grid_headwall_shp) > 0:
+        basic.outputlogMessage('%d existing grid headwall shps for the input grid_ids or extent'%len(existing_grid_headwall_shp))
+    else:
+        basic.outputlogMessage('no existing grid matchtag_sum files')
     return existing_grid_headwall_shp, grid_id_no_headwall_shp
 
 def dem_list_to_slope_list(dem_list, save_dir, extent_id, process_num=1):
