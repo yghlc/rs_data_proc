@@ -27,7 +27,9 @@ re_stripID='[0-9]{8}_[0-9A-F]{16}_[0-9A-F]{16}'
 import multiprocessing
 from multiprocessing import Pool
 import operator
+import numpy as np
 
+from dem_common import arcticDEM_tile_reg_tif_dir
 
 def subset_image_by_polygon_box(in_img, out_img, polygon,resample_m='bilinear',o_format='GTiff', out_res=None,same_extent=False, thread_num=1):
     if same_extent:
@@ -278,9 +280,67 @@ def mask_crop_dem_by_matchtag(org_dem_tif_list, crop_dem_list, extent_poly, exte
     return mask_crop_dem_list, matchtag_crop_tif_list
 
 
+def mask_strip_dem_outlier_by_ArcticDEM_mosaic(crop_strip_dem_list, extent_poly, extent_id, crop_tif_dir, o_res, process_num):
+
+    # get list of the ArcticDEM mosaic
+    arcticDEM_mosaic_reg_tifs = io_function.get_file_list_by_ext('.tif',arcticDEM_tile_reg_tif_dir,bsub_folder=False)
+    mosaic_dem_ext_polys = get_dem_tif_ext_polygons(arcticDEM_mosaic_reg_tifs)
+
+    overlap_index = vector_gpd.get_poly_index_within_extent(mosaic_dem_ext_polys,extent_poly)
+
+    #### crop and mosaic mosaic_reg_tifs
+    sub_mosaic_dem_tifs = [arcticDEM_mosaic_reg_tifs[item] for item in overlap_index]
+    mosaic_crop_tif_list = []
+    for tif in sub_mosaic_dem_tifs:
+        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(tif, 'sub_poly_%d' % extent_id)) )
+        if os.path.isfile(save_crop_path):
+            basic.outputlogMessage('%s exists, skip cropping' % save_crop_path)
+            mosaic_crop_tif_list.append(save_crop_path)
+        else:
+            crop_tif = subset_image_by_polygon_box(tif, save_crop_path, extent_poly, resample_m='near',
+                            o_format='VRT', out_res=o_res,same_extent=True,thread_num=process_num)
+            if crop_tif is False:
+                raise ValueError('warning, crop %s failed' % tif)
+            mosaic_crop_tif_list.append(crop_tif)
+    if len(mosaic_crop_tif_list) < 1:
+        basic.outputlogMessage('No mosaic version of ArcticDEM for %d grid'%extent_id)
+        return False
+
+    # create mosaic, can handle only input one file, but is slow
+    save_dem_mosaic = os.path.join(crop_tif_dir, 'ArcticDEM_tiles_grid%d.tif'%extent_id)
+    result = RSImageProcess.mosaic_crop_images_gdalwarp(mosaic_crop_tif_list, save_dem_mosaic, resampling_method='average',o_format='GTiff',
+                                               compress='lzw', tiled='yes', bigtiff='if_safer',thread_num=process_num)
+    if result is False:
+        return False
+
+    height_tileDEM, width_tileDEM, count_tileDEM, dtype_tileDEM = raster_io.get_height_width_bandnum_dtype(save_dem_mosaic)
+    tileDEM_nodata, tileDEM_nodata = raster_io.read_raster_one_band_np(save_dem_mosaic)
+    # masking the strip version of DEMs
+    mask_strip_dem_list = []
+    for idx, strip_dem in enumerate(crop_strip_dem_list):
+        # check band, with, height
+        height, width, count, dtype = raster_io.get_height_width_bandnum_dtype(strip_dem)
+        if height_tileDEM != height or width_tileDEM != width or count_tileDEM != count:
+            raise ValueError('size different between %s and %s' % (strip_dem, save_dem_mosaic))
+        if count != 1:
+            raise ValueError('DEM and Matchtag should only have one band')
+
+        dem_data, nodata = raster_io.read_raster_one_band_np(strip_dem)
+
+        diff = dem_data - tileDEM_nodata
+        # mask as nodata
+        dem_data[np.abs(diff) > 50 ] = nodata  # ignore greater than 50 m
+        # save to file
+        save_path = io_function.get_name_by_adding_tail(strip_dem,'maskOutlier')
+        raster_io.save_numpy_array_to_rasterfile(dem_data, save_path, strip_dem, compress='lzw', tiled='yes',
+                                                 bigtiff='if_safer')
+        mask_strip_dem_list.append(save_path)
+
+    return mask_strip_dem_list
+
 
 def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id, b_mosaic_date, process_num,
-                         keep_dem_percent, o_res, pre_name, resample_method='average', b_mask_matchtag=False):
+                         keep_dem_percent, o_res, pre_name, resample_method='average', b_mask_matchtag=False,b_mask_stripDEM_outlier=False):
 
     org_dem_tif_list = dem_tif_list.copy()
 
@@ -306,6 +366,11 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
     if b_mask_matchtag:
         mask_crop_dem_list, matchtag_crop_tif_list = mask_crop_dem_by_matchtag(org_dem_tif_list, crop_tif_list, extent_poly, extent_id, crop_tif_dir, o_res,process_num)
         dem_tif_list = mask_crop_dem_list
+
+    # mask the outlier in strip version of DEM using the mosaic version of ArcitcDEM
+    if b_mask_stripDEM_outlier:
+        mask_outlier_tifs = mask_strip_dem_outlier_by_ArcticDEM_mosaic(dem_tif_list, extent_poly, extent_id, crop_tif_dir, o_res, process_num)
+        dem_tif_list = mask_outlier_tifs
 
     # area pixel count
     area_pixel_count = int(extent_poly.area / (o_res*o_res))
