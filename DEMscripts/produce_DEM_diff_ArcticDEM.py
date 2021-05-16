@@ -160,8 +160,8 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
             continue
         dem_list_sub = [reg_tifs[index] for index in dem_poly_index]
 
-        # filter by month
-        dem_list_sub = filter_dem_by_month(dem_list_sub)
+        # filter by month  # cancel, because it removes many good data.
+        # dem_list_sub = filter_dem_by_month(dem_list_sub)
 
         mosaic_tif_list = mosaic_crop_dem(dem_list_sub, save_dir, grid_id, grid_poly, b_mosaic_id, b_mosaic_date,
                         process_num, keep_dem_percent, o_res, pre_name, resample_method='average',b_mask_matchtag=b_apply_matchtag)
