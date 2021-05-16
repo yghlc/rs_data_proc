@@ -314,7 +314,7 @@ def mask_strip_dem_outlier_by_ArcticDEM_mosaic(crop_strip_dem_list, extent_poly,
         return False
 
     height_tileDEM, width_tileDEM, count_tileDEM, dtype_tileDEM = raster_io.get_height_width_bandnum_dtype(save_dem_mosaic)
-    tileDEM_nodata, tileDEM_nodata = raster_io.read_raster_one_band_np(save_dem_mosaic)
+    tileDEM_data, tileDEM_nodata = raster_io.read_raster_one_band_np(save_dem_mosaic)
     # masking the strip version of DEMs
     mask_strip_dem_list = []
     for idx, strip_dem in enumerate(crop_strip_dem_list):
@@ -326,10 +326,12 @@ def mask_strip_dem_outlier_by_ArcticDEM_mosaic(crop_strip_dem_list, extent_poly,
             raise ValueError('DEM and Matchtag should only have one band')
 
         dem_data, nodata = raster_io.read_raster_one_band_np(strip_dem)
+        nodata_loc = np.where(dem_data == nodata)
 
-        diff = dem_data - tileDEM_nodata
+        diff = dem_data - tileDEM_data
         # mask as nodata
         dem_data[np.abs(diff) > 50 ] = nodata  # ignore greater than 50 m
+        dem_data[ nodata_loc ] = nodata         # may change some nodata pixel, change them back
         # save to file
         save_path = io_function.get_name_by_adding_tail(strip_dem,'maskOutlier')
         raster_io.save_numpy_array_to_rasterfile(dem_data, save_path, strip_dem, compress='lzw', tiled='yes',
