@@ -40,6 +40,7 @@ b_mosaic_id = True
 b_mosaic_date = True        # mosaic dem with one days
 b_max_subsidence = False        # apply max_subsidence make results worse
 b_apply_matchtag = True
+b_mask_stripDEM_outlier = True  # mask outliers in strip DEM using the ArcticDEM tiles
 
 
 from dem_common import grid_20_shp,dem_strip_shp
@@ -164,7 +165,8 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
         # dem_list_sub = filter_dem_by_month(dem_list_sub)
 
         mosaic_tif_list = mosaic_crop_dem(dem_list_sub, save_dir, grid_id, grid_poly, b_mosaic_id, b_mosaic_date,
-                        process_num, keep_dem_percent, o_res, pre_name, resample_method='average',b_mask_matchtag=b_apply_matchtag)
+                        process_num, keep_dem_percent, o_res, pre_name, resample_method='average',b_mask_matchtag=b_apply_matchtag,
+                                          b_mask_stripDEM_outlier=b_mask_stripDEM_outlier)
 
 
         # dem co-registration (cancel, the result in not good with the default setting)
