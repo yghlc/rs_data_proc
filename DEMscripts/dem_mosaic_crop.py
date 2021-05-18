@@ -321,6 +321,7 @@ def mask_strip_dem_outlier_by_ArcticDEM_mosaic(crop_strip_dem_list, extent_poly,
         save_path = io_function.get_name_by_adding_tail(strip_dem, 'maskOutlier')
         if os.path.isfile(save_path):
             basic.outputlogMessage('%s exist, skip'%save_path)
+            mask_strip_dem_list.append(save_path)
             continue
 
         # check band, with, height
@@ -359,7 +360,7 @@ def mask_dem_by_surface_water(crop_dem_list, extent_poly, extent_id, crop_tif_di
     for tif in sub_mosaic_dem_tifs:
         save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(tif, 'sub_poly_%d' % extent_id)) )
         if os.path.isfile(save_crop_path):
-            basic.outputlogMessage('%s exists, skip cropping' % save_crop_path)
+            basic.outputlogMessage('%s exists, skip' % save_crop_path)
             water_mask_crop_tif_list.append(save_crop_path)
         else:
             crop_tif = subset_image_by_polygon_box(tif, save_crop_path, extent_poly, resample_m='near',
@@ -395,6 +396,7 @@ def mask_dem_by_surface_water(crop_dem_list, extent_poly, extent_id, crop_tif_di
         save_path = io_function.get_name_by_adding_tail(strip_dem, 'maskWater')
         if os.path.isfile(save_path):
             basic.outputlogMessage('%s exist, skip'%save_path)
+            mask_dem_list.append(save_path)
             continue
 
         io_function.copy_file_to_dst(strip_dem,save_path,overwrite=True)
