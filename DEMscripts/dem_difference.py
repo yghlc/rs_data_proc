@@ -231,14 +231,16 @@ def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff, process_nu
         raster_io.save_numpy_array_to_rasterfile(dem_diff_np,out_dem_diff,dem_tif_list[0],nodata=-9999,compress='lzw',tiled='yes',bigtiff='if_safer')
     else:
         # save dem diff to 16bit, centimeter, only handle diff from -327.67 to 327.67 meters
+        bit16_nodata = 32767
         range = np.iinfo(np.int16)
         dem_diff_np_cm = dem_diff_np*100
         dem_diff_np_cm[dem_diff_np_cm < range.min] = range.min
         dem_diff_np_cm[dem_diff_np_cm > range.max] = range.max
+        dem_diff_np_cm[np.isnan(dem_diff_np_cm)] = bit16_nodata  # set the nodata for int16
         dem_diff_np_cm = dem_diff_np_cm.astype(np.int16)        # save to int16
         out_dem_diff_cm = out_dem_diff
         basic.outputlogMessage('note, save DEM difference (%s) to centimeter, int16, range: -327.68 to 327.67 m'%os.path.basename(out_dem_diff_cm))
-        raster_io.save_numpy_array_to_rasterfile(dem_diff_np_cm, out_dem_diff_cm, dem_tif_list[0],nodata=32767,compress='lzw',tiled='yes',bigtiff='if_safer')
+        raster_io.save_numpy_array_to_rasterfile(dem_diff_np_cm, out_dem_diff_cm, dem_tif_list[0],nodata=bit16_nodata,compress='lzw',tiled='yes',bigtiff='if_safer')
 
 
     return True
