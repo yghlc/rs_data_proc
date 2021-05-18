@@ -364,7 +364,7 @@ def mask_dem_by_surface_water(crop_dem_list, extent_poly, extent_id, crop_tif_di
             water_mask_crop_tif_list.append(save_crop_path)
         else:
             crop_tif = subset_image_by_polygon_box(tif, save_crop_path, extent_poly, resample_m='near',
-                            o_format='VRT', same_extent=True,thread_num=process_num) # out_res=o_res,
+                            o_format='VRT',out_res=o_res, same_extent=True,thread_num=process_num) #
             if crop_tif is False:
                 raise ValueError('warning, crop %s failed' % tif)
             water_mask_crop_tif_list.append(crop_tif)
@@ -444,7 +444,8 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
 
     # mask the water surface
     if b_mask_surface_water:
-        mask_water_tifs = mask_dem_by_surface_water(dem_tif_list, extent_poly, extent_id, crop_tif_dir, o_res, process_num)
+        # the water mask, resolution is 30 meters
+        mask_water_tifs = mask_dem_by_surface_water(dem_tif_list, extent_poly, extent_id, crop_tif_dir, 30, process_num)
         dem_tif_list = mask_water_tifs
 
 
