@@ -363,7 +363,7 @@ def mask_dem_by_surface_water(crop_dem_list, extent_poly, extent_id, crop_tif_di
             water_mask_crop_tif_list.append(save_crop_path)
         else:
             crop_tif = subset_image_by_polygon_box(tif, save_crop_path, extent_poly, resample_m='near',
-                            o_format='VRT', out_res=o_res,same_extent=True,thread_num=process_num)
+                            o_format='VRT', same_extent=True,thread_num=process_num) # out_res=o_res,
             if crop_tif is False:
                 raise ValueError('warning, crop %s failed' % tif)
             water_mask_crop_tif_list.append(crop_tif)
@@ -397,7 +397,7 @@ def mask_dem_by_surface_water(crop_dem_list, extent_poly, extent_id, crop_tif_di
             basic.outputlogMessage('%s exist, skip'%save_path)
             continue
 
-        io_function.copy_file_to_dst(strip_dem,save_path)
+        io_function.copy_file_to_dst(strip_dem,save_path,overwrite=True)
         nodata = raster_io.get_nodata(save_path)
         if raster_io.burn_polygon_to_raster_oneband(save_path,water_mask_shp,nodata) is False:
             continue
