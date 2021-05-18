@@ -52,6 +52,8 @@ arcticDEM_tile_tpi_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_
 # dem_pattern = '*reg_dem.tif'
 
 
+# surface water mask
+mask_water_dir = os.path.join(os.path.dirname(ArcticDEM_tmp_dir), 'global_surface_water' , 'extent_epsg3413')
 
 grid_20_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp/ArcticDEM_grid_20km.shp')
 dem_strip_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/BROWSE_SERVER/indexes/ArcticDEM_Strip_Index_Rel7/ArcticDEM_Strip_Index_Rel7.shp')

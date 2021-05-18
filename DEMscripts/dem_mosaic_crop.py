@@ -29,7 +29,7 @@ from multiprocessing import Pool
 import operator
 import numpy as np
 
-from dem_common import arcticDEM_tile_reg_tif_dir
+from dem_common import arcticDEM_tile_reg_tif_dir, mask_water_dir
 
 def subset_image_by_polygon_box(in_img, out_img, polygon,resample_m='bilinear',o_format='GTiff', out_res=None,same_extent=False, thread_num=1):
     if same_extent:
@@ -345,8 +345,70 @@ def mask_strip_dem_outlier_by_ArcticDEM_mosaic(crop_strip_dem_list, extent_poly,
     return mask_strip_dem_list
 
 
+def mask_dem_by_surface_water(crop_dem_list, extent_poly, extent_id, crop_tif_dir, o_res, process_num):
+
+    # get list of the ArcticDEM mosaic
+    water_mask_tifs = io_function.get_file_list_by_ext('.tif',mask_water_dir,bsub_folder=False)
+    water_mask_ext_polys = get_dem_tif_ext_polygons(water_mask_tifs)
+
+    overlap_index = vector_gpd.get_poly_index_within_extent(water_mask_ext_polys,extent_poly)
+
+    #### crop and mosaic water mask
+    sub_mosaic_dem_tifs = [water_mask_tifs[item] for item in overlap_index]
+    water_mask_crop_tif_list = []
+    for tif in sub_mosaic_dem_tifs:
+        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(tif, 'sub_poly_%d' % extent_id)) )
+        if os.path.isfile(save_crop_path):
+            basic.outputlogMessage('%s exists, skip cropping' % save_crop_path)
+            water_mask_crop_tif_list.append(save_crop_path)
+        else:
+            crop_tif = subset_image_by_polygon_box(tif, save_crop_path, extent_poly, resample_m='near',
+                            o_format='VRT', out_res=o_res,same_extent=True,thread_num=process_num)
+            if crop_tif is False:
+                raise ValueError('warning, crop %s failed' % tif)
+            water_mask_crop_tif_list.append(crop_tif)
+    if len(water_mask_crop_tif_list) < 1:
+        basic.outputlogMessage('No water mask for %d grid'%extent_id)
+        return False
+
+    # create mosaic, can handle only input one file, but is slow
+    save_water_mask_mosaic = os.path.join(crop_tif_dir, 'global_surface_water_grid%d.tif'%extent_id)
+    result = RSImageProcess.mosaic_crop_images_gdalwarp(water_mask_crop_tif_list, save_water_mask_mosaic, resampling_method='average',o_format='GTiff',
+                                               compress='lzw', tiled='yes', bigtiff='if_safer',thread_num=process_num)
+    if result is False:
+        return False
+
+    # because the resolution of dem and water mask is different, so we polygonize the watermask, then burn into the dem
+    water_mask_shp = os.path.join(crop_tif_dir, 'global_surface_water_grid%d.shp'%extent_id)
+    if os.path.isfile(water_mask_shp):
+        basic.outputlogMessage('%s exists, skip cropping' % water_mask_shp)
+    else:
+        # set 0 as nodata
+        if raster_io.set_nodata_to_raster_metadata(save_water_mask_mosaic,0) is False:
+            return False
+        if vector_gpd.raster2shapefile(save_water_mask_mosaic,water_mask_shp,connect8=True) is None:
+            return False
+
+    # masking the strip version of DEMs
+    mask_dem_list = []
+    for idx, strip_dem in enumerate(crop_dem_list):
+        save_path = io_function.get_name_by_adding_tail(strip_dem, 'maskWater')
+        if os.path.isfile(save_path):
+            basic.outputlogMessage('%s exist, skip'%save_path)
+            continue
+
+        io_function.copy_file_to_dst(strip_dem,save_path)
+        nodata = raster_io.get_nodata(save_path)
+        if raster_io.burn_polygon_to_raster_oneband(save_path,water_mask_shp,nodata) is False:
+            continue
+        mask_dem_list.append(save_path)
+
+    return mask_dem_list
+
+
 def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id, b_mosaic_date, process_num,
-                         keep_dem_percent, o_res, pre_name, resample_method='average', b_mask_matchtag=False,b_mask_stripDEM_outlier=False):
+                         keep_dem_percent, o_res, pre_name, resample_method='average', b_mask_matchtag=False,
+                    b_mask_stripDEM_outlier=False,b_mask_surface_water=False):
 
     org_dem_tif_list = dem_tif_list.copy()
 
@@ -377,6 +439,12 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
     if b_mask_stripDEM_outlier:
         mask_outlier_tifs = mask_strip_dem_outlier_by_ArcticDEM_mosaic(dem_tif_list, extent_poly, extent_id, crop_tif_dir, o_res, process_num)
         dem_tif_list = mask_outlier_tifs
+
+    # mask the water surface
+    if b_mask_surface_water:
+        mask_water_tifs = mask_dem_by_surface_water(dem_tif_list, extent_poly, extent_id, crop_tif_dir, o_res, process_num)
+        dem_tif_list = mask_water_tifs
+
 
     # area pixel count
     area_pixel_count = int(extent_poly.area / (o_res*o_res))
