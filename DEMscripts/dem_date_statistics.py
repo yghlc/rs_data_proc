@@ -32,8 +32,9 @@ def main():
 
     # save unique date to txt file
     dates_unique = set(year_dates)
+    dates_unique = sorted(dates_unique)
     dates_unique_str = [ timeTools.date2str(item,'%Y-%m-%d')  for item in dates_unique]
-    io_function.save_list_to_txt(dates_unique_str,'dates_unique.txt')
+    io_function.save_list_to_txt('dates_unique.txt',dates_unique_str)
 
     # plot a histogram
     # bin_count = 12
