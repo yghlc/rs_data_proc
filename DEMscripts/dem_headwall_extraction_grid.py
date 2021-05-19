@@ -29,6 +29,7 @@ b_mosaic_id = True          # mosaic dem with the same id
 b_mosaic_date = True        # mosaic dem within one day
 b_apply_matchtag = False     # don't apply matchtag, it seems that matchtag make slope worse?
 b_mask_stripDEM_outlier = True  # mask outliers in strip DEM using the ArcticDEM tiles
+b_mask_surface_water = True     # mask pixel of surface water
 
 # parameters for extracting headwall
 min_slope = 20
@@ -133,7 +134,8 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
 
         mosaic_tif_list = mosaic_crop_dem(dem_list_sub, save_dir, grid_id, grid_poly, b_mosaic_id, b_mosaic_date,
                                           process_num, keep_dem_percent, o_res, pre_name, resample_method='average',
-                                          b_mask_matchtag=b_apply_matchtag,b_mask_stripDEM_outlier=b_mask_stripDEM_outlier)
+                                          b_mask_matchtag=b_apply_matchtag,b_mask_stripDEM_outlier=b_mask_stripDEM_outlier,
+                                          b_mask_surface_water=b_mask_surface_water)
 
         # dem co-registration (cancel, the result in not good with the default setting)
 
