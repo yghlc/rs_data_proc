@@ -186,11 +186,12 @@ def main(options, args):
     if os.path.isdir(save_folder) is False:
         io_function.mkdir(save_folder)
 
-    # snow_products = ['MODIS/006/MYD10A1', 'MODIS/006/MOD10A1']
-    snow_products = ['MODIS/006/MYD10A1']   # , 'MODIS/006/MOD10A1'
+    snow_products = ['MODIS/006/MYD10A1', 'MODIS/006/MOD10A1']
+    # snow_products = ['MODIS/006/MYD10A1']   # , 'MODIS/006/MOD10A1'
 
 
-    band_names = ['NDSI']
+    # band_names = ['NDSI']
+    band_names = ['NDSI_Snow_Cover','NDSI_Snow_Cover_Class']
     # there are nine bands.
     #       "id": "NDSI_Snow_Cover",
     #       "id": "NDSI_Snow_Cover_Basic_QA",
