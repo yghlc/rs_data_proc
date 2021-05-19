@@ -212,8 +212,8 @@ def main(options, args):
     else:
         all_task_list = []
         dates_list = io_function.read_list_from_txt(dates_list)
-        for date_str in dates_list:
-            print('Get snow cover for %s'%date_str)
+        for idx,date_str in enumerate(dates_list):
+            print('%d/%d Get snow cover for %s'%(idx, len(dates_list), date_str))
             start_date= date_str
             end_date = timeTools.str2date(start_date,format='%Y-%m-%d') + timedelta(days=1)
             end_date = timeTools.date2str(end_date,format='%Y-%m-%d')
