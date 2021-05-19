@@ -127,7 +127,8 @@ def gee_download_modis_snow(region_name, snow_product,band_name,start_date, end_
             save_file_name = region_name + '_' + get_snow_product_id(image_info) + '_' + band_name
             local_record = os.path.join(os.path.join(export_dir,save_file_name))
             if os.path.isfile(local_record):
-                print('task %s already be submit to GEE, skip')
+                print('task %s already be submit to GEE, skip'%local_record)
+                n += 1
                 continue
 
             crop_region = polygon_bound
