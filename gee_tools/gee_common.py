@@ -14,6 +14,12 @@ from datetime import datetime
 import ee
 
 
+# if submit too many task, it will end in errors, like the
+# ee.ee_exception.EEException: Too many tasks already in the queue (3000). Please wait for some of them to complete.
+# so, set a maximum_submit_tasks
+maximum_submit_tasks = 2000
+
+
 def export_one_imagetoDrive(select_image, save_folder,save_file_name, crop_region, res, wait2finished=True):
 
 
@@ -38,6 +44,13 @@ def export_one_imagetoDrive(select_image, save_folder,save_file_name, crop_regio
         return True
     else:
         return task
+
+def active_task_count(tasks):
+    count = 0
+    for task in tasks:
+        if task.active():
+            count += 1
+    return count
 
 def wait_all_task_finished(all_tasks):
 

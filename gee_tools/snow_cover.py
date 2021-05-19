@@ -10,6 +10,7 @@ add time: 03 May, 2021
 
 import sys,os
 from optparse import OptionParser
+import time
 from datetime import datetime
 from datetime import timedelta
 
@@ -25,7 +26,7 @@ import vector_gpd
 # need shapely, geopandas, gdal
 import ee
 
-from gee_common import export_one_imagetoDrive,wait_all_task_finished
+from gee_common import export_one_imagetoDrive,wait_all_task_finished, maximum_submit_tasks, active_task_count
 
 # re-project
 from functools import partial
@@ -110,6 +111,12 @@ def gee_download_modis_snow(region_name, snow_product,band_name,start_date, end_
     #     # print(image_info)
     #     print(get_snow_product_id(image_info))
 
+
+    # save some task record in the local folder
+    if os.path.isdir(export_dir) is False:
+        io_function.mkdir(export_dir)
+
+
     # export all
     n = 0
     tasklist = []
@@ -118,11 +125,19 @@ def gee_download_modis_snow(region_name, snow_product,band_name,start_date, end_
             img = ee.Image(img_list.get(n)).select(band_name)
             image_info = img.getInfo()
             save_file_name = region_name + '_' + get_snow_product_id(image_info) + '_' + band_name
-            crop_region = polygon_bound
+            local_record = os.path.join(os.path.join(export_dir,save_file_name))
+            if os.path.isfile(local_record):
+                print('task %s already be submit to GEE, skip')
+                continue
 
+            crop_region = polygon_bound
             task = export_one_imagetoDrive(img, export_dir, save_file_name, crop_region, res, wait2finished=False)
             tasklist.append(task)
             n += 1
+
+            # save a record in the local dir
+            with open(local_record,'w')  as f_obj:
+                f_obj.writelines('submitted to GEE on %s'%datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             print('%s: Start %dth task to download snow cover'%(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), n))
         except Exception as e:
             error = str(e).split(':')
@@ -213,6 +228,13 @@ def main(options, args):
         all_task_list = []
         dates_list = io_function.read_list_from_txt(dates_list)
         for idx,date_str in enumerate(dates_list):
+
+            active_tasks = active_task_count(all_task_list)
+            while active_tasks > maximum_submit_tasks:
+                print('%s : %d tasks already in the queue, wait 60 seconds'%(datetime.now().strftime('%Y-%m-%d %H:%M:%S'),active_tasks))
+                time.sleep(60)
+                active_tasks = active_task_count(all_task_list)
+
             print('%d/%d Get snow cover for %s'%(idx, len(dates_list), date_str))
             start_date= date_str
             end_date = timeTools.str2date(start_date,format='%Y-%m-%d') + timedelta(days=1)
