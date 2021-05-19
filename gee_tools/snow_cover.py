@@ -232,7 +232,7 @@ def main(options, args):
 
             active_tasks = active_task_count(all_task_list)
             while active_tasks > maximum_submit_tasks:
-                print('%s : %d tasks already in the queue, wait 60 seconds'%(datetime.now().strftime('%Y-%m-%d %H:%M:%S'),active_tasks))
+                print('%s : %d (>%d) tasks already in the queue, wait 60 seconds'%(datetime.now().strftime('%Y-%m-%d %H:%M:%S'),active_tasks,maximum_submit_tasks))
                 time.sleep(60)
                 active_tasks = active_task_count(all_task_list)
 
