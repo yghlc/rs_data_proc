@@ -233,52 +233,54 @@ def calculate_distance_medial_axis(input_shp, out_shp, process_num=4, enlarge_m=
 
     # calculate width based on expanding areas
     import cal_retreat_rate
-    if cal_retreat_rate.cal_expand_area_distance(out_shp, proc_num=process_num):
+    if cal_retreat_rate.cal_expand_area_distance(out_shp, proc_num=process_num,save_medial_axis=True):
         os.system('rm save_medial_axis_radius*.txt out_polygon_vertices_*.txt')
         return out_shp
 
-# def test_calculate_distance_medial_axis():
-#
-#     # save polygons without holes
-#     # proc_num = 16
-#     # shp = os.path.join('dem_headwall_shp','slope_sub_headwall.shp')
-#
-#     # after test, found that when polygons are very narrow and irregular, cal_retreat_rate output wrong results.
-#
-#     proc_num = 1
-#     shp = os.path.join('dem_headwall_shp','slope_sub_headwall_test.shp')
-#
-#     polygons = vector_gpd.read_polygons_gpd(shp)
-#     polygon_nohole = [ vector_gpd.fill_holes_in_a_polygon(item) for item in polygons]
-#
-#     wkt = map_projection.get_raster_or_vector_srs_info_wkt(shp)
-#     save_nohole_shp = io_function.get_name_by_adding_tail(shp,'nohole')
-#     save_pd = pd.DataFrame({'Polygon':polygon_nohole})
-#     vector_gpd.save_polygons_to_files(save_pd,'Polygon',wkt,save_nohole_shp)
-#
-#     #
-#     calculate_distance_medial_axis(save_nohole_shp, process_num=proc_num)
+def test_calculate_distance_medial_axis():
+
+    # save polygons without holes
+    # proc_num = 16
+    # shp = os.path.join('dem_headwall_shp','slope_sub_headwall.shp')
+
+    # after test, found that when polygons are very narrow and irregular, cal_retreat_rate output wrong results.
+
+    proc_num = 1
+    shp = os.path.join('dem_headwall_shp','20170611_headwall_test.shp')
+
+    # polygons = vector_gpd.read_polygons_gpd(shp)
+    # polygon_nohole = [ vector_gpd.fill_holes_in_a_polygon(item) for item in polygons]
+    #
+    # wkt = map_projection.get_raster_or_vector_srs_info_wkt(shp)
+    # save_nohole_shp = io_function.get_name_by_adding_tail(shp,'nohole')
+    # save_pd = pd.DataFrame({'Polygon':polygon_nohole})
+    # vector_gpd.save_polygons_to_files(save_pd,'Polygon',wkt,save_nohole_shp)
+
+    out_shp = io_function.get_name_by_adding_tail(shp,'medial_axis')
+
+    #
+    calculate_distance_medial_axis(shp,out_shp, process_num=proc_num,enlarge_m=10)
 
 
 
-def test_extract_headwall_from_slope():
-    print('\n')
-    slope = os.path.expanduser('~/Data/tmp_data/slope_sub.tif')
-    working_dir = './test_extract_headwall_from_slope'
-    save_dir = dem_headwall_shp_dir
-    if os.path.isdir(working_dir) is False:
-        io_function.mkdir(working_dir)
-    if os.path.isdir(save_dir) is False:
-        io_function.mkdir(save_dir)
-
-    min_slope = 20
-    min_size = 200
-    max_size = 50000
-    max_axis_width = 80
-    max_box_WH = 600
-    process_num = 10
-
-    extract_headwall_from_slope(0, 1, slope, working_dir, save_dir, min_slope, min_size, max_size,max_axis_width,max_box_WH,process_num)
+# def test_extract_headwall_from_slope():
+#     print('\n')
+#     slope = os.path.expanduser('~/Data/tmp_data/slope_sub.tif')
+#     working_dir = './test_extract_headwall_from_slope'
+#     save_dir = dem_headwall_shp_dir
+#     if os.path.isdir(working_dir) is False:
+#         io_function.mkdir(working_dir)
+#     if os.path.isdir(save_dir) is False:
+#         io_function.mkdir(save_dir)
+#
+#     min_slope = 20
+#     min_size = 200
+#     max_size = 50000
+#     max_axis_width = 80
+#     max_box_WH = 600
+#     process_num = 10
+#
+#     extract_headwall_from_slope(0, 1, slope, working_dir, save_dir, min_slope, min_size, max_size,max_axis_width,max_box_WH,process_num)
 
 
 def main(options, args):
