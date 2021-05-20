@@ -156,7 +156,7 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
 
         # merge headwall detected on different dates.
         # have not find a good method to merge them, just copy all of them now
-        save_headwall_folder = os.path.join(grid_dem_headwall_shp_dir,'headwall_shps*_grid%d'%grid_id)
+        save_headwall_folder = os.path.join(grid_dem_headwall_shp_dir,'headwall_shps_grid%d'%grid_id)
         res = os.system('cp -r %s %s'%(multi_headwall_shp_dir,save_headwall_folder))
         if res != 0:
             basic.outputlogMessage('Copy %s failed'%multi_headwall_shp_dir)
