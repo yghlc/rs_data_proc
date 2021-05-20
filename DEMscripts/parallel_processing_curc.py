@@ -123,7 +123,7 @@ def run_segment_jobs(max_job_count,n_tif_per_jobs):
 
     for idx, tif_group in enumerate(tif_groups):
 
-        print(datetime.now(), 'processing %d group of DEM diff, total %d ones'%(idx, len(tif_groups)))
+        print(datetime.now(), 'processing %d group of segmenting DEM diff, total %d ones'%(idx, len(tif_groups)))
         submit_segment_dem_diff_job(tif_group, idx,max_job_count)
 
 def submit_produce_dem_diff_job(ids_list, idx,grid_base_name,max_job_count):
