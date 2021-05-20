@@ -30,6 +30,14 @@ jobsh_dir = os.path.expanduser('/projects/lihu9680/Data/Arctic/dem_proc_jobs')
 machine_name = os.uname()[1]
 curc_username = 'lihu9680'
 
+def wait_if_reach_max_jobs(max_job_count):
+    while True:
+        job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr='seg')
+        if job_count >= max_job_count:
+            print(machine_name, datetime.now(),'You have submitted %d or more jobs, wait '%max_job_count)
+            time.sleep(60) #
+            continue
+        break
 
 def segment_a_dem_diff(dem_diff_path, process_num, ele_diff_thr, min_area, max_area, job_id=0):
 
@@ -62,14 +70,7 @@ def copy_curc_job_files(sh_dir, work_dir, sh_list):
 
 def submit_segment_dem_diff_job(dem_diff_list, idx,max_job_count):
 
-    while True:
-        job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr='seg')
-        if job_count >= max_job_count:
-            print(machine_name, datetime.now(),'You have submitted %d or more jobs, wait '%max_job_count)
-            time.sleep(60) #
-            continue
-        break
-
+    wait_if_reach_max_jobs(max_job_count)
 
     job_name = 'seg%d'%idx
     work_dir = working_dir_string(idx, 'seg_dem_diff_', root=root_dir)
@@ -127,13 +128,7 @@ def run_segment_jobs(max_job_count,n_tif_per_jobs):
 
 def submit_produce_dem_diff_job(ids_list, idx,grid_base_name,max_job_count):
 
-    while True:
-        job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr='demD')
-        if job_count >= max_job_count:
-            print(machine_name, datetime.now(),'You have submitted %d or more jobs, wait '%max_job_count)
-            time.sleep(60) #
-            continue
-        break
+    wait_if_reach_max_jobs(max_job_count)
 
     job_name = 'demD%d'%idx
     work_dir = working_dir_string(idx, 'dem_diff_', root=root_dir)
@@ -172,7 +167,7 @@ def submit_produce_dem_diff_job(ids_list, idx,grid_base_name,max_job_count):
 
     return
 
-def run_dem_diff_jobs(max_job_count,n_tif_per_jobs):
+def run_grid_jobs(max_job_count,n_tif_per_jobs,task_name):
 
     from dem_common import grid_20_shp, ala_north_slo_ext_shp, grid_dem_diffs_dir
     from produce_DEM_diff_ArcticDEM import get_grid_20
@@ -194,19 +189,58 @@ def run_dem_diff_jobs(max_job_count,n_tif_per_jobs):
     grid_ids_groups = [grid_ids[i:i + n_tif_per_jobs] for i in range(0, grid_ids_count, n_tif_per_jobs)]
 
     for idx, ids_group in enumerate(grid_ids_groups):
+        if task_name=='dem_diff':
+            print(datetime.now(), 'processing %d group for DEM diff, total %d ones'%(idx, len(grid_ids_groups)))
+            submit_produce_dem_diff_job(ids_group, idx,grid_base_name, max_job_count)
+        elif task_name=='dem_headwall_grid':
+            print(datetime.now(), 'processing %d group for headwall extraction (per grid), total %d ones'%(idx, len(grid_ids_groups)))
+            submit_extract_headwall_grid_job(ids_group, idx,grid_base_name, max_job_count)
+        else:
+            raise ValueError('unknow task name for grid: %s'%task_name)
 
-        print(datetime.now(), 'processing %d group for DEM diff, total %d ones'%(idx, len(grid_ids_groups)))
-        submit_produce_dem_diff_job(ids_group, idx,grid_base_name, max_job_count)
+
+def submit_extract_headwall_grid_job(ids_list, idx, grid_base_name,max_job_count):
+
+    wait_if_reach_max_jobs(max_job_count)
+
+    job_name = 'gHW%d'%idx
+    work_dir = working_dir_string(idx, 'extract_headwall_grid_', root=root_dir)
+    if os.path.isdir(work_dir) is False:
+        io_function.mkdir(work_dir)
+        os.chdir(work_dir)
+
+        ids_list = [str(item) for item in ids_list]
+        io_function.save_list_to_txt(grid_base_name+'.txt',ids_list)
+
+        # run segmentation
+        sh_list = ['extract_headwall_from_slope_grid.sh', 'job_healwall_grid.sh']
+        copy_curc_job_files(jobsh_dir, work_dir,sh_list)
+        slurm_utility.modify_slurm_job_sh('job_healwall_grid.sh', 'job-name', job_name)
+
+    else:
+        os.chdir(work_dir)
+
+        submit_job_names = slurm_utility.get_submited_job_names(curc_username)
+        if job_name in submit_job_names:
+            print('The folder: %s already exist and the job has been submitted, skip submitting a new job'%work_dir)
+            return
+
+        # job is completed
+        if os.path.isfile('done.txt'):
+            return
+
+    # submit the job
+    # sometime, when submit a job, end with: singularity: command not found,and exist, wired, then try run submit a job in scomplie note
+    res = os.system('sbatch job_healwall_grid.sh' )
+    if res != 0:
+        sys.exit(1)
+
+    os.chdir(curr_dir_before_start)
+
 
 def submit_extract_headwall_job(slope_tifs, idx, max_job_count):
 
-    while True:
-        job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr='HW') # HW: headwall
-        if job_count >= max_job_count:
-            print(machine_name, datetime.now(),'You have submitted %d or more jobs, wait '%max_job_count)
-            time.sleep(60) #
-            continue
-        break
+    wait_if_reach_max_jobs(max_job_count)
 
     job_name = 'HW%d'%idx
     work_dir = working_dir_string(idx, 'extract_headwall_', root=root_dir)
@@ -276,7 +310,9 @@ def main(options, args):
     if task_name == 'segment':
         run_segment_jobs(max_job_count, n_tif_per_jobs)
     elif task_name == 'dem_diff':
-        run_dem_diff_jobs(max_job_count, n_tif_per_jobs)
+        run_grid_jobs(max_job_count, n_tif_per_jobs,'dem_diff')
+    elif task_name == 'dem_headwall_grid':
+        run_grid_jobs(max_job_count, n_tif_per_jobs, 'dem_headwall_grid')
     elif task_name == 'dem_headwall':
         run_extract_headwall_jobs(max_job_count, n_tif_per_jobs)
     else:
