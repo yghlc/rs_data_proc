@@ -245,6 +245,8 @@ def main(options, args):
                 for band_name in band_names:
                     tasks = gee_download_modis_snow(region_name, product, band_name, start_date, end_date, extent_4points,
                                             save_folder,wait_all_finished=False)
+                    if tasks is False:
+                        continue
                     all_task_list.extend(tasks)
 
         # wait until all finished
