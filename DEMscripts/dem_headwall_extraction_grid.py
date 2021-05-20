@@ -52,14 +52,14 @@ def get_existing_grid_headwall_shp(headwall_shp_dir, grid_base_name, grid_ids):
     grid_id_no_headwall_shp = []
     for id in grid_ids:
 
-        headwall_shps = io_function.get_file_list_by_pattern(headwall_shp_dir, '*_grid%d.shp'%id)
-        if len(headwall_shps) == 1:
-            existing_grid_headwall_shp.append(headwall_shps[0])
+        headwall_shps_dir = io_function.get_file_list_by_pattern(headwall_shp_dir, '*_grid%d'%id)
+        if len(headwall_shps_dir) == 1:
+            existing_grid_headwall_shp.append(headwall_shps_dir[0])
             continue
-        elif len(headwall_shps) > 1:
-            existing_grid_headwall_shp.append(headwall_shps[0])
+        elif len(headwall_shps_dir) > 1:
+            existing_grid_headwall_shp.append(headwall_shps_dir[0])
             basic.outputlogMessage('warning, There are multiple headwall shps for grid: %d'%id)
-            for item in headwall_shps: basic.outputlogMessage(item)
+            for item in headwall_shps_dir: basic.outputlogMessage(item)
             continue
         else:
             pass
@@ -155,6 +155,14 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
                 basic.outputlogMessage('extract headwall from %s failed'%slope)
 
         # merge headwall detected on different dates.
+        # have not find a good method to merge them, just copy all of them now
+        save_headwall_folder = os.path.join(grid_dem_headwall_shp_dir,'headwall_shps*_grid%d'%grid_id)
+        res = os.system('cp -r %s %s'%(multi_headwall_shp_dir,save_headwall_folder))
+        if res != 0:
+            basic.outputlogMessage('Copy %s failed'%multi_headwall_shp_dir)
+            continue
+
+        headwall_shp_folders.append(save_headwall_folder)
 
 
     return headwall_shp_folders
@@ -192,7 +200,7 @@ def main(options, args):
 
         reg_tifs = io_function.get_file_list_by_ext('.tif', arcticDEM_reg_tif_dir, bsub_folder=False)
         reg_tifs = [tif for tif in reg_tifs if 'matchtag' not in tif]  # remove matchtag
-        # crop, mosacic, difference
+        #
         headwall_shp_folders = extract_headwall_grids(grid_polys, grid_id_no_headwall_shp, grid_base_name, reg_tifs,
                                                b_mosaic_id, b_mosaic_date,
                                                keep_dem_percent, o_res,process_num=process_num)
