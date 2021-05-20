@@ -30,9 +30,9 @@ jobsh_dir = os.path.expanduser('/projects/lihu9680/Data/Arctic/dem_proc_jobs')
 machine_name = os.uname()[1]
 curc_username = 'lihu9680'
 
-def wait_if_reach_max_jobs(max_job_count):
+def wait_if_reach_max_jobs(max_job_count,job_name_substr):
     while True:
-        job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr='seg')
+        job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr=job_name_substr)
         if job_count >= max_job_count:
             print(machine_name, datetime.now(),'You have submitted %d or more jobs, wait '%max_job_count)
             time.sleep(60) #
@@ -70,7 +70,7 @@ def copy_curc_job_files(sh_dir, work_dir, sh_list):
 
 def submit_segment_dem_diff_job(dem_diff_list, idx,max_job_count):
 
-    wait_if_reach_max_jobs(max_job_count)
+    wait_if_reach_max_jobs(max_job_count,'seg')
 
     job_name = 'seg%d'%idx
     work_dir = working_dir_string(idx, 'seg_dem_diff_', root=root_dir)
@@ -128,7 +128,7 @@ def run_segment_jobs(max_job_count,n_tif_per_jobs):
 
 def submit_produce_dem_diff_job(ids_list, idx,grid_base_name,max_job_count):
 
-    wait_if_reach_max_jobs(max_job_count)
+    wait_if_reach_max_jobs(max_job_count,'demD')
 
     job_name = 'demD%d'%idx
     work_dir = working_dir_string(idx, 'dem_diff_', root=root_dir)
@@ -201,7 +201,7 @@ def run_grid_jobs(max_job_count,n_tif_per_jobs,task_name):
 
 def submit_extract_headwall_grid_job(ids_list, idx, grid_base_name,max_job_count):
 
-    wait_if_reach_max_jobs(max_job_count)
+    wait_if_reach_max_jobs(max_job_count,'gHW')
 
     job_name = 'gHW%d'%idx
     work_dir = working_dir_string(idx, 'extract_headwall_grid_', root=root_dir)
@@ -240,7 +240,7 @@ def submit_extract_headwall_grid_job(ids_list, idx, grid_base_name,max_job_count
 
 def submit_extract_headwall_job(slope_tifs, idx, max_job_count):
 
-    wait_if_reach_max_jobs(max_job_count)
+    wait_if_reach_max_jobs(max_job_count,'HW')
 
     job_name = 'HW%d'%idx
     work_dir = working_dir_string(idx, 'extract_headwall_', root=root_dir)
