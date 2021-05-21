@@ -47,7 +47,7 @@ def segment_a_dem_diff(dem_diff_path, process_num, ele_diff_thr, min_area, max_a
     tif_8bit = io_function.get_name_by_adding_tail(dem_diff_path, '8bit')
     demD_8bit= os.path.join(dem_common.grid_dem_diffs_8bit_dir, os.path.basename(tif_8bit))
     if os.path.isfile(demD_8bit):
-        basic.outputlogMessage('error, 8bit DEM diff not exists: %s '%demD_8bit)
+        print('error, 8bit DEM diff not exists: %s '%demD_8bit)
         return False
 
     grid_id = int(re.findall('grid\d+',os.path.basename(dem_diff_path))[0][4:])
