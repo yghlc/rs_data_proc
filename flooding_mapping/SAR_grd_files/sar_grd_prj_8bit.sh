@@ -25,13 +25,15 @@ dst_min=1
 dst_max=255
 nodata=0
 
+tmp=/tmp
+
 for tif in ${dir}/*/*.tif; do
   echo $tif
   filename=$(basename $tif)
   filename_noext=${filename%.*}
 
   # reporject
-  prj_out=${filename_noext}_prj.tif
+  prj_out=${tmp}/${filename_noext}_prj.tif
   gdalwarp -tr ${res} ${res} -t_srs ${prj} \
           -multi -wo NUM_THREADS=8  -r cubic $tif  ${prj_out}
 
