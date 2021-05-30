@@ -19,14 +19,28 @@ import ee
 # so, set a maximum_submit_tasks
 maximum_submit_tasks = 2000
 
+# quick test
+def environment_test():
+    # https://www.earthdatascience.org/tutorials/intro-google-earth-engine-python-api/
+    # ee.Initialize()       # initialize in the previous step
+    # for each computer, need to run "earthengine authenticate" first.
 
-def export_one_imagetoDrive(select_image, save_folder,save_file_name, crop_region, res, wait2finished=True):
+    image = ee.Image('srtm90_v4')
+    print(image.getInfo())
+
+def reproject(image, new_prj_epsg, resolution):
+    # reproject to EPSG:3413 (polar scene), with resolution of 500
+    reprj_img = image.reproject(new_prj_epsg, None, resolution)
+    return reprj_img
+
+def export_one_imagetoDrive(select_image, save_folder,save_file_name, crop_region, res,maxPixels=1e9, wait2finished=True):
 
 
     task = ee.batch.Export.image.toDrive(image=select_image,
                                          region=crop_region,
                                          description=save_file_name,
                                          folder=save_folder,
+                                         maxPixels=maxPixels,
                                          scale=res)
     # region=crop_region,
 
