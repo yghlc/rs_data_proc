@@ -51,6 +51,10 @@ def mask_sar_grd_edge(image):
     maskedImage = image.mask().And(edge.Not())
     return image.updateMask(maskedImage)
 
+def image_float(image):
+    # the sar images is float 64, convert to float 32
+    return image.toFloat()
+
 
 def gee_download_sentinel1_sar_grd(region_name, product, polarization, mode,orbit_pass, start_date, end_date,
                                    extent_4points, save_dir,resolution, projection,crop=False,wait_all_finished=True):
@@ -94,10 +98,12 @@ def gee_download_sentinel1_sar_grd(region_name, product, polarization, mode,orbi
         filter(ee.Filter.eq('instrumentMode', mode)). \
         filter(ee.Filter.eq('orbitProperties_pass',orbit_pass)). \
         select(polarization). \
-        map(mask_sar_grd_edge)
+        map(mask_sar_grd_edge). \
+        map(image_float)
 
-    if projection is not None:
-        sar_grd_collections = sar_grd_collections.map(reproject_image)
+    # the default projection is UTM, try to reproject to EPSG:2163, but the result is wrong, so cancel reproject
+    # if projection is not None:
+    #     sar_grd_collections = sar_grd_collections.map(reproject_image)
 
     # check count  # getInfo can get python number (not ee.Number)
     count = sar_grd_collections.size().getInfo()
@@ -139,7 +145,7 @@ def gee_download_sentinel1_sar_grd(region_name, product, polarization, mode,orbi
             save_file_name = get_sentinel_sar_product_id(image_info)
             local_record = os.path.join(os.path.join(export_dir,save_file_name))
             if os.path.isfile(local_record):
-                print('task %s already be submit to GEE, skip'%local_record)
+                print('task %s already submit to GEE, skip'%local_record)
                 n += 1
                 continue
 
@@ -297,10 +303,10 @@ def main(options, args):
 
 if __name__ == '__main__':
 
-    ee.Initialize()
-    # environment_test()
-    test_gee_download_sentinel1_sar_grd()
-    sys.exit(0)
+    # ee.Initialize()
+    # # environment_test()
+    # test_gee_download_sentinel1_sar_grd()
+    # sys.exit(0)
 
     usage = "usage: %prog [options] save_dir "
     parser = OptionParser(usage=usage, version="1.0 2021-05-29")
