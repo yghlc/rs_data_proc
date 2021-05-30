@@ -247,7 +247,8 @@ def main(options, args):
     # https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD
 
 
-    product_list = ['COPERNICUS/S1_GRD']
+    # product_list = ['COPERNICUS/S1_GRD']
+    product_list = ['COPERNICUS/S1_GRD_FLOAT']
     Polarisation_list = ['VV','HH','HV','VH']
     instrumentMode_list = ['IW']
     orbit_pass_list = ['DESCENDING','ASCENDING']
