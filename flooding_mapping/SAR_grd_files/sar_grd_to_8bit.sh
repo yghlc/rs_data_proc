@@ -21,7 +21,7 @@ dst_min=1
 dst_max=255
 nodata=0
 
-for tif in ${dir}/*/*.tif; do
+for tif in ${dir}/*.tif; do
   echo $tif
   filename=$(basename $tif)
   filename_noext=${filename%.*}
