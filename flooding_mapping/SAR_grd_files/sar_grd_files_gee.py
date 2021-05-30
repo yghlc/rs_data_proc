@@ -248,6 +248,16 @@ def main(options, args):
 
 
     # product_list = ['COPERNICUS/S1_GRD']
+
+    # https://developers.google.com/earth-engine/tutorials/community/sar-basics
+
+    # The Level-1 GRD processing assumes an ellipsoid Earth surface model, thus Level-1 GRD needs to be processed to create the Level-2 geocoded,
+    # calibrated backscattering coefficients which end up in the GEE COPERNICUS/S1_GRD_FLOAT collection.
+
+    # The S1_GRD_FLOAT collection, and its log-scaled COPERNICUS/S1_GRD computed equivalent,
+    # contains "analysis-ready" images, as they have square pixel spacing, with pixel values as FLOAT32,
+    # and a UTM projection in the auto-determined zone. Thus, they can be combined with other images, used in feature extractions and reductions, etc.
+
     product_list = ['COPERNICUS/S1_GRD_FLOAT']
     Polarisation_list = ['VV','HH','HV','VH']
     instrumentMode_list = ['IW']
