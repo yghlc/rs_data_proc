@@ -80,7 +80,7 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
     # print(options.scale)
-    print(options.min_max_value)
+    # print(options.min_max_value)
 
     if len(sys.argv) < 2 or len(args) < 1:
         parser.print_help()
