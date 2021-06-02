@@ -331,7 +331,12 @@ def mask_strip_dem_outlier_by_ArcticDEM_mosaic(crop_strip_dem_list, extent_poly,
         if count != 1:
             raise ValueError('DEM and Matchtag should only have one band')
 
-        dem_data, nodata = raster_io.read_raster_one_band_np(strip_dem)
+        try:
+            dem_data, nodata = raster_io.read_raster_one_band_np(strip_dem)
+        except:
+            basic.outputlogMessage(' invalid tif file: %s'%strip_dem)
+            continue
+
         nodata_loc = np.where(dem_data == nodata)
 
         diff = dem_data - tileDEM_data
