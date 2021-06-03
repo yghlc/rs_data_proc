@@ -35,7 +35,7 @@ for tif in ${dir}/*/*.tif; do
   # reporject
   prj_out=${tmp}/${filename_noext}_prj.tif
   gdalwarp -tr ${res} ${res} -t_srs ${prj} \
-          -multi -wo NUM_THREADS=8  -r cubic $tif  ${prj_out}
+          -multi -wo NUM_THREADS=8  -r cubic -dstnodata ${nodata} $tif  ${prj_out}
 
   # to 8bit
   out_8bit=${filename_noext}_prj_8bit.tif
