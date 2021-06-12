@@ -19,8 +19,8 @@ b3=S1A_IW_GRDH_1SDV_20170829T002645_20170829T002710_018131_01E74D_3220_Sigma0_VH
 
 out1=S1A_IW_GRDH_1SDV_20170829T002645_20170829T002710_018131_01E74D_3220_prj_3bands_8bit.tif
 
-
-gdal_merge.py -separate -o ${out1} -n ${nodata} -a_nodata ${nodata} ${sar8bit_dir}/${b1} \
+# -a_nodata ${nodata}, do not set nodata, otherwise,
+gdal_merge.py -separate -o ${out1} -n ${nodata}  ${sar8bit_dir}/${b1} \
  ${sar8bit_dir}/${b2}  ${binary_dir}/${b3}
 
 #down
@@ -29,7 +29,9 @@ b2=S1A_IW_GRDH_1SDV_20170829T002620_20170829T002645_018131_01E74D_D734_prj_8bit.
 b3=S1A_IW_GRDH_1SDV_20170829T002620_20170829T002645_018131_01E74D_D734_Sigma0_VH_Ptf_binaryLM_prj_255.tif
 
 out2=S1A_IW_GRDH_1SDV_20170829T002620_20170829T002645_018131_01E74D_D734_prj_3bands_8bit.tif
-gdal_merge.py -separate -o ${out2} -n ${nodata} -a_nodata ${nodata} ${sar8bit_dir}/${b1} \
+
+#-a_nodata ${nodata}
+gdal_merge.py -separate -o ${out2} -n ${nodata} ${sar8bit_dir}/${b1} \
  ${sar8bit_dir}/${b2}  ${binary_dir}/${b3}
 
 
