@@ -127,14 +127,17 @@ def get_max_min_histogram_percent_allBands(bin_edges, hist_allBands, min_percent
 
 def main(options, args):
 
-    img_dir = args[0]
-
-    pre_name = os.path.basename(img_dir)
+    img_dir_or_path = args[0]
+    if os.path.isdir(img_dir_or_path):
+        pre_name = os.path.basename(img_dir_or_path)
+    else:
+        pre_name = os.path.splitext(os.path.basename(img_dir_or_path))[0]
     if options.extent_shp is not None:
         pre_name +=  '_' + os.path.splitext(os.path.basename(options.extent_shp))[0]
 
-    range = (1, 6000)
-    bin_count = 500
+    # range = (1, 6000)
+    range = (options.value_range_min, options.value_range_max)
+    bin_count = options.bin_count
     hist_allImg_list = []
     bin_edges = None
 
@@ -153,14 +156,16 @@ def main(options, args):
 
         # read image data and get histograms for each band
         if options.planet_geojson is True:
-            tif_list = get_Planet_image_tif_list(img_dir, options.extent_shp)
+            tif_list = get_Planet_image_tif_list(img_dir_or_path, options.extent_shp)
+        elif os.path.isdir(img_dir_or_path):
+            tif_list = io_function.get_file_list_by_ext('.tif', img_dir_or_path, bsub_folder=True)
         else:
-            tif_list = io_function.get_file_list_by_ext('.tif', img_dir, bsub_folder=True)
+            tif_list = [img_dir_or_path]
         if len(tif_list) < 1:
             if options.extent_shp is None:
-                print('no image files in %s' % img_dir)
+                print('no image files in %s' % img_dir_or_path)
             else:
-                print('no image files in %s within extent of %s' % (img_dir, options.extent_shp))
+                print('no image files in %s within extent of %s' % (img_dir_or_path, options.extent_shp))
             return True
 
         # save tif list for checking
@@ -274,6 +279,20 @@ if __name__ == '__main__':
     parser.add_option("-l", "--hist_min_percent",
                       action="store", dest="hist_min_percent",type=float,
                       help="the lower percent for choosing the max pixel value")
+
+    parser.add_option("-b", "--bin_count",
+                      action="store", dest="bin_count",type=int, default=500,
+                      help="the bin count of histogram")
+
+    parser.add_option("", "--value_range_min",
+                      action="store", dest="value_range_min",type=float,default=1,
+                      help="the value range (min) of histogram")
+
+    parser.add_option("", "--value_range_max",
+                      action="store", dest="value_range_max",type=float,default=6000,
+                      help="the value range (max) of histogram")
+
+    #  range = (1, 6000)
 
 
 
