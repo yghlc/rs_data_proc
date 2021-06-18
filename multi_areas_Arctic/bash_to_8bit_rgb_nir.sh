@@ -58,7 +58,7 @@ function to8bit(){
 		    filename_noext="${filename%.*}"
 
 		    # to 8bit
-            out8bit=${dir_8bit}/${filename_noext}_8bit.tif
+            out8bit=${save_dir_8bit}/${filename_noext}_8bit.tif
 #            gdal_translate -ot Byte -scale 0 2000 1 255 -of VRT ${tif} ${out8bit}
 
             # we need to set scale for each band based on histogram
