@@ -33,6 +33,7 @@ function to8bit(){
     region=$1
 
     in_dir=daily_mosaic/${region}_daily_mosaic
+    dir_8bit=${in_dir}_8bit
     rgb_out_dir=${in_dir}_8bit_rgb
     nirGB_out_dir=${in_dir}_8bit_nirGB
 
@@ -55,7 +56,7 @@ function to8bit(){
 		    filename_noext="${filename%.*}"
 
 		    # to 8bit
-            out8bit=${rgb_out_dir}/${filename_noext}_8bit.tif
+            out8bit=${dir_8bit}/${filename_noext}_8bit.tif
 #            gdal_translate -ot Byte -scale 0 2000 1 255 -of VRT ${tif} ${out8bit}
 
             # we need to set scale for each band based on histogram
@@ -74,7 +75,9 @@ function to8bit(){
 #            ${tif} ${out8bit}
 
             # for a small region, we may use gdal_contrast_stretch, but if there is cloud, it makes the result bad
-            gdal_contrast_stretch -percentile-range 0.01 0.99 ${tif} ${out8bit}
+#            gdal_contrast_stretch -percentile-range 0.01 0.99 ${tif} ${out8bit}
+            # use histogram normalization
+            gdal_contrast_stretch -histeq 40 ${tif} ${out8bit}
 
             # get RGB
             outrgb=${rgb_save_dir}/${filename_noext}_8bit_rgb.tif
@@ -86,7 +89,7 @@ function to8bit(){
             gdal_translate -b 4 -b 2 -b 1 -of GTiff -a_nodata 0 -co compress=lzw -co tiled=yes -co bigtiff=if_safer \
             ${out8bit} ${ournirGB}
 
-            rm ${out8bit}
+#            rm ${out8bit}
 
         done
 
