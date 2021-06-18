@@ -14,6 +14,7 @@ set -eE -o functrace
 export LD_LIBRARY_PATH=~/programs/miniconda3/lib:$LD_LIBRARY_PAT
 export PATH=~/programs/dans-gdal-scripts_install/bin:$PATH
 
+plot_py=~/codes/PycharmProjects/rs_data_proc/tools/plot_Images_histogram.py
 py=~/codes/PycharmProjects/rs_data_proc/tools/convertTo8bit.py
 
 b1_min=100
@@ -80,6 +81,7 @@ function to8bit(){
 #            gdal_contrast_stretch -percentile-range 0.01 0.99 ${tif} ${out8bit}
             # use histogram normalization
             gdal_contrast_stretch -histeq 40 ${tif} ${out8bit}
+            ${plot_py} ${out8bit} --value_range_min=1 --value_range_max=255 -b 254
 
             # get RGB
             outrgb=${rgb_save_dir}/${filename_noext}_8bit_rgb.tif
