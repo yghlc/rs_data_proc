@@ -41,10 +41,12 @@ function to8bit(){
         echo $dd
         folder=$(basename ${dd})
 
+        save_dir_8bit=${dir_8bit}/${folder}
         rgb_save_dir=${rgb_out_dir}/${folder}
         # near-infrared + green + blue
         nirGB_save_dir=${nirGB_out_dir}/${folder}
 
+        mkdir -p ${save_dir_8bit}
         mkdir -p ${rgb_save_dir}
         mkdir -p ${nirGB_save_dir}
 
