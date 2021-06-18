@@ -80,7 +80,7 @@ function to8bit(){
             # for a small region, we may use gdal_contrast_stretch, but if there is cloud, it makes the result bad
 #            gdal_contrast_stretch -percentile-range 0.01 0.99 ${tif} ${out8bit}
             # use histogram normalization
-            gdal_contrast_stretch -histeq 40 ${tif} ${out8bit}
+            gdal_contrast_stretch -histeq 20 ${tif} ${out8bit}
             ${plot_py} ${out8bit} --value_range_min=1 --value_range_max=255 -b 254
 
             # get RGB
