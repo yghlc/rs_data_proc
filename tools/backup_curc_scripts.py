@@ -15,9 +15,16 @@ deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
 import basic_src.io_function as io_function
 
-def main():
+from optparse import OptionParser
+
+def main(options, args):
     org_dir='/scratch/summit/lihu9680'
     bak_dir='/home/lihu9680/scripts_para_bak'
+
+    if options.org_dir is not None:
+        org_dir = options.org_dir
+    if options.bak_dir is not None:
+        bak_dir = options.bak_dir
 
     # get bash file (*.sh) list
     print('find *.sh and *.ini files')
@@ -53,7 +60,19 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    usage = "usage: %prog [options] "
+    parser = OptionParser(usage=usage, version="1.0 2021-02-25")
+    parser.description = 'Backup scripts and parameter files '
+
+    parser.add_option("-o", "--org_dir", action='store',
+                      help="The original folder ")
+    parser.add_option("-b", "--bak_dir", action='store',
+                      help="The backup folder ")
+
+    (options, args) = parser.parse_args()
+
+
+    main(options, args)
     pass
 
 
