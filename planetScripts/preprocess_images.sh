@@ -18,7 +18,7 @@ gdal_translate -b 3 -b 2 -b 1  ${output}_8bit.tif ${output}_8bit_rgb.tif
 
 
 # sharpen the image
-code_dir=~/codes/PycharmProjects/rs_data_proc/
+code_dir=~/codes/PycharmProjects/rs_data_proc
 /usr/bin/python ${code_dir}/planetScripts/prePlanetImage.py ${output}_8bit_rgb.tif ${output}_8bit_rgb_sharpen.tif
 
 # to other format
