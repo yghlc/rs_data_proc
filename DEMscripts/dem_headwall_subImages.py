@@ -53,10 +53,17 @@ def main():
 
         if set_image_dir_patter_description(dem_hillshade_dir,shp) is False:
             continue
+        
+        save_dir = os.path.join(dem_hillshade_subImages_headwall,os.path.splitext(os.path.basename(shp))[0])
+        if os.path.isdir(save_dir):
+            print('Warning, skip due to subImages for %s may exist'%shp)
+            continue
+        io_function.mkdir(save_dir)
 
-        res = os.system(extract_py + ' -p image_dir_patter_description.txt -o %s '%dem_hillshade_subImages_headwall + shp)
+        res = os.system(extract_py + ' -p para_file_subImage.ini -o %s '%save_dir + shp)
         if res !=0:
             return False
+        
 
 
 
