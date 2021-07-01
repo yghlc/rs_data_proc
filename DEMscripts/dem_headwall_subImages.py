@@ -48,6 +48,8 @@ def main():
     if len(headwall_shp_list) < 1:
         raise ValueError('NO shapefile in %s'%dem_headwall_shp_dir)
 
+    failed_shp = []
+
     for idx, shp in enumerate(headwall_shp_list):
         print('(%d/%d) extract sub images for %s'%(idx,len(headwall_shp_list), shp))
 
@@ -62,7 +64,12 @@ def main():
 
         res = os.system(extract_py + ' -p para_file_subImage.ini -o %s '%save_dir + shp)
         if res !=0:
-            return False
+            failed_shp.append(shp)
+
+
+    if len(failed_shp) > 0:
+        io_function.save_list_to_txt('failed_shp.txt',failed_shp)
+
         
 
 
