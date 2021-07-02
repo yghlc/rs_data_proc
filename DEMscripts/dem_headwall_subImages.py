@@ -79,7 +79,7 @@ def main():
 
 
 if __name__ == '__main__':
-    print(sys.argv[0],sys.argv[1])
-    print(len(sys.argv))
-    # main()
+    # print(sys.argv[0],sys.argv[1])
+    # print(len(sys.argv))
+    main()
     pass
