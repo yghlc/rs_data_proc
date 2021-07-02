@@ -49,6 +49,10 @@ def main():
         raise ValueError('NO shapefile in %s'%dem_headwall_shp_dir)
 
     failed_shp = []
+    out_dir = dem_hillshade_subImages_headwall
+    if len(sys.argv) == 2:
+        # change the output dir
+        out_dir = sys.argv[1]
 
     for idx, shp in enumerate(headwall_shp_list):
         print('(%d/%d) extract sub images for %s'%(idx,len(headwall_shp_list), shp))
@@ -56,7 +60,7 @@ def main():
         if set_image_dir_patter_description(dem_hillshade_dir,shp) is False:
             continue
         
-        save_dir = os.path.join(dem_hillshade_subImages_headwall,os.path.splitext(os.path.basename(shp))[0])
+        save_dir = os.path.join(out_dir,os.path.splitext(os.path.basename(shp))[0])
         if os.path.isdir(save_dir):
             print('Warning, skip due to subImages for %s may exist'%shp)
             continue
@@ -75,5 +79,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    print(sys.argv[0],sys.argv[1])
+    print(len(sys.argv))
+    # main()
     pass
