@@ -12,7 +12,7 @@
 
 #
 t_prj=EPSG:32643
-out_dir=extent_UTM43N_Goalpara
+out_dir=extent_UTM43N_Vadodara
 
 mkdir -p ${out_dir}
 
