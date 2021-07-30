@@ -126,6 +126,9 @@ def filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,
     if demD_mean_list is None:
         raise ValueError('demD_mean not in %s, need to remove it and then re-create'%in_shp)
 
+    # replace nan values as 0
+    demD_mean_list = np.nan_to_num(demD_mean_list)
+
     remain_polyons = []
     rm_min_area_count = 0
     rm_diff_thr_count = 0
