@@ -95,6 +95,7 @@ def submit_segment_dem_diff_job(dem_diff_list, idx,max_job_count):
 
         # job is completed
         if os.path.isfile('done.txt'):
+            print('The job in the folder: %s is Done'%work_dir)
             return
 
 
@@ -154,6 +155,7 @@ def submit_produce_dem_diff_job(ids_list, idx,grid_base_name,max_job_count):
 
         # job is completed
         if os.path.isfile('done.txt'):
+            print('The job in the folder: %s is Done' % work_dir)
             return
 
 
@@ -227,6 +229,7 @@ def submit_extract_headwall_grid_job(ids_list, idx, grid_base_name,max_job_count
 
         # job is completed
         if os.path.isfile('done.txt'):
+            print('The job in the folder: %s is Done' % work_dir)
             return
 
     # submit the job
@@ -260,6 +263,7 @@ def submit_extract_headwall_job(slope_tifs, idx, max_job_count):
 
         # job is completed
         if os.path.isfile('done.txt'):
+            print('The job in the folder: %s is Done' % work_dir)
             return
 
         submit_job_names = slurm_utility.get_submited_job_names(curc_username)
