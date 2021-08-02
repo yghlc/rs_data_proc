@@ -64,5 +64,9 @@ dem_strip_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/BROWSE_SERVER/indexe
 
 ala_north_slo_ext_shp=os.path.expanduser('~/Data/Arctic/alaska/northern_alaska_extent/ala_north_slo_extent_latlon.shp')
 
+# rts results
+grid_rts_shp_dir = os.path.join(ArcticDEM_tmp_dir, 'grid_rts_shp')
+
+
 if __name__ == '__main__':
     pass
