@@ -145,7 +145,7 @@ def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None,b_save_
             col_e = patch[0] + patch[2]
             current_min = np.max(save_labes)
             print('current_max',current_min)
-            save_labes[row_s:row_e, col_s:col_e] = out_labels + current_min
+            save_labes[row_s:row_e, col_s:col_e] = out_labels + current_min + 1
             if attributes is not None:
                 update_label_attr = {}
                 for key in attributes:
