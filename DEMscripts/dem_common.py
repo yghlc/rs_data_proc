@@ -47,6 +47,8 @@ grid_dem_headwall_shp_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_headwall_shp_gr
 dem_hillshade_subImages_headwall = os.path.join(ArcticDEM_tmp_dir, 'dem_hillshade_subImages_headwall')
 
 
+grid_dem_subsidence_select = os.path.join(ArcticDEM_tmp_dir,'grid_dem_subsidence_select')
+
 # the mosaic version of AricticDEM
 arcticDEM_tile_reg_tif_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_reg_tifs')
 arcticDEM_tile_hillshade_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_hillshade')
