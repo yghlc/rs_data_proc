@@ -132,6 +132,7 @@ def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None,b_save_
     results = theadPool.starmap(segment_a_patch, parameters_list)
 
     patch_label_path_list = []
+    patch_label_id_range = []
     object_attributes = {}  # object id (label) and attributes (list)
     for res in results:
         patch, out_labels, nodata, attributes = res
@@ -145,6 +146,7 @@ def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None,b_save_
             col_e = patch[0] + patch[2]
             current_min = np.max(save_labes)
             print('current_max',current_min)
+            patch_label_id_range.append(current_min)
             save_labes[row_s:row_e, col_s:col_e] = out_labels + current_min + 1
             if attributes is not None:
                 update_label_attr = {}
@@ -172,6 +174,10 @@ def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None,b_save_
 
     # save the label
     raster_io.save_numpy_array_to_rasterfile(save_labes, label_path, img_path) # do not set nodata
+    # save id ranges to txt
+    label_id_range_txt = os.path.splitext(label_path)[0] + '_IDrange.txt'
+    patch_label_id_range = [str(item) for item in patch_label_id_range]
+    io_function.save_list_to_txt(label_id_range_txt,patch_label_id_range)
 
 
     return label_path
