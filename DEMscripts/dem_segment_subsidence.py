@@ -114,6 +114,41 @@ def get_save_dir(dem_diff_path):
     save_dir = os.path.join(dem_common.grid_dem_diffs_segment_dir, 'segment_result_grid%d'%grid_id)
     return save_dir
 
+def merge_polygons_patchBYpatch(patch_DN_range_txt, in_polygons, polygon_DNs, process_num=1):
+    patch_DN_range_list = [ int(item) for item in io_function.read_list_from_txt(patch_DN_range_txt)]
+    # print(patch_DN_range_list)
+    # divide polygons
+    patch_polygons = {}
+    range_count = len(patch_DN_range_list) - 1
+    for idx in range(range_count):
+        patch_polygons[idx] = []
+    for poly, dn in zip(in_polygons, polygon_DNs):
+        for idx in range(range_count):
+            if dn > patch_DN_range_list[idx] and dn <= patch_DN_range_list[idx+1]:
+                patch_polygons[idx].append(poly)
+
+    # merge polygon patch by patch
+    polygons_patch_merge = []
+    for idx in range(range_count):
+        print(timeTools.get_now_time_str(), 'will merge %d polygons for %d th patch'%(len(patch_polygons[idx]),idx))
+        if len(patch_polygons[idx]) < 2:
+            polygons_patch_merge.extend(patch_polygons[idx])
+            continue
+        adjacent_matrix = vector_gpd.build_adjacent_map_of_polygons(patch_polygons[idx], process_num=process_num)
+        if adjacent_matrix is False:
+            polygons_patch_merge.extend(patch_polygons[idx])
+            continue
+        merged_polygons = vector_features.merge_touched_polygons(patch_polygons[idx], adjacent_matrix)
+        polygons_patch_merge.extend(merged_polygons)
+
+    # merge polygon all
+    print(timeTools.get_now_time_str(), 'will merge %d polygons for the entire raster' % (len(polygons_patch_merge)))
+    adjacent_matrix = vector_gpd.build_adjacent_map_of_polygons(polygons_patch_merge, process_num=process_num)
+    if adjacent_matrix is False:
+        return polygons_patch_merge
+    last_merged_polygons = vector_features.merge_touched_polygons(polygons_patch_merge, adjacent_matrix)
+    return last_merged_polygons
+
 def filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,dem_diff_thread_m,process_num):
 
     if os.path.isfile(merged_shp):
@@ -121,7 +156,10 @@ def filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,
         return merged_shp
 
     # read polygons and label from segment algorithm, note: some polygons may have the same label
-    polygons, demD_mean_list = vector_gpd.read_polygons_attributes_list(in_shp,'demD_mean')
+    # polygons, demD_mean_list = vector_gpd.read_polygons_attributes_list(in_shp,'demD_mean')
+    polygons, attributes = vector_gpd.read_polygons_attributes_list(in_shp,['demD_mean','DN'])
+    demD_mean_list = attributes[0]
+    DN_list = attributes[1]
     print('Read %d polygons'%len(polygons))
     if demD_mean_list is None:
         raise ValueError('demD_mean not in %s, need to remove it and then re-create'%in_shp)
@@ -157,12 +195,20 @@ def filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,
         print('Warning, some problem of parallel running in build_adjacent_map_of_polygons on curc, '
               'but ok in my laptop and uist, change process_num = 1')
         process_num = 1
-    adjacent_matrix = vector_gpd.build_adjacent_map_of_polygons(remain_polyons, process_num=process_num)
-    print(timeTools.get_now_time_str(), 'finish building adjacent_matrix')
+    ############################################################
+    ## build adjacent_matrix then merge for entire raster
+    # adjacent_matrix = vector_gpd.build_adjacent_map_of_polygons(remain_polyons, process_num=process_num)
+    # print(timeTools.get_now_time_str(), 'finish building adjacent_matrix')
+    #
+    # if adjacent_matrix is False:
+    #     return None
+    # merged_polygons = vector_features.merge_touched_polygons(remain_polyons, adjacent_matrix)
 
-    if adjacent_matrix is False:
-        return None
-    merged_polygons = vector_features.merge_touched_polygons(remain_polyons, adjacent_matrix)
+    ############################################################
+    ## build adjacent_matrix then merge, patch by patch (not too many improvements)
+    label_id_range_txt = os.path.splitext(in_shp)[0] + '_label_IDrange.txt'
+    merged_polygons = merge_polygons_patchBYpatch(label_id_range_txt, remain_polyons, DN_list, process_num=process_num)
+
     print(timeTools.get_now_time_str(), 'finish merging touched polygons, get %d ones' % (len(merged_polygons)))
 
     # remove large ones
