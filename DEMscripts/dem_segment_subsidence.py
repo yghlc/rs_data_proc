@@ -149,6 +149,28 @@ def merge_polygons_patchBYpatch(patch_DN_range_txt, in_polygons, polygon_DNs, pr
     last_merged_polygons = vector_features.merge_touched_polygons(polygons_patch_merge, adjacent_matrix)
     return last_merged_polygons
 
+def merge_polygon_rasterize(ref_raster, in_polygons):
+
+    # rasterize to raster
+    save_raster = os.path.basename(io_function.get_name_by_adding_tail(ref_raster,'merge'))
+    raster_io.burn_polygons_to_a_raster(ref_raster,in_polygons,1,save_raster)
+
+    # set nodata
+    if raster_io.set_nodata_to_raster_metadata(save_raster,0) is False:
+        raise IOError('Set nodata failed for %s'%save_raster)
+
+    # polygonize
+    out_shp = vector_gpd.raster2shapefile(save_raster, connect8=True)
+    if out_shp is None:
+        raise IOError('polygonzied failed for %s' % save_raster)
+
+    # read polygon
+    merge_polygons = vector_gpd.read_polygons_gpd(out_shp,b_fix_invalid_polygon=False)
+
+    print(timeTools.get_now_time_str(),'Get %d merged polygons'%len(merge_polygons))
+    return merge_polygons
+
+
 def filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,dem_diff_thread_m,process_num):
 
     if os.path.isfile(merged_shp):
@@ -205,9 +227,14 @@ def filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,
     # merged_polygons = vector_features.merge_touched_polygons(remain_polyons, adjacent_matrix)
 
     ############################################################
-    ## build adjacent_matrix then merge, patch by patch (not too many improvements)
-    label_id_range_txt = os.path.splitext(in_shp)[0] + '_label_IDrange.txt'
-    merged_polygons = merge_polygons_patchBYpatch(label_id_range_txt, remain_polyons, DN_list, process_num=process_num)
+    # ## build adjacent_matrix then merge, patch by patch (not too many improvements)
+    # label_id_range_txt = os.path.splitext(in_shp)[0] + '_label_IDrange.txt'
+    # merged_polygons = merge_polygons_patchBYpatch(label_id_range_txt, remain_polyons, DN_list, process_num=process_num)
+
+    ############################################################
+    ## merge polygons using rasterize
+    label_raster = os.path.splitext(in_shp)[0] + '_label.tif'
+    merged_polygons = merge_polygon_rasterize(label_raster, remain_polyons)
 
     print(timeTools.get_now_time_str(), 'finish merging touched polygons, get %d ones' % (len(merged_polygons)))
 
@@ -227,7 +254,7 @@ def filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,
     for polys in polyons_noMulti:
         polys = [poly for poly in polys if poly.area > min_area]  # remove tiny polygon before buffer
         remain_polyons.extend(polys)
-    print('convert MultiPolygon to polygons, remain %d' % (len(remain_polyons)))
+    print('convert MultiPolygon to polygons and remove small ones, remain %d' % (len(remain_polyons)))
 
     if len(remain_polyons) < 1:
         return None
@@ -399,6 +426,14 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
 
     # in merge_polygons, it will remove some big polygons, convert MultiPolygon to Polygons, so neeed to update remain_polyons
     remain_polyons = vector_gpd.read_polygons_gpd(merged_shp)
+
+    # check MultiPolygons again.
+    polyons_noMulti = [vector_gpd.MultiPolygon_to_polygons(idx, poly) for idx, poly in enumerate(remain_polyons)]
+    remain_polyons = []
+    for polys in polyons_noMulti:
+        polys = [poly for poly in polys if poly.area > min_area]  # remove tiny polygon before buffer
+        remain_polyons.extend(polys)
+    print('convert MultiPolygon to polygons and remove small ones, remain %d' % (len(remain_polyons)))
 
     # based on the merged polygons, surrounding polygons
     buffer_surrounding = 20  # meters
