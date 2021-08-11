@@ -84,7 +84,7 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                     # download the dem
                     basic.outputlogMessage('starting downloading %d th DEM (%d in total)'%((ii+1),len(urls)))
                     os.chdir(save_folder)
-                    cmd_str = 'wget %s' % url
+                    cmd_str = 'wget --no-check-certificate %s' % url
                     status, result = basic.exec_command_string(cmd_str)
                     if status != 0:
                         print(result)
