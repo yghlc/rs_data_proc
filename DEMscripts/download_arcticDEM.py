@@ -22,6 +22,8 @@ from urllib.parse import urlparse
 
 import time
 
+from dem_common import tarball_dir,arcticDEM_reg_tif_dir
+
 def get_total_size(url_list):
     total_size = 0
     for url in url_list:
@@ -103,6 +105,8 @@ def main(options, args):
     extent_shp = args[0]
     dem_index_shp = args[1]
     save_folder = options.save_dir
+    if save_folder is None:
+        save_folder = tarball_dir
 
     extent_shp_base = os.path.splitext(os.path.basename(extent_shp))[0]
 
@@ -125,7 +129,7 @@ def main(options, args):
     else:
         basic.outputlogMessage('%d extent polygons in %s'%(len(extent_polys),extent_shp))
 
-    download_dem_tarball(dem_index_shp,extent_polys,save_folder,extent_shp_base)
+    download_dem_tarball(dem_index_shp,extent_polys,save_folder,extent_shp_base,reg_tif_dir=arcticDEM_reg_tif_dir)
 
 
 if __name__ == "__main__":
@@ -138,7 +142,7 @@ if __name__ == "__main__":
     #                   help="save the sence lists to xlsx file")
 
     parser.add_option("-d", "--save_dir",
-                      action="store", dest="save_dir",default='./',
+                      action="store", dest="save_dir",
                       help="the folder to save DEMs")
 
     (options, args) = parser.parse_args()
