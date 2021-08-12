@@ -303,7 +303,7 @@ def mask_strip_dem_outlier_by_ArcticDEM_mosaic(crop_strip_dem_list, extent_poly,
                 raise ValueError('warning, crop %s failed' % tif)
             mosaic_crop_tif_list.append(crop_tif)
     if len(mosaic_crop_tif_list) < 1:
-        basic.outputlogMessage('No mosaic version of ArcticDEM for %d grid'%extent_id)
+        basic.outputlogMessage('No mosaic version of ArcticDEM for %d grid, skip mask_strip_dem_outlier_by_ArcticDEM_mosaic'%extent_id)
         return False
 
     # create mosaic, can handle only input one file, but is slow
@@ -445,7 +445,10 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
     # mask the outlier in strip version of DEM using the mosaic version of ArcitcDEM
     if b_mask_stripDEM_outlier:
         mask_outlier_tifs = mask_strip_dem_outlier_by_ArcticDEM_mosaic(dem_tif_list, extent_poly, extent_id, crop_tif_dir, o_res, process_num)
-        dem_tif_list = mask_outlier_tifs
+        if mask_outlier_tifs is False:
+            pass
+        else:
+            dem_tif_list = mask_outlier_tifs
 
     # mask the water surface
     if b_mask_surface_water:
