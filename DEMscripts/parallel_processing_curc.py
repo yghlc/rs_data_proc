@@ -169,9 +169,9 @@ def submit_produce_dem_diff_job(ids_list, idx,grid_base_name,max_job_count):
 
     return
 
-def run_grid_jobs(max_job_count,n_tif_per_jobs,task_name):
+def run_grid_jobs(max_job_count,n_tif_per_jobs,task_name,extent_shp):
 
-    from dem_common import grid_20_shp, ala_north_slo_ext_shp, grid_dem_diffs_dir
+    from dem_common import grid_20_shp, grid_dem_diffs_dir
     from produce_DEM_diff_ArcticDEM import get_grid_20
 
     if os.path.isdir(grid_dem_diffs_dir) is  False:
@@ -183,8 +183,9 @@ def run_grid_jobs(max_job_count,n_tif_per_jobs,task_name):
     print('time cost of read polygons and attributes', time.time() - time0)
 
     # get grid ids based on input extent
-    grid_base_name = os.path.splitext(os.path.basename(ala_north_slo_ext_shp))[0]
-    grid_polys, grid_ids = get_grid_20(ala_north_slo_ext_shp,all_grid_polys, all_ids)
+    # grid_base_name = os.path.splitext(os.path.basename(extent_shp))[0]
+    grid_base_name = 'grid_ids'
+    grid_polys, grid_ids = get_grid_20(extent_shp,all_grid_polys, all_ids)
 
     # divide grid_ids to many groups
     grid_ids_count = len(grid_ids)
@@ -310,13 +311,14 @@ def main(options, args):
     max_job_count = options.max_job_count
     print('max_job_count', max_job_count)
     n_tif_per_jobs = options.n_tif_per_job  # each job, have how many tif to segment
+    extent_shp = options.extent_shp
 
     if task_name == 'segment':
         run_segment_jobs(max_job_count, n_tif_per_jobs)
     elif task_name == 'dem_diff':
-        run_grid_jobs(max_job_count, n_tif_per_jobs,'dem_diff')
+        run_grid_jobs(max_job_count, n_tif_per_jobs,'dem_diff',extent_shp)
     elif task_name == 'dem_headwall_grid':
-        run_grid_jobs(max_job_count, n_tif_per_jobs, 'dem_headwall_grid')
+        run_grid_jobs(max_job_count, n_tif_per_jobs, 'dem_headwall_grid',extent_shp)
     elif task_name == 'dem_headwall':
         run_extract_headwall_jobs(max_job_count, n_tif_per_jobs)
     else:
@@ -337,6 +339,10 @@ if __name__ == '__main__':
     parser.add_option("-n", "--n_tif_per_job",
                       action="store", dest="n_tif_per_job", type=int, default=10,
                       help="number of input files (task) per job")
+
+    parser.add_option("-e", "--extent_shp",
+                      action="store", dest="extent_shp",
+                      help="the extent shapefile")
 
     (options, args) = parser.parse_args()
     # print(options.create_mosaic)
