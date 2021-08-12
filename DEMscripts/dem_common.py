@@ -64,7 +64,6 @@ mask_water_dir = os.path.join(os.path.dirname(ArcticDEM_tmp_dir), 'global_surfac
 grid_20_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp/ArcticDEM_grid_20km.shp')
 dem_strip_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/BROWSE_SERVER/indexes/ArcticDEM_Strip_Index_Rel7/ArcticDEM_Strip_Index_Rel7.shp')
 
-ala_north_slo_ext_shp=os.path.expanduser('~/Data/Arctic/alaska/northern_alaska_extent/ala_north_slo_extent_latlon.shp')
 
 # rts results
 grid_rts_shp_dir = os.path.join(ArcticDEM_tmp_dir, 'grid_rts_shp')
