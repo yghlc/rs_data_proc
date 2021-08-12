@@ -50,6 +50,7 @@ dem_hillshade_subImages_headwall = os.path.join(ArcticDEM_tmp_dir, 'dem_hillshad
 grid_dem_subsidence_select = os.path.join(ArcticDEM_tmp_dir,'grid_dem_subsidence_select')
 
 # the mosaic version of AricticDEM
+arcticDEM_tile_tarball_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_tarballs')
 arcticDEM_tile_reg_tif_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_reg_tifs')
 arcticDEM_tile_hillshade_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_hillshade')
 arcticDEM_tile_slope_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_slope_8bit')

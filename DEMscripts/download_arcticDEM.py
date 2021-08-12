@@ -22,7 +22,7 @@ from urllib.parse import urlparse
 
 import time
 
-from dem_common import tarball_dir,arcticDEM_reg_tif_dir
+from dem_common import tarball_dir,arcticDEM_reg_tif_dir,arcticDEM_tile_tarball_dir
 
 def get_total_size(url_list):
     total_size = 0
@@ -106,7 +106,10 @@ def main(options, args):
     dem_index_shp = args[1]
     save_folder = options.save_dir
     if save_folder is None:
-        save_folder = tarball_dir
+        if 'Tile' in os.path.basename(dem_index_shp):
+            save_folder =arcticDEM_tile_tarball_dir
+        else:
+            save_folder = tarball_dir
 
     extent_shp_base = os.path.splitext(os.path.basename(extent_shp))[0]
 
