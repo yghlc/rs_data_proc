@@ -100,8 +100,15 @@ def dem_diff_newest_oldest_a_patch(idx, patch, patch_count,date_pair_list_sorted
     patch_w = patch[2]
     patch_h = patch[3]
     patch_date_diff = np.zeros((patch_h, patch_w), dtype=np.uint16)
+    patch_old_date_idx = np.empty((patch_h, patch_w), dtype=np.uint8)
+    patch_new_date_idx = np.empty((patch_h, patch_w), dtype=np.uint8)
+    patch_old_date_idx[:] = 255
+    patch_new_date_idx[:] = 255
+
     patch_dem_diff = np.empty((patch_h, patch_w), dtype=np.float32)
     patch_dem_diff[:] = np.nan
+
+    date_list = [item for item in dem_groups_date.keys()]
 
     # use dict to read data from disk (only need)
     dem_data_dict = {}
@@ -125,6 +132,9 @@ def dem_diff_newest_oldest_a_patch(idx, patch, patch_count,date_pair_list_sorted
 
         patch_dem_diff[new_ele] = diff_two[new_ele]
         patch_date_diff[new_ele] = diff_days
+        # output the index of dates
+        patch_old_date_idx[new_ele] = date_list.index(pair[0])
+        patch_new_date_idx[new_ele] = date_list.index(pair[1])
 
         # check if all have been filled ( nan pixels)
         diff_remain_hole = np.where(np.isnan(patch_dem_diff))
@@ -132,7 +142,7 @@ def dem_diff_newest_oldest_a_patch(idx, patch, patch_count,date_pair_list_sorted
         if diff_remain_hole[0].size < 1:
             break
 
-    return patch,patch_dem_diff,patch_date_diff
+    return patch,patch_dem_diff,patch_date_diff, patch_old_date_idx,patch_new_date_idx
 
 def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff, process_num, b_max_subsidence=False,b_save_cm=False):
     '''
@@ -151,7 +161,12 @@ def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff, process_nu
     # sort based on yeardate in accending order : operator.itemgetter(0)
     dem_groups_date = dict(sorted(dem_groups_date.items(), key=operator.itemgetter(0)))
     txt_save_path = os.path.splitext(out_date_diff)[0]+'.txt'
-    io_function.save_dict_to_txt_json(txt_save_path,dem_groups_date)
+
+    # change the key to integer number after sorting and save to txt file
+    dem_groups_date_sort_idx = {}
+    for idx, key in enumerate(dem_groups_date.keys()):
+        dem_groups_date_sort_idx[idx] = dem_groups_date[key]
+    io_function.save_dict_to_txt_json(txt_save_path,dem_groups_date_sort_idx)
 
     date_list = list(dem_groups_date.keys())
     dem_tif_list = [ dem_groups_date[key][0] for key in dem_groups_date.keys()]  # each date, only have one tif
@@ -180,12 +195,15 @@ def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff, process_nu
 
     # get the difference
     date_diff_np = np.zeros((height, width),dtype=np.uint16)
+    old_date_index = np.zeros((height, width),dtype=np.uint8)
+    new_date_index = np.zeros((height, width),dtype=np.uint8)
     dem_diff_np = np.empty((height, width),dtype=np.float32)
     dem_diff_np[:] = np.nan
 
     if process_num == 1:
         for idx, patch in enumerate(image_patches):
-            _,patch_dem_diff,patch_date_diff = dem_diff_newest_oldest_a_patch(idx, patch, patch_count,date_pair_list_sorted,dem_groups_date)
+            _,patch_dem_diff,patch_date_diff, patch_old_date_idx,patch_new_date_idx = \
+                dem_diff_newest_oldest_a_patch(idx, patch, patch_count,date_pair_list_sorted,dem_groups_date)
             # copy to the entire image
             row_s = patch[1]
             row_e = patch[1] + patch[3]
@@ -193,6 +211,8 @@ def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff, process_nu
             col_e = patch[0] + patch[2]
             dem_diff_np[row_s:row_e, col_s:col_e] = patch_dem_diff
             date_diff_np[row_s:row_e, col_s:col_e] = patch_date_diff
+            old_date_index[row_s:row_e, col_s:col_e] = patch_old_date_idx
+            new_date_index[row_s:row_e, col_s:col_e] = patch_new_date_idx
     else:
         theadPool = Pool(process_num)
         parameters_list = [ (idx, patch, patch_count,date_pair_list_sorted,dem_groups_date) for idx, patch in enumerate(image_patches)]
@@ -201,7 +221,7 @@ def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff, process_nu
         else:
             results = theadPool.starmap(dem_diff_new_old_min_neg_diff_patch , parameters_list)
         for res in results:
-            patch, patch_dem_diff, patch_date_diff = res
+            patch, patch_dem_diff, patch_date_diff,patch_old_date_idx,patch_new_date_idx = res
             # copy to the entire image
             row_s = patch[1]
             row_e = patch[1] + patch[3]
@@ -209,9 +229,16 @@ def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff, process_nu
             col_e = patch[0] + patch[2]
             dem_diff_np[row_s:row_e, col_s:col_e] = patch_dem_diff
             date_diff_np[row_s:row_e, col_s:col_e] = patch_date_diff
+            old_date_index[row_s:row_e, col_s:col_e] = patch_old_date_idx
+            new_date_index[row_s:row_e, col_s:col_e] = patch_new_date_idx
 
     # save date diff to tif (16 bit)
     raster_io.save_numpy_array_to_rasterfile(date_diff_np,out_date_diff,dem_tif_list[0], nodata=0,compress='lzw',tiled='yes',bigtiff='if_safer')
+    # save old and new date index to tif (8 bit)
+    out_old_date_idx = io_function.get_name_by_adding_tail(out_date_diff,'oldIndex')
+    out_new_date_idx = io_function.get_name_by_adding_tail(out_date_diff,'newIndex')
+    raster_io.save_numpy_array_to_rasterfile(old_date_index,out_old_date_idx,dem_tif_list[0], nodata=255,compress='lzw',tiled='yes',bigtiff='if_safer')
+    raster_io.save_numpy_array_to_rasterfile(new_date_index,out_new_date_idx,dem_tif_list[0], nodata=255,compress='lzw',tiled='yes',bigtiff='if_safer')
 
     # # stretch the DEM difference, save to 8 bit.
     # dem_diff_np_8bit = raster_io.image_numpy_to_8bit(dem_diff_np,10,-10,dst_nodata=0)
