@@ -156,13 +156,16 @@ def remove_based_on_hole(medial_axis_shp, max_hole,wkt, rm_hole_shp):
 
 def calculate_remove_based_on_line_segments(medial_axis_shp, max_line_segments,wkt, rm_line_segment_shp):
 
+    # note: eventually, this is the same to hole count and does not provide new information.
+    # so it's not necessary to use it.
+
     # calculate the number of line segments
     polygons = vector_gpd.read_polygons_gpd(medial_axis_shp,b_fix_invalid_polygon=False)
     line_segments_list = []
     for idx, poly in enumerate(polygons):
-        out_line = list(poly.exterior)
+        # out_line = poly.exterior
         in_lines = list(poly.interiors)
-        count = len(out_line) + len(in_lines)
+        count = 1 + len(in_lines)
         line_segments_list.append(count)
     add_attributes = {'lines':line_segments_list}
     vector_gpd.add_attributes_to_shp(medial_axis_shp,add_attributes)
