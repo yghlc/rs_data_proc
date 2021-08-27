@@ -22,6 +22,11 @@ sys.path.insert(0, deeplabforRS)
 
 import vector_gpd
 import raster_io
+import rasterio
+from rasterio.features import rasterize
+import math
+import cv2
+
 import basic_src.io_function as io_function
 import basic_src.map_projection as map_projection
 import basic_src.basic as basic
@@ -154,19 +159,145 @@ def remove_based_on_hole(medial_axis_shp, max_hole,wkt, rm_hole_shp):
 
     return rm_hole_shp
 
-def calculate_remove_based_on_line_segments(medial_axis_shp, max_line_segments,wkt, rm_line_segment_shp):
+# def calculate_remove_based_on_line_segments(medial_axis_shp, max_line_segments,wkt, rm_line_segment_shp):
+#
+#     # note: eventually, this is the same to hole count and does not provide new information.
+#     # so it's not necessary to use it.
+#
+#     # calculate the number of line segments
+#     polygons = vector_gpd.read_polygons_gpd(medial_axis_shp,b_fix_invalid_polygon=False)
+#     line_segments_list = []
+#     for idx, poly in enumerate(polygons):
+#         # out_line = poly.exterior
+#         in_lines = list(poly.interiors)
+#         count = 1 + len(in_lines)
+#         line_segments_list.append(count)
+#     add_attributes = {'lines':line_segments_list}
+#     vector_gpd.add_attributes_to_shp(medial_axis_shp,add_attributes)
+#
+#     # remove based on the number of line segments
+#     remain_polygons_idx = []
+#     # remove relative large but narrow ones.
+#     remove_count = 0
+#     for idx, lines in enumerate(line_segments_list):
+#         # remove too long or too short ones
+#         if lines > max_line_segments:
+#             remove_count += 1
+#             continue
+#         remain_polygons_idx.append(idx)
+#
+#     basic.outputlogMessage('remove %d polygons based on the count of line segments, remain %d ones saving to %s' %
+#                            (remove_count, len(remain_polygons_idx), rm_line_segment_shp))
+#
+#     if len(remain_polygons_idx) < 1:
+#         return False
+#
+#     vector_gpd.save_shapefile_subset_as(remain_polygons_idx,medial_axis_shp,rm_line_segment_shp)
+#
+#     return rm_line_segment_shp
 
-    # note: eventually, this is the same to hole count and does not provide new information.
-    # so it's not necessary to use it.
+def calculate_line_segment_polygon_pixels(polygon, raster_res=2,min_line_pixel=3):
+    '''
+    get number of line segments
+    :param polygon:
+    :param raster_res:
+    :param min_line_pixel: line segment shorter than min_line_pixel would be ignored
+    :return:
+    '''
+    # rasterize the polygon to pixels (original from medial axis, width is one pixel)
+    # based on the pixels, find the longest line segment, and other segments.
+
+    # raster_io.burn_polygons_to_a_raster(ref_raster, [polygon], 1, save_raster)
+
+    minx, miny, maxx, maxy = vector_gpd.get_polygon_bounding_box(polygon)
+    poly_transform = rasterio.transform.from_origin(minx,maxy,raster_res,raster_res)
+
+    height = math.ceil((maxy - miny)/raster_res)
+    width = math.ceil((maxx - minx)/raster_res)
+
+    save_dtype = rasterio.uint8
+
+    burn_out = np.zeros((height, width))
+    # rasterize the shapes
+    burn_shapes = [(item_shape, item_int) for (item_shape, item_int) in zip([polygon], [1])]
+
+    out_label = rasterize(burn_shapes, out=burn_out, transform=poly_transform,
+                          fill=0, all_touched=False, dtype=save_dtype)
+
+
+    # find the number of line segments, may not need to find the longest line segment.
+    # If we can get the end point number, then the number of line segment is count of end point – 1.
+    # An end point like the start and end point of a line.
+    # In the 8-neighbour, end point should only have one connectted point.
+    # since 1 is valid pixel, 0 is background.
+
+    # update
+    # it turns out that the ideas of end point not always work, maybe we can check cross points.
+    # a cross point connecting two or more line segments should have >=3 pixels in its 8-neighbour
+
+
+    kernel = np.ones((3, 3), np.float32)
+    kernel[1,1] = 0     # set the middle one as 0
+    # print(kernel)
+    dst = cv2.filter2D(out_label, -1, kernel,borderType=cv2.BORDER_CONSTANT)
+    # only keep the line pixels
+    dst = dst*out_label
+    loc_end_points = np.where(dst==1)
+
+    # by removing these end points to remove some short line segments (length=one pixel)
+    # remove line segment small than min_line_pixel
+    # min_line_pixel = 3
+    for idx in range(min_line_pixel):
+        # if the line is too short or already only have two end points, then skip
+        if len(loc_end_points[0]) <= 2:
+            break
+
+        out_label[loc_end_points] = 0
+        # calculate the end points again
+        dst = cv2.filter2D(out_label, -1, kernel, borderType=cv2.BORDER_CONSTANT)
+        dst = dst * out_label
+        loc_end_points = np.where(dst == 1)
+
+    # print(loc_end_points)
+
+    # return number of line segment
+    num_line = len(loc_end_points[0]) -1
+
+    # debug
+    if num_line < 1:
+        # plot for testing
+        # note: the polygon is in the projection of EPSG:3413,
+        # if we open the shapefile in QGIS but another prjection, it will look different.
+        import matplotlib.pyplot as plt
+        # imgplot = plt.imshow(out_label)
+        fig, axs = plt.subplots(1,2)
+        axs[0].imshow(out_label)
+        axs[1].imshow(dst)
+        plt.show()
+
+    return num_line
+
+
+def calculate_remove_based_on_pixel_line_segments(medial_axis_shp, max_line_segments,wkt, rm_line_segment_shp,raster_res=2,min_line_pixel=3):
+    '''
+    convert polygons to pixels again, then count line segments and find the longest line segments from pixels.
+    :param medial_axis_shp:
+    :param max_line_segments:
+    :param wkt:
+    :param rm_line_segment_shp:
+    :param raster_res:
+    :param min_line_pixel:
+    :return:
+    '''
 
     # calculate the number of line segments
     polygons = vector_gpd.read_polygons_gpd(medial_axis_shp,b_fix_invalid_polygon=False)
     line_segments_list = []
     for idx, poly in enumerate(polygons):
-        # out_line = poly.exterior
-        in_lines = list(poly.interiors)
-        count = 1 + len(in_lines)
-        line_segments_list.append(count)
+        line_count = calculate_line_segment_polygon_pixels(poly,raster_res=raster_res, min_line_pixel=min_line_pixel)
+        line_segments_list.append(line_count)
+
+    # save to file
     add_attributes = {'lines':line_segments_list}
     vector_gpd.add_attributes_to_shp(medial_axis_shp,add_attributes)
 
@@ -194,7 +325,7 @@ def calculate_remove_based_on_line_segments(medial_axis_shp, max_line_segments,w
 
 
 def extract_headwall_based_medial_axis_from_slope(idx, total, slope_tif, work_dir, save_dir,slope_threshold,
-                                                  min_length, max_length, max_hole_count,process_num):
+                                                  min_length, max_length, max_hole_count,max_line_segments,process_num):
     '''
     extract headwall from slope based on medial axis (skimage.morphology.medial_axis)
     :param idx: tif index
@@ -254,25 +385,27 @@ def extract_headwall_based_medial_axis_from_slope(idx, total, slope_tif, work_di
             return False
 
     # get line segments in polygons and remove based on line segments
-    max_line_count = 10
+    # eventually, this is the same to hole count and does not provide new information.
+    # max_line_count = 10
+    # rm_line_shp = io_function.get_name_by_adding_tail(rm_hole_shp, 'rmLine')
+    # if os.path.isfile(rm_line_shp):
+    #     print('%s exists, skip removing based the count of line segments' % rm_line_shp)
+    # else:
+    #     # medial_axis_shp,min_length, max_length,wkt, rm_length_shp
+    #     if calculate_remove_based_on_line_segments(rm_hole_shp, max_line_count, wkt, rm_line_shp) is False:
+    #         return False
+
+
+    # calculate number of line segments based on pixels.
     rm_line_shp = io_function.get_name_by_adding_tail(rm_hole_shp, 'rmLine')
     if os.path.isfile(rm_line_shp):
-        print('%s exists, skip removing based the count of line segments' % rm_line_shp)
+        print('%s exists, skip removing based the number of line segments' % rm_line_shp)
     else:
-        # medial_axis_shp,min_length, max_length,wkt, rm_length_shp
-        if calculate_remove_based_on_line_segments(rm_hole_shp, max_line_count, wkt, rm_line_shp) is False:
+        if calculate_remove_based_on_pixel_line_segments(rm_hole_shp, max_line_segments, wkt, rm_line_shp,
+                                                  raster_res=2, min_line_pixel=3) is False:
             return False
 
 
-
-    # # add some shape info
-    # rm_shapeinfo_shp = io_function.get_name_by_adding_tail(slope_bin_shp, 'rmShape')
-    # if os.path.isfile(rm_shapeinfo_shp):
-    #     print('%s exists, skip removing based on shape' % rm_shapeinfo_shp)
-    # else:
-    #     if remove_based_on_shapeinfo(rm_area_shp, rm_shapeinfo_shp, max_box_WH) is False:
-    #         return False
-    #
     #
     # # copy the results.
     # io_function.copy_shape_file(rm_medialAxis_shp, save_headwall_shp)
@@ -299,15 +432,27 @@ def test_extract_headwall_based_medial_axis_from_slope():
     min_length = 6
     max_length = 500
     max_hole_count = 0
+    max_line_segments = 2
     process_num = 1
 
     extract_headwall_based_medial_axis_from_slope(0, 1, slope_tif, work_dir, save_dir, slope_threshold,
-                                                  min_length, max_length, max_hole_count, process_num)
+                                                  min_length, max_length, max_hole_count, max_line_segments,process_num)
+
+
+def test_calculate_line_segment_polygon_pixels():
+    one_line_poly_shp = os.path.expanduser('~/Data/dem_processing/test_cal_line_segment/one_line_segment.shp')
+    polygons = vector_gpd.read_polygons_gpd(one_line_poly_shp, b_fix_invalid_polygon=False)
+
+    # print(polygons[0])
+    line_segment = calculate_line_segment_polygon_pixels(polygons[0])
+    print('line_segment count', line_segment)
+
 
 
 def main():
     # test_slope_bin_to_medial_axis()
-    test_extract_headwall_based_medial_axis_from_slope()
+    # test_extract_headwall_based_medial_axis_from_slope()
+    test_calculate_line_segment_polygon_pixels()
     pass
 
 
