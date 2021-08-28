@@ -196,7 +196,167 @@ def remove_based_on_hole(medial_axis_shp, max_hole,wkt, rm_hole_shp):
 #
 #     return rm_line_segment_shp
 
-def calculate_line_segment_polygon_pixels(polygon, raster_res=2,min_line_pixel=3):
+
+###################################################################################################
+# copy the following codes from:
+# https://github.com/gabyx/WormAnalysis/blob/master/SkeletonTest/Skeletonize.ipynb
+import collections
+import itertools
+import networkx as nx
+
+class Vertex:
+    def __init__(self, point, degree=0, edges=None):
+        self.point = np.asarray(point)
+        self.degree = degree
+        self.edges = []
+        self.visited = False
+        if edges is not None:
+            self.edges = edges
+
+    def __str__(self):
+        return str(self.point)
+class Edge:
+    def __init__(self, start, end=None, pixels=None):
+        self.start = start
+        self.end = end
+        self.pixels = []
+        if pixels is not None:
+            self.pixels = pixels
+        self.visited = False
+
+def buildTree(img, start=None):
+    # copy image since we set visited pixels to black
+    img = img.copy()
+    shape = img.shape
+    nWhitePixels = np.sum(img)
+
+    # neighbor offsets (8 nbors)
+    nbPxOff = np.array([[-1, -1], [-1, 0], [-1, 1],
+                        [0, -1], [0, 1],
+                        [1, -1], [1, 0], [1, 1]
+                        ])
+
+    queue = collections.deque()
+
+    # a list of all graphs extracted from the skeleton
+    graphs = []
+
+    blackedPixels = 0
+    # we build our graph as long as we have not blacked all white pixels!
+    while nWhitePixels != blackedPixels:
+
+        # if start not given: determine the first white pixel
+        if start is None:
+            it = np.nditer(img, flags=['multi_index'])
+            while not it[0]:
+                it.iternext()
+
+            start = it.multi_index
+
+        startV = Vertex(start)
+        queue.append(startV)
+        # print("Start vertex: ", startV)
+
+        # set start pixel to False (visited)
+        img[startV.point[0], startV.point[1]] = False
+        blackedPixels += 1
+
+        # create a new graph
+        G = nx.Graph()
+        G.add_node(startV)
+
+        # build graph in a breath-first manner by adding
+        # new nodes to the right and popping handled nodes to the left in queue
+        while len(queue):
+            currV = queue[0]  # get current vertex
+            # print("Current vertex: ", currV)
+
+            # check all neigboor pixels
+            for nbOff in nbPxOff:
+
+                # pixel index
+                pxIdx = currV.point + nbOff
+
+                if (pxIdx[0] < 0 or pxIdx[0] >= shape[0]) or (pxIdx[1] < 0 or pxIdx[1] >= shape[1]):
+                    continue  # current neigbor pixel out of image
+
+                if img[pxIdx[0], pxIdx[1]]:
+                    # print( "nb: ", pxIdx, " white ")
+                    # pixel is white
+                    newV = Vertex([pxIdx[0], pxIdx[1]])
+
+                    # add edge from currV <-> newV
+                    G.add_edge(currV, newV, object=Edge(currV, newV))
+                    # G.add_edge(newV,currV)
+
+                    # add node newV
+                    G.add_node(newV)
+
+                    # push vertex to queue
+                    queue.append(newV)
+
+                    # set neighbor pixel to black
+                    img[pxIdx[0], pxIdx[1]] = False
+                    blackedPixels += 1
+
+            # pop currV
+            queue.popleft()
+        # end while
+
+        # empty queue
+        # current graph is finished ->store it
+        graphs.append(G)
+
+        # reset start
+        start = None
+
+    # end while
+
+    return graphs, img
+
+def getEndNodes(g):
+    # return [ n for n in nx.nodes_iter(g) if nx.degree(g,n) == 1 ]
+    return [ n for n in nx.nodes(g) if nx.degree(g,n) == 1 ]
+
+
+def getLongestPath(graph, endNodes):
+    """
+        graph is a fully reachable graph = every node can be reached from every node
+    """
+
+    if len(endNodes) < 2:
+        raise ValueError("endNodes need to contain at least 2 nodes!")
+
+    # get all shortest paths from each endpoint to another endpoint
+    allEndPointsComb = itertools.combinations(endNodes, 2)
+
+    maxLength = 0
+    maxPath = None
+
+    for ePoints in allEndPointsComb:
+
+        # get shortest path for these end points pairs
+        sL = nx.dijkstra_path_length(graph,
+                                     source=ePoints[0],
+                                     target=ePoints[1])
+
+        # dijkstra can throw if now path, but we are sure we have a path
+
+        # store maximum
+        if (sL > maxLength):
+            maxPath = ePoints
+            maxLength = sL
+
+    if maxPath is None:
+        raise ValueError("No path found!")
+
+    return nx.dijkstra_path(graph,
+                            source=maxPath[0],
+                            target=maxPath[1]), maxLength
+##########################################################################################
+
+
+def calculate_line_segment_polygon_pixels(polygon, raster_res=2):
     '''
     get number of line segments
     :param polygon:
@@ -224,6 +384,66 @@ def calculate_line_segment_polygon_pixels(polygon, raster_res=2,min_line_pixel=3
     out_label = rasterize(burn_shapes, out=burn_out, transform=poly_transform,
                           fill=0, all_touched=False, dtype=save_dtype)
 
+    # print('pixel count',np.sum(out_label))
+
+    graphs, imgB = buildTree(out_label)
+    if len(graphs) != 1:
+        raise ValueError('should only have one graph')
+
+    line_graph = graphs[0]
+
+    longest_path,maxLength = getLongestPath(line_graph,getEndNodes(line_graph))
+    # print('note of longest_path and length',len(longest_path), maxLength)
+
+    # remove longest path
+    line_graph.remove_nodes_from(longest_path)
+    # print('after removing longest path, end node count:',len(getEndNodes(graphs[0])))
+
+    # print(len(line_graph.nodes))
+    # print(len(line_graph.edges))
+
+    # remove isolated nodes
+    remove_list = []
+    for idx,node in enumerate(line_graph.nodes):
+        # print(line_graph.edges(node))
+        # nbs = nx.neighbors(line_graph, node)
+        # print(nbs[0], nbs[1])
+        neighbours = [n for n in line_graph[node]]
+        # print(idx,neighbours)
+        if len(neighbours) < 1:
+            remove_list.append(node)
+    line_graph.remove_nodes_from(remove_list)
+
+
+    # print(len(line_graph.nodes))
+    # print(len(line_graph.edges))
+
+    # # plot to check graph
+    # import matplotlib.pyplot as plt
+    # import matplotlib.cm as cm
+    # import random
+    # # draw all graphs
+    # fig = plt.figure(figsize=(12, 12))
+    #
+    # plt.imshow(out_label, cmap=cm.gray, interpolation='nearest')
+    # ax = plt.gca()
+    # plt.axis("equal")
+    #
+    # class PosWrapper(dict):
+    #     def __getitem__(self, key):
+    #         return [key.point[1], key.point[0]]  # switch x and y
+    #
+    # for i, g in enumerate(graphs):
+    #     nx.draw_networkx(g, PosWrapper(), ax=ax,
+    #                      with_labels=False,
+    #                      node_color="#%06x" % random.randint(0, 0xFFFFFF),
+    #                      edge_color='b', node_size=20
+    #                      )
+    # plt.show()
+
+    remain_pixel_count = len(line_graph.nodes)
+    return remain_pixel_count
+
 
     # find the number of line segments, may not need to find the longest line segment.
     # If we can get the end point number, then the number of line segment is count of end point – 1.
@@ -236,83 +456,82 @@ def calculate_line_segment_polygon_pixels(polygon, raster_res=2,min_line_pixel=3
     # a cross point connecting two or more line segments should have >=3 pixels in its 8-neighbour
 
 
-    kernel = np.ones((3, 3), np.float32)
-    kernel[1,1] = 0     # set the middle one as 0
-    # print(kernel)
-    dst = cv2.filter2D(out_label, -1, kernel,borderType=cv2.BORDER_CONSTANT)
-    # only keep the line pixels
-    dst = dst*out_label
-    loc_end_points = np.where(dst==1)
-
-    # by removing these end points to remove some short line segments (length=one pixel)
-    # remove line segment small than min_line_pixel
-    # min_line_pixel = 3
-    for idx in range(min_line_pixel):
-        # if the line is too short or already only have two end points, then skip
-        if len(loc_end_points[0]) <= 2:
-            break
-
-        out_label[loc_end_points] = 0
-        # calculate the end points again
-        dst = cv2.filter2D(out_label, -1, kernel, borderType=cv2.BORDER_CONSTANT)
-        dst = dst * out_label
-        loc_end_points = np.where(dst == 1)
+    # kernel = np.ones((3, 3), np.float32)
+    # kernel[1,1] = 0     # set the middle one as 0
+    # # print(kernel)
+    # dst = cv2.filter2D(out_label, -1, kernel,borderType=cv2.BORDER_CONSTANT)
+    # # only keep the line pixels
+    # dst = dst*out_label
+    # loc_end_points = np.where(dst==1)
+    #
+    # # by removing these end points to remove some short line segments (length=one pixel)
+    # # remove line segment small than min_line_pixel
+    # # min_line_pixel = 3
+    # for idx in range(min_line_pixel):
+    #     # if the line is too short or already only have two end points, then skip
+    #     if len(loc_end_points[0]) <= 2:
+    #         break
+    #
+    #     out_label[loc_end_points] = 0
+    #     # calculate the end points again
+    #     dst = cv2.filter2D(out_label, -1, kernel, borderType=cv2.BORDER_CONSTANT)
+    #     dst = dst * out_label
+    #     loc_end_points = np.where(dst == 1)
 
     # print(loc_end_points)
 
     # return number of line segment
-    num_line = len(loc_end_points[0]) -1
+    # num_line = len(loc_end_points[0]) -1
 
-    # debug
-    if num_line < 1:
-        # plot for testing
-        # note: the polygon is in the projection of EPSG:3413,
-        # if we open the shapefile in QGIS but another prjection, it will look different.
-        import matplotlib.pyplot as plt
-        # imgplot = plt.imshow(out_label)
-        fig, axs = plt.subplots(1,2)
-        axs[0].imshow(out_label)
-        axs[1].imshow(dst)
-        plt.show()
+    # # debug
+    # if num_line < 1:
+    #     # plot for testing
+    #     # note: the polygon is in the projection of EPSG:3413,
+    #     # if we open the shapefile in QGIS but another prjection, it will look different.
+    #     import matplotlib.pyplot as plt
+    #     # imgplot = plt.imshow(out_label)
+    #     fig, axs = plt.subplots(1,2)
+    #     axs[0].imshow(out_label)
+    #     axs[1].imshow(dst)
+    #     plt.show()
 
-    return num_line
+    # return num_line
 
 
-def calculate_remove_based_on_pixel_line_segments(medial_axis_shp, max_line_segments,wkt, rm_line_segment_shp,raster_res=2,min_line_pixel=3):
+def calculate_remove_based_on_pixel_line_segments(medial_axis_shp,wkt, rm_line_segment_shp,raster_res=2,max_unwant_line_pixel=10):
     '''
     convert polygons to pixels again, then count line segments and find the longest line segments from pixels.
     :param medial_axis_shp:
-    :param max_line_segments:
     :param wkt:
     :param rm_line_segment_shp:
     :param raster_res:
-    :param min_line_pixel:
+    :param max_unwant_line_pixel:
     :return:
     '''
 
     # calculate the number of line segments
     polygons = vector_gpd.read_polygons_gpd(medial_axis_shp,b_fix_invalid_polygon=False)
-    line_segments_list = []
+    unwant_line_pixels_list = []
     for idx, poly in enumerate(polygons):
-        line_count = calculate_line_segment_polygon_pixels(poly,raster_res=raster_res, min_line_pixel=min_line_pixel)
-        line_segments_list.append(line_count)
+        remain_line_pixel_count = calculate_line_segment_polygon_pixels(poly,raster_res=raster_res)
+        unwant_line_pixels_list.append(remain_line_pixel_count)
 
     # save to file
-    add_attributes = {'lines':line_segments_list}
+    add_attributes = {'unwant_pi':unwant_line_pixels_list}
     vector_gpd.add_attributes_to_shp(medial_axis_shp,add_attributes)
 
     # remove based on the number of line segments
     remain_polygons_idx = []
     # remove relative large but narrow ones.
     remove_count = 0
-    for idx, lines in enumerate(line_segments_list):
+    for idx, lines in enumerate(unwant_line_pixels_list):
         # remove too long or too short ones
-        if lines > max_line_segments:
+        if lines > max_unwant_line_pixel:
             remove_count += 1
             continue
         remain_polygons_idx.append(idx)
 
-    basic.outputlogMessage('remove %d polygons based on the count of line segments, remain %d ones saving to %s' %
+    basic.outputlogMessage('remove %d polygons based on the count of unwanted line pixels, remain %d ones saving to %s' %
                            (remove_count, len(remain_polygons_idx), rm_line_segment_shp))
 
     if len(remain_polygons_idx) < 1:
@@ -325,7 +544,7 @@ def calculate_remove_based_on_pixel_line_segments(medial_axis_shp, max_line_segm
 
 
 def extract_headwall_based_medial_axis_from_slope(idx, total, slope_tif, work_dir, save_dir,slope_threshold,
-                                                  min_length, max_length, max_hole_count,max_line_segments,process_num):
+                                                  min_length, max_length, max_hole_count,max_unwanted_line_pixel,process_num):
     '''
     extract headwall from slope based on medial axis (skimage.morphology.medial_axis)
     :param idx: tif index
@@ -401,8 +620,8 @@ def extract_headwall_based_medial_axis_from_slope(idx, total, slope_tif, work_di
     if os.path.isfile(rm_line_shp):
         print('%s exists, skip removing based the number of line segments' % rm_line_shp)
     else:
-        if calculate_remove_based_on_pixel_line_segments(rm_hole_shp, max_line_segments, wkt, rm_line_shp,
-                                                  raster_res=2, min_line_pixel=3) is False:
+        if calculate_remove_based_on_pixel_line_segments(rm_hole_shp, wkt, rm_line_shp,
+                                                  raster_res=2, max_unwant_line_pixel=max_unwanted_line_pixel) is False:
             return False
 
 
@@ -432,11 +651,11 @@ def test_extract_headwall_based_medial_axis_from_slope():
     min_length = 6
     max_length = 500
     max_hole_count = 0
-    max_line_segments = 2
+    max_unwanted_line_pixel = 5
     process_num = 1
 
     extract_headwall_based_medial_axis_from_slope(0, 1, slope_tif, work_dir, save_dir, slope_threshold,
-                                                  min_length, max_length, max_hole_count, max_line_segments,process_num)
+                                                  min_length, max_length, max_hole_count, max_unwanted_line_pixel,process_num)
 
 
 def test_calculate_line_segment_polygon_pixels():
@@ -445,14 +664,14 @@ def test_calculate_line_segment_polygon_pixels():
 
     # print(polygons[0])
     line_segment = calculate_line_segment_polygon_pixels(polygons[0])
-    print('line_segment count', line_segment)
+    print('remain pixel count in lines', line_segment)
 
 
 
 def main():
     # test_slope_bin_to_medial_axis()
-    # test_extract_headwall_based_medial_axis_from_slope()
-    test_calculate_line_segment_polygon_pixels()
+    test_extract_headwall_based_medial_axis_from_slope()
+    # test_calculate_line_segment_polygon_pixels()
     pass
 
 
