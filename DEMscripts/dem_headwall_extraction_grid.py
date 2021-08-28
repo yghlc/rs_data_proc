@@ -31,18 +31,27 @@ b_apply_matchtag = False     # don't apply matchtag, it seems that matchtag make
 b_mask_stripDEM_outlier = True  # mask outliers in strip DEM using the ArcticDEM tiles
 b_mask_surface_water = True     # mask pixel of surface water
 
-# parameters for extracting headwall
+
 min_slope = 20
-min_size = 200
-max_size = 50000
-max_axis_width = 80
-max_box_WH = 600
+# # parameters for extracting headwall (based on polygon medial axis)
+# min_size = 200
+# max_size = 50000
+# max_axis_width = 80
+# max_box_WH = 600
+
+# parameters for extracting headwall (based on medial axis raster)
+min_length = 6      # in pixels
+max_length = 500    # in pixels
+max_hole_count = 0
+max_unwanted_line_pixel = 5 # in pixels
+
 
 from produce_DEM_diff_ArcticDEM import get_grid_20
 from dem_mosaic_crop import get_dem_tif_ext_polygons
 from dem_mosaic_crop import mosaic_crop_dem
 from dem_to_hillshade_slope_8bit import dem_to_slope
 from dem_headwall_extraction import extract_headwall_from_slope
+from dem_headwall_medial_axis import extract_headwall_based_medial_axis_from_slope
 
 from dem_common import grid_20_shp, arcticDEM_reg_tif_dir, grid_dem_headwall_shp_dir
 
@@ -150,8 +159,11 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
             working_dir = os.path.join(save_dir,os.path.splitext(os.path.basename(slope))[0])
             if os.path.isdir(working_dir) is False:
                 io_function.mkdir(working_dir)
-            if extract_headwall_from_slope(idx, len(slope_tifs), slope, working_dir, multi_headwall_shp_dir, min_slope, min_size,
-                                           max_size, max_axis_width, max_box_WH, process_num) is False:
+            # if extract_headwall_from_slope(idx, len(slope_tifs), slope, working_dir, multi_headwall_shp_dir, min_slope, min_size,
+            #                                max_size, max_axis_width, max_box_WH, process_num) is False:
+            #     basic.outputlogMessage('extract headwall from %s failed'%slope)
+            if extract_headwall_based_medial_axis_from_slope(idx, len(slope_tifs), slope, working_dir, multi_headwall_shp_dir, min_slope,
+                                                             min_length, max_length, max_hole_count, max_unwanted_line_pixel, process_num) is False:
                 basic.outputlogMessage('extract headwall from %s failed'%slope)
 
         # merge headwall detected on different dates.

@@ -625,9 +625,9 @@ def extract_headwall_based_medial_axis_from_slope(idx, total, slope_tif, work_di
             return False
 
 
-    #
-    # # copy the results.
-    # io_function.copy_shape_file(rm_medialAxis_shp, save_headwall_shp)
+
+    # copy the results.
+    io_function.copy_shape_file(rm_line_shp, save_headwall_shp)
 
 
 
