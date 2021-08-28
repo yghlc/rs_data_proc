@@ -159,9 +159,12 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
             working_dir = os.path.join(save_dir,os.path.splitext(os.path.basename(slope))[0])
             if os.path.isdir(working_dir) is False:
                 io_function.mkdir(working_dir)
+            # use polygon based medial axis
             # if extract_headwall_from_slope(idx, len(slope_tifs), slope, working_dir, multi_headwall_shp_dir, min_slope, min_size,
             #                                max_size, max_axis_width, max_box_WH, process_num) is False:
             #     basic.outputlogMessage('extract headwall from %s failed'%slope)
+
+            # use raster based medial axis
             if extract_headwall_based_medial_axis_from_slope(idx, len(slope_tifs), slope, working_dir, multi_headwall_shp_dir, min_slope,
                                                              min_length, max_length, max_hole_count, max_unwanted_line_pixel, process_num) is False:
                 basic.outputlogMessage('extract headwall from %s failed'%slope)
