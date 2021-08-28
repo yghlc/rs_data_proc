@@ -40,7 +40,7 @@ min_slope = 20
 # max_box_WH = 600
 
 # parameters for extracting headwall (based on medial axis raster)
-min_length = 6      # in pixels
+min_length = 15      # in pixels
 max_length = 500    # in pixels
 max_hole_count = 0
 max_unwanted_line_pixel = 5 # in pixels
