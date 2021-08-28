@@ -74,6 +74,29 @@ def slope_bin_to_medial_axis_raster(in_image_path, out_image_path):
 
     return out_image_path
 
+def slope_bin_to_skeleton(in_image_path, out_image_path):
+    # the output of skeleton is similar to medial, not useful.
+    if os.path.isfile(out_image_path):
+        print('%s exists, skip slope_bin_to_skeleton'%out_image_path)
+        return out_image_path
+
+    image_np, nodata = raster_io.read_raster_one_band_np(in_image_path)
+    # make image only have 0 and 1
+    image_np[image_np>1] = 1
+
+    out_np = morphology.skeletonize(image_np)
+    # out_np,dist = morphology.medial_axis(image_np, mask=None, return_distance=True)
+    # bool numpy to uint8
+    out_np = out_np.astype(np.uint8)
+    # dist = dist.astype(np.float32)
+
+    # save to file
+    raster_io.save_numpy_array_to_rasterfile(out_np, out_image_path, in_image_path, compress='lzw',
+                                             tiled='yes', bigtiff='if_safer')
+
+    return out_image_path
+
+
 def medial_axis_raster_to_vector(in_medial_axis_tif, out_vector_shp, raster_res=2):
 
     if vector_gpd.raster2shapefile(in_medial_axis_tif,out_shp=out_vector_shp,connect8=True) is None:
@@ -158,6 +181,51 @@ def remove_based_on_hole(medial_axis_shp, max_hole,wkt, rm_hole_shp):
     vector_gpd.save_shapefile_subset_as(remain_polygons_idx,medial_axis_shp,rm_hole_shp)
 
     return rm_hole_shp
+
+
+def remove_based_on_slope_area(slope_bin_path, min_slope_area_size,max_slope_area_size):
+    '''
+    remove based on slope area size, such as steep slope in valley or ridge of mountains.
+    :param slope_bin_path:
+    :param max_slope_area_size:  areas, in meters
+    :return:
+    '''
+
+    # to shapefile
+    slope_bin_shp = vector_gpd.raster2shapefile(slope_bin_path,connect8=True)
+    if slope_bin_shp is None:
+        return False
+
+    polygons = vector_gpd.read_polygons_gpd(slope_bin_shp, b_fix_invalid_polygon=False)
+
+    remain_polygons = []
+    # remove  large or small regions
+    remove_count = 0
+    for idx, poly in enumerate(polygons):
+        # remove quite large or too small ones
+        if poly.area > max_slope_area_size or poly.area < min_slope_area_size:
+            remove_count += 1
+            continue
+        remain_polygons.append(poly)
+    basic.outputlogMessage('remove %d large or tiny slope areas based on area, remain %d ones' %(remove_count, len(remain_polygons)))
+
+    if len(remain_polygons) < 1:
+        return False
+
+    #fill holes before rasterize, making medial axis or skeleton easier
+    # buffer to solve MultiPolygon issues
+    remain_polygons = [ vector_gpd.fill_holes_in_a_polygon(item.buffer(0.01)) for item in remain_polygons ]
+
+    # backup old slope file
+    slope_bin_path_bak = io_function.get_name_by_adding_tail(slope_bin_path,'bak')
+    io_function.move_file_to_dst(slope_bin_path,slope_bin_path_bak)
+
+    # burn the remain polygons raster
+    raster_io.burn_polygons_to_a_raster(slope_bin_path_bak,remain_polygons,255,slope_bin_path)
+    raster_io.set_nodata_to_raster_metadata(slope_bin_path,0)
+
+    return slope_bin_path
+
 
 # def calculate_remove_based_on_line_segments(medial_axis_shp, max_line_segments,wkt, rm_line_segment_shp):
 #
@@ -543,7 +611,7 @@ def calculate_remove_based_on_pixel_line_segments(medial_axis_shp,wkt, rm_line_s
 
 
 
-def extract_headwall_based_medial_axis_from_slope(idx, total, slope_tif, work_dir, save_dir,slope_threshold,
+def extract_headwall_based_medial_axis_from_slope(idx, total, slope_tif, work_dir, save_dir,slope_threshold, min_area_size, max_area_size,
                                                   min_length, max_length, max_hole_count,max_unwanted_line_pixel,process_num):
     '''
     extract headwall from slope based on medial axis (skimage.morphology.medial_axis)
@@ -572,6 +640,11 @@ def extract_headwall_based_medial_axis_from_slope(idx, total, slope_tif, work_di
     # binary slope
     slope_bin_path = os.path.join(work_dir, os.path.basename(io_function.get_name_by_adding_tail(slope_tif, 'bin')))
     if slope_tif_to_slope_bin(slope_tif, slope_bin_path, slope_threshold) is None:
+        return False
+
+    # remove some large areas and updated slope_bin_path
+    slope_bin_path = remove_based_on_slope_area(slope_bin_path,min_area_size,max_area_size)
+    if slope_bin_path is False:
         return False
 
     # get medial axis raster
@@ -641,20 +714,37 @@ def test_slope_bin_to_medial_axis():
     medial_axis_poly_shp = os.path.join(data_dir, '20080511_dem_slope_bin_medial_axis_poly.shp')
     medial_axis_raster_to_vector(medial_axis_tif, medial_axis_poly_shp)
 
+
+def test_slope_bin_to_skeleton():
+    data_dir = os.path.expanduser('~/Data/dem_processing/grid_9274_tmp_files')
+    slope_bin_path = os.path.join(data_dir, '20150507_dem_slope_bin.tif')
+    skeleton_path = os.path.join(data_dir, '20150507_dem_slope_bin_skeleton.tif')
+
+    slope_bin_to_skeleton(slope_bin_path, skeleton_path)
+
+
 def test_extract_headwall_based_medial_axis_from_slope():
 
-    data_dir = os.path.expanduser('~/Data/dem_processing/grid_6174_tmp_files/slope_sub_6174')
-    slope_tif = os.path.join(data_dir,'20080511_dem_slope.tif')
-    work_dir = os.path.expanduser('~/Data/dem_processing')
-    save_dir = os.path.expanduser('~/Data/dem_processing/grid_6174_tmp_files')
+    # data_dir = os.path.expanduser('~/Data/dem_processing/grid_6174_tmp_files/slope_sub_6174')
+    # slope_tif = os.path.join(data_dir,'20080511_dem_slope.tif')
+    # work_dir = os.path.expanduser('~/Data/dem_processing')
+    # save_dir = os.path.expanduser('~/Data/dem_processing/grid_6174_tmp_files')
+
+    data_dir = os.path.expanduser('~/Data/dem_processing/grid_9274_tmp_files/slope_sub_9274')
+    slope_tif = os.path.join(data_dir,'20150507_dem_slope.tif')
+    work_dir = os.path.expanduser('~/Data/dem_processing/grid_9274_tmp_files')
+    save_dir = os.path.expanduser('~/Data/dem_processing/grid_9274_tmp_files')
+
     slope_threshold = 20
-    min_length = 6
-    max_length = 500
+    min_area_size = 200     # in m^2
+    max_area_size = 50000   # in m^2
+    min_length = 6      # in pixel
+    max_length = 500    # in pixel
     max_hole_count = 0
-    max_unwanted_line_pixel = 5
+    max_unwanted_line_pixel = 5 # in pixel
     process_num = 1
 
-    extract_headwall_based_medial_axis_from_slope(0, 1, slope_tif, work_dir, save_dir, slope_threshold,
+    extract_headwall_based_medial_axis_from_slope(0, 1, slope_tif, work_dir, save_dir, slope_threshold,min_area_size,max_area_size,
                                                   min_length, max_length, max_hole_count, max_unwanted_line_pixel,process_num)
 
 
@@ -672,6 +762,7 @@ def main():
     # test_slope_bin_to_medial_axis()
     test_extract_headwall_based_medial_axis_from_slope()
     # test_calculate_line_segment_polygon_pixels()
+    # test_slope_bin_to_skeleton()
     pass
 
 
