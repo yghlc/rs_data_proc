@@ -34,16 +34,16 @@ b_mask_surface_water = True     # mask pixel of surface water
 
 min_slope = 20
 # # parameters for extracting headwall (based on polygon medial axis)
-# min_size = 200
-# max_size = 50000
-# max_axis_width = 80
+min_size = 200      # min slope area in m^2
+max_size = 50000    # max slope area in m^2
+max_axis_width = 80  # max width, in meters
 # max_box_WH = 600
 
 # parameters for extracting headwall (based on medial axis raster)
 min_length = 15      # in pixels
-max_length = 500    # in pixels
+max_length = 1000    # in pixels
 max_hole_count = 0
-max_unwanted_line_pixel = 5 # in pixels
+# max_unwanted_line_pixel = 5 # in pixels
 
 
 from produce_DEM_diff_ArcticDEM import get_grid_20
@@ -166,7 +166,7 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
 
             # use raster based medial axis
             if extract_headwall_based_medial_axis_from_slope(idx, len(slope_tifs), slope, working_dir, multi_headwall_shp_dir, min_slope,
-                                                             min_length, max_length, max_hole_count, max_unwanted_line_pixel, process_num) is False:
+                                                             min_size, max_size,min_length, max_length, max_hole_count, max_axis_width, process_num) is False:
                 basic.outputlogMessage('extract headwall from %s failed'%slope)
 
         # merge headwall detected on different dates.
