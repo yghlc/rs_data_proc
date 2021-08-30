@@ -22,6 +22,7 @@ import basic_src.timeTools as timeTools
 import basic_src.map_projection as map_projection
 import basic_src.io_function as io_function
 
+import pandas as pd
 from multiprocessing import Pool
 
 # some parameters
@@ -110,8 +111,45 @@ def dem_list_to_slope_list(dem_list, save_dir, extent_id, process_num=1):
 
     return slope_list
 
-def merge_multi_headwall_shp():
-    pass
+def merge_multi_headwall_shp_to_one(shp_dir, save_path):
+    '''
+    merge multiple shapefile of headwall on different dates to one file
+    :param shp_dir:
+    :param save_path:
+    :return:
+    '''
+    shp_list = io_function.get_file_list_by_ext('.shp',shp_dir,bsub_folder=False)
+    if len(shp_list) < 1:
+        print('Warning, no shapefile in %s, skip merging multiple shapefiles'%shp_dir)
+        return False
+
+    if os.path.isfile(save_path):
+        print('warning, %s already exists, skip'%save_path)
+        return True
+
+    # merge shapefile, one by one, and add the year and date from filename
+    line_list = []
+    id_list = []
+    year_list = []
+    date_list = []
+    length_m_list = []  # length in meters
+    for shp in shp_list:
+        # these are line vector, we still can use the following function to read them
+        lines, lengths = vector_gpd.read_polygons_attributes_list(shp,'length_m')
+        curr_count = len(id_list)
+        acuiqsition_date = timeTools.get_yeardate_yyyymmdd(os.path.basename(shp))
+        year = acuiqsition_date.year
+        for idx, (line,length) in enumerate(zip(lines,lengths)):
+            id_list.append(idx + curr_count)
+            line_list.append(line)
+            length_m_list.append(length)
+            year_list.append(year)
+            date_list.append(acuiqsition_date)
+
+    save_pd = pd.DataFrame({'id':id_list,'length_m':length_m_list,'dem_year':year_list,'dem_date':date_list,'Line':line_list})
+    ref_prj = map_projection.get_raster_or_vector_srs_info_proj4(shp_list[0])
+    return vector_gpd.save_polygons_to_files(save_pd, 'Polygons', ref_prj, save_path)
+
 
 def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
                            b_mosaic_date,keep_dem_percent, o_res,process_num=1):
@@ -170,6 +208,10 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
                 basic.outputlogMessage('extract headwall from %s failed'%slope)
 
         # merge headwall detected on different dates.
+        save_merged_shp = os.path.join(save_dir, 'headwall_shp_multiDates_%d.shp' % grid_id)
+        if merge_multi_headwall_shp_to_one(multi_headwall_shp_dir, save_merged_shp) is False:
+            return False
+
         # have not find a good method to merge them, just copy all of them now
         save_headwall_folder = os.path.join(grid_dem_headwall_shp_dir,'headwall_shps_grid%d'%grid_id)
         res = os.system('cp -r %s %s'%(multi_headwall_shp_dir,save_headwall_folder))
