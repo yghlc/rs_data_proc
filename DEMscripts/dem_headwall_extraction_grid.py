@@ -148,7 +148,7 @@ def merge_multi_headwall_shp_to_one(shp_dir, save_path):
 
     save_pd = pd.DataFrame({'id':id_list,'length_m':length_m_list,'dem_year':year_list,'dem_date':date_list,'Line':line_list})
     ref_prj = map_projection.get_raster_or_vector_srs_info_proj4(shp_list[0])
-    return vector_gpd.save_polygons_to_files(save_pd, 'Polygons', ref_prj, save_path)
+    return vector_gpd.save_polygons_to_files(save_pd, 'Line', ref_prj, save_path)
 
 
 def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
