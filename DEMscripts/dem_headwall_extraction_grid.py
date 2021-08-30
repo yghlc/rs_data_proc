@@ -144,7 +144,7 @@ def merge_multi_headwall_shp_to_one(shp_dir, save_path):
             line_list.append(line)
             length_m_list.append(length)
             year_list.append(year)
-            date_list.append(acuiqsition_date)
+            date_list.append(timeTools.date2str(acuiqsition_date))
 
     save_pd = pd.DataFrame({'id':id_list,'length_m':length_m_list,'dem_year':year_list,'dem_date':date_list,'Line':line_list})
     ref_prj = map_projection.get_raster_or_vector_srs_info_proj4(shp_list[0])
