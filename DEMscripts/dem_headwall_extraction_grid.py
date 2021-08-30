@@ -43,7 +43,7 @@ max_axis_width = 80  # max width, in meters
 # parameters for extracting headwall (based on medial axis raster)
 min_length = 15      # in pixels
 max_length = 2000    # in pixels
-max_hole_count = 0
+max_hole_count = 10    # increase to 10, for some big rts also
 # max_unwanted_line_pixel = 5 # in pixels
 
 
