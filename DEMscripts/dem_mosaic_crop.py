@@ -160,8 +160,10 @@ def mosaic_dem_list_gdal_merge(key, dem_list, save_tif_dir,save_source):
             io_function.copy_file_to_dst(dem_list[0], save_mosaic)
             return save_mosaic
 
+    nodata = raster_io.get_nodata(dem_list[0])
+
     # create mosaic, can handle only input one file, but is slow
-    result = RSImageProcess.mosaics_images(dem_list,save_mosaic,nodata=None,
+    result = RSImageProcess.mosaics_images(dem_list,save_mosaic,nodata=nodata,
                                            compress='lzw', tiled='yes', bigtiff='if_safer')
 
     if result is False:
