@@ -62,6 +62,25 @@ def group_demTif_yearmonthDay(demTif_list, diff_days=30):
 
     return dem_groups
 
+
+def group_demTif_same_year(demTif_list):
+    dem_groups = {}
+    for tif in demTif_list:
+        yeardate =  timeTools.get_yeardate_yyyymmdd(os.path.basename(tif)[:8])  # time year is at the begining
+        year = yeardate.year
+
+        b_assgined = False
+        for time in dem_groups.keys():
+            if year == time:
+                dem_groups[time].append(tif)
+                b_assgined = True
+                break
+        if b_assgined is False:
+            dem_groups[year] = [tif]
+
+    return dem_groups
+
+
 def group_demTif_strip_pair_ID(demTif_list):
     '''
     group dem tif based on the same pair ID, such as 20170226_1030010066648800_1030010066CDE700 (did not include satellite name)
@@ -96,8 +115,8 @@ def mosaic_dem_list(key, dem_list, save_tif_dir,resample_method,save_source, o_f
     # if os.path.isfile(save_mosaic):
     b_save_mosaic = io_function.is_file_exist_subfolder(save_tif_dir, key + '.tif')
     if b_save_mosaic is not False:
-        basic.outputlogMessage('warning, mosaic file: %s exist, skip' % b_save_mosaic)
-        return b_save_mosaic
+        basic.outputlogMessage('warning, mosaic file: %s exist, skip' % save_mosaic)
+        return save_mosaic
         # mosaic_list.append(b_save_mosaic)
         # continue
     # save the source file for producing the mosaic
@@ -119,6 +138,38 @@ def mosaic_dem_list(key, dem_list, save_tif_dir,resample_method,save_source, o_f
         sys.exit(1)
         # return False
     return save_mosaic
+
+
+def mosaic_dem_list_gdal_merge(key, dem_list, save_tif_dir,save_source):
+    # Use gdal_merge.py to create a mosaic, In areas of overlap, the last image will be copied over earlier ones.
+
+    save_mosaic = os.path.join(save_tif_dir, key + '.tif')
+    b_save_mosaic = io_function.is_file_exist_subfolder(save_tif_dir, key + '.tif')
+    if b_save_mosaic is not False:
+        basic.outputlogMessage('warning, mosaic file: %s exist, skip' % save_mosaic)
+        return save_mosaic
+
+    # save the source file for producing the mosaic
+    if save_source:
+        save_mosaic_source_txt = os.path.join(save_tif_dir, key + '_src.txt')
+        io_function.save_list_to_txt(save_mosaic_source_txt, dem_list)
+
+    # if only one dem, then copy it if it's not VRT format
+    if len(dem_list) == 1:
+        if raster_io.get_driver_format(dem_list[0]) != 'VRT':
+            io_function.copy_file_to_dst(dem_list[0], save_mosaic)
+            return save_mosaic
+
+    # create mosaic, can handle only input one file, but is slow
+    result = RSImageProcess.mosaics_images(dem_list,save_mosaic,nodata=None,
+                                           compress='lzw', tiled='yes', bigtiff='if_safer')
+
+    if result is False:
+        sys.exit(1)
+        # return False
+    return save_mosaic
+
+
 
 def mosaic_dem_same_stripID(demTif_groups,save_tif_dir, resample_method, process_num=1, save_source=False, o_format='GTiff'):
     if os.path.isdir(save_tif_dir):
@@ -163,6 +214,48 @@ def mosaic_dem_date(demTif_date_groups,save_tif_dir, resample_method,process_num
 
     # becuase the tifs have been grouped, so we can use mosaic_dem_same_stripID
     return mosaic_dem_same_stripID(date_groups,save_tif_dir,resample_method, process_num=process_num,save_source=save_source,o_format=o_format)
+
+def mosaic_dem_same_year(demTif_year_groups, save_tif_dir, resample_method,process_num=1,save_source=False,o_format='GTiff'):
+    # convert the key in demTif_date_groups to string
+    year_groups = {}  # the key is year
+    for key in demTif_year_groups.keys():
+        new_key = str(key) + '0701' + '_dem'  # we consider July 1st as the middel of summer
+        # re arrage the order of tif file in each year, put the one in the middle of summer on top
+        year_dem_list = demTif_year_groups[key]
+        date_diff_list = []
+        mid_summer = timeTools.str2date(str(key) + '0701')
+        for dem_tif in year_dem_list:
+            dem_year_date = timeTools.get_yeardate_yyyymmdd(os.path.basename(dem_tif)[:8])  # time year is at the begining
+            date_diff = timeTools.diff_yeardate(mid_summer, dem_year_date)  # absolute of days
+            date_diff_list.append(date_diff)
+
+        # sort, put the largest one at the beginning
+        new_year_dem_list = [ tif for _,tif in sorted(zip(date_diff_list,year_dem_list),reverse=True)]
+        year_groups[new_key] = new_year_dem_list
+
+    #
+    if os.path.isdir(save_tif_dir):
+        io_function.mkdir(save_tif_dir)
+
+
+    mosaic_list = []
+    if process_num == 1:
+        for key in year_groups.keys():
+            save_mosaic = mosaic_dem_list_gdal_merge(key, year_groups[key], save_tif_dir,save_source)
+            mosaic_list.append(save_mosaic)
+    elif process_num > 1:
+        # change backk to multi process of gdalwarp, when get mosaic, gdalwarp multi-thread cannot fully utlized CPUs
+        theadPool = Pool(process_num)  # multi processes
+
+        parameters_list = [(key, year_groups[key], save_tif_dir, resample_method, save_source) for key in year_groups.keys()]
+        results = theadPool.starmap(mosaic_dem_list_gdal_merge, parameters_list)  # need python3
+        mosaic_list = [ out for out in results if out is not False]
+    else:
+        raise ValueError('Wrong process_num: %d'%process_num)
+
+    return mosaic_list
+
+
 
 def check_dem_valid_per(dem_tif_list, work_dir, process_num =1, move_dem_threshold = None, area_pixel_num=None):
     '''
@@ -415,7 +508,7 @@ def mask_dem_by_surface_water(crop_dem_list, extent_poly, extent_id, crop_tif_di
 
 def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id, b_mosaic_date, process_num,
                          keep_dem_percent, o_res, pre_name, resample_method='average', b_mask_matchtag=False,
-                    b_mask_stripDEM_outlier=False,b_mask_surface_water=False):
+                    b_mask_stripDEM_outlier=False,b_mask_surface_water=False,b_mosaic_year=False):
 
     org_dem_tif_list = dem_tif_list.copy()
 
@@ -516,6 +609,36 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
             # get valid pixel percentage
             dem_tif_list = check_dem_valid_per(dem_tif_list,mosaic_yeardate_dir,process_num=process_num, move_dem_threshold = keep_dem_percent,area_pixel_num=area_pixel_count)
 
+    # mosaic dem for the same year, choose DEM close to July 1 on top.
+    mosaic_year_dir = os.path.join(save_dir, 'dem_year_mosaic_sub_%d' % extent_id)
+    if b_mosaic_year:
+        # groups DEM with original images acquired at the same year
+        dem_groups_year = group_demTif_same_year(dem_tif_list)
+
+        # sort based on year in accending order : operator.itemgetter(0)
+        dem_groups_year = dict(sorted(dem_groups_year.items(), key=operator.itemgetter(0)))
+        # save to txt (json format)
+
+        year_txt = os.path.join(mosaic_dir, 'year_tif.txt')
+        io_function.save_dict_to_txt_json(year_txt, dem_groups_year)
+
+        if os.path.isfile(os.path.join(mosaic_year_dir, 'dem_valid_percent.txt')):
+            basic.outputlogMessage('mosaic based on acquisition year exists, skip mosaicking')
+            with open(os.path.join(mosaic_year_dir, 'dem_valid_percent.txt')) as f_job:
+                tif_valid_per_list = [line.strip().split() for line in f_job.readlines()]
+                # check keep_dem_percent
+                dem_tif_list = [os.path.join(mosaic_year_dir, tif) for tif, per in tif_valid_per_list
+                                if float(per) >= keep_dem_percent]
+        else:
+            io_function.mkdir(mosaic_year_dir)
+            # this is the output of mosaic, save to 'GTiff' format.
+            mosaic_list = mosaic_dem_same_year(dem_groups_year, mosaic_year_dir, resample_method,
+                                          process_num=process_num, save_source=True, o_format='GTiff')
+            dem_tif_list = mosaic_list
+
+            # get valid pixel percentage
+            dem_tif_list = check_dem_valid_per(dem_tif_list, mosaic_year_dir, process_num=process_num,
+                                               move_dem_threshold=keep_dem_percent, area_pixel_num=area_pixel_count)
 
     return dem_tif_list
 
