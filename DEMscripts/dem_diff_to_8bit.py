@@ -57,7 +57,7 @@ def test_dem_tif_to_8bit():
 
 
 def main():
-    basic.setlogfile('log_convet_dem_diff_to8bit.txt')
+    basic.setlogfile('log_convert_dem_diff_to8bit.txt')
     if os.path.isdir(grid_dem_diffs_8bit_dir) is False:
         io_function.mkdir(grid_dem_diffs_8bit_dir)
 
