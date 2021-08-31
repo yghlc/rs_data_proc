@@ -40,6 +40,7 @@ b_mosaic_id = True
 b_mosaic_date = True        # mosaic dem with one days
 b_max_subsidence = False        # apply max_subsidence make results worse
 b_apply_matchtag = True
+b_mosaic_year = True        # mosaic dem for the same year, choose DEM close to July 1 on top.
 b_mask_stripDEM_outlier = True  # mask outliers in strip DEM using the ArcticDEM tiles
 b_mask_surface_water = True     # mask pixel of surface water
 
@@ -167,7 +168,8 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
 
         mosaic_tif_list = mosaic_crop_dem(dem_list_sub, save_dir, grid_id, grid_poly, b_mosaic_id, b_mosaic_date,
                         process_num, keep_dem_percent, o_res, pre_name, resample_method='average',b_mask_matchtag=b_apply_matchtag,
-                                          b_mask_stripDEM_outlier=b_mask_stripDEM_outlier,b_mask_surface_water=b_mask_surface_water)
+                                          b_mask_stripDEM_outlier=b_mask_stripDEM_outlier,b_mask_surface_water=b_mask_surface_water,
+                                          b_mosaic_year=b_mosaic_year)
 
 
         # dem co-registration (cancel, the result in not good with the default setting)
