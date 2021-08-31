@@ -247,7 +247,7 @@ def mosaic_dem_same_year(demTif_year_groups, save_tif_dir, resample_method,proce
         # change backk to multi process of gdalwarp, when get mosaic, gdalwarp multi-thread cannot fully utlized CPUs
         theadPool = Pool(process_num)  # multi processes
 
-        parameters_list = [(key, year_groups[key], save_tif_dir, resample_method, save_source) for key in year_groups.keys()]
+        parameters_list = [(key, year_groups[key], save_tif_dir, save_source) for key in year_groups.keys()]
         results = theadPool.starmap(mosaic_dem_list_gdal_merge, parameters_list)  # need python3
         mosaic_list = [ out for out in results if out is not False]
     else:
