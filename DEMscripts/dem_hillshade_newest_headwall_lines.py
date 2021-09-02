@@ -82,7 +82,7 @@ def get_headwall_line_shp(headwall_shps_dir):
     for shp in headwall_shp:
         # headwall_shp_multiDates_9274.prj
         grid_id = int(re.findall('\d+',os.path.basename(shp))[0])
-        if grid_id in headwall_shp_group.keys():
+        if grid_id not in headwall_shp_group.keys():
             headwall_shp_group[grid_id] = shp
         else:
             raise ValueError('grid: %d already have a headwall Line shp'%grid_id)
