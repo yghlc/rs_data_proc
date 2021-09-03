@@ -13,6 +13,7 @@ import os,sys
 from optparse import OptionParser
 import time
 import re
+import numpy as np
 
 deeplabforRS = os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
@@ -43,12 +44,13 @@ b_mask_surface_water = True     # mask pixel of surface water
 def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
     #
     lines, years = vector_gpd.read_polygons_attributes_list(headwall_line_shp,'dem_year',b_fix_invalid_polygon=False)
-    rel_years = [ item - 1970 for item in years]  # in computer, the date calculate from 1970 Jan 1st.
+    print('Years:', sorted(set(years)))
+    relative_years = [ item - 1970 for item in years]  # in computer, the date calculate from 1970 Jan 1st.
     xres, yres = raster_io.get_xres_yres_file(hillshade_tif)
     # convert lines to polygons
     line_polys = [ poly.buffer(xres) for poly in lines ]
 
-    line_raster_array = raster_io.burn_polygons_to_a_raster(hillshade_tif,line_polys,rel_years,None)
+    line_raster_array = raster_io.burn_polygons_to_a_raster(hillshade_tif,line_polys,relative_years,None)
     # assigned color
     # we choose some color from: https://www.rapidtables.com/web/color/RGB_Color.html#color-table
     # because hillshade is white, so we avoid light color
@@ -67,12 +69,55 @@ def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
         'Navy':(0,0,128)
     }
 
-    #
+    #from dem_date_statistics.py, we can see DEM year range from 2008 to 2017
+    year_color_table = {
+        2008:color_table['Red'],    # that is (255,0,0)
+        2009:color_table['Lime'],
+        2010:color_table['Blue'],
+        2011:color_table['Yellow'],
+        2012:color_table['Cyan'],
+        2013:color_table['Magenta'],
+        2014:color_table['Maroon'],
+        2015:color_table['Olive'],
+        2016:color_table['Green'],
+        2017:color_table['Purple']
+    }
+
+    hillshade_np,nodata = raster_io.read_raster_all_bands_np(hillshade_tif)
+    height, width = line_raster_array.shape
+    img_3band = np.zeros((3,height, width),dtype=np.uint8)
+    # copy hillshade to thre band
+    for band in range(3):
+        img_3band[band,:,:] = hillshade_np[0,:,:]
+
+    # copy lines
+    years_of_lines = np.unique(line_raster_array)
+    years_of_lines = [ item + 1970 for item in years_of_lines if item > 0]
+    line_raster_array = line_raster_array.astype(np.int32) + 1970    # from uint8 to year
+    for year in years_of_lines:
+        if year not in year_color_table.keys():
+            print(year_color_table)
+            raise ValueError('Year %d is not in the above color table'%year)
+        print(year)
+        print(year_color_table[year])
+        loc = np.where(line_raster_array == year)
+        print(loc[0].size,width*height,loc[0].size/width*height)
+        img_3band[0,loc[0],loc[1]] = year_color_table[year][0]
+        img_3band[1,loc[0],loc[1]] = year_color_table[year][1]
+        img_3band[2,loc[0],loc[1]] = year_color_table[year][2]
 
 
+    # save to file
+    raster_io.save_numpy_array_to_rasterfile(img_3band,save_path,hillshade_tif,nodata=None,compress='lzw',tiled='yes',bigtiff='if_safer')
+    return raster_io.remove_nodata_from_raster_metadata(save_path)
 
 
+def test_draw_headwallLine_on_hillshade():
+    hillshade = os.path.expanduser('~/Data/dem_processing/grid_6174_tmp_files/dem_mosaic_newest_on_top_grid6174_hillshade.tif')
+    headwall_line_shp = os.path.expanduser('~/Data/dem_processing/headwall_shps_grid6174/headwall_shp_multiDates_6174.shp')
 
+    save_path = os.path.expanduser('~/Data/dem_processing/hillshade_line_grid6174.tif')
+    draw_headwallLine_on_hillshade(hillshade, headwall_line_shp, save_path)
 
 
 def get_headwall_line_shp(headwall_shps_dir):
@@ -225,6 +270,8 @@ def main(options, args):
     pass
 
 if __name__ == '__main__':
+    # test_draw_headwallLine_on_hillshade()
+    # sys.exit(0)
     usage = "usage: %prog [options] extent_shp or grid_id_list.txt "
     parser = OptionParser(usage=usage, version="1.0 2021-3-6")
     parser.description = 'Introduction: produce DEM difference from multiple temporal ArcticDEM  '
