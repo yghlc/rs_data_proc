@@ -30,7 +30,7 @@ from dem_mosaic_crop import mosaic_dem_list_gdal_merge
 from dem_to_hillshade_slope_8bit import dem_to_hillshade
 
 from dem_common import grid_hillshade_newest_HDLine_dir,grid_20_shp,\
-    arcticDEM_reg_tif_dir,grid_dem_headwall_shp_dir
+    arcticDEM_reg_tif_dir,grid_dem_headwall_shp_dir,grd_hillshade_newest_on_top_dir
 
 # some parameters
 b_mosaic_id = True          # mosaic dem with the same id
@@ -98,10 +98,10 @@ def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
         if year not in year_color_table.keys():
             print(year_color_table)
             raise ValueError('Year %d is not in the above color table'%year)
-        print(year)
-        print(year_color_table[year])
+        # print(year)
+        # print(year_color_table[year])
         loc = np.where(line_raster_array == year)
-        print(loc[0].size,width*height,loc[0].size/width*height)
+        # print(loc[0].size,width*height,loc[0].size/width*height)
         img_3band[0,loc[0],loc[1]] = year_color_table[year][0]
         img_3band[1,loc[0],loc[1]] = year_color_table[year][1]
         img_3band[2,loc[0],loc[1]] = year_color_table[year][2]
@@ -134,6 +134,54 @@ def get_headwall_line_shp(headwall_shps_dir):
 
     return headwall_shp_group
 
+def get_hillshade_newest_top(grid_id,grid_poly,dem_ext_polys,reg_tifs,process_num, keep_dem_percent, o_res, pre_name):
+
+    key = 'dem_mosaic_newest_on_top_grid%d' % grid_id
+    hillshade_tif = os.path.join(grd_hillshade_newest_on_top_dir, key+'_hillshade.tif')
+    if os.path.isfile(hillshade_tif):
+        print('Warning, %s exists, skip get hillshade'%hillshade_tif)
+        return hillshade_tif
+
+    save_dir = 'grid_%d_tmp_files' % grid_id
+
+    # check free disk space
+    work_dir = './'
+    free_GB = io_function.get_free_disk_space_GB(work_dir)
+    total_wait_time = 0
+    while free_GB < 50 and total_wait_time < 60 * 60 * 12:
+        print(' The free disk space (%.4f) is less than 50 GB, wait 60 seconds' % free_GB)
+        time.sleep(60)
+        total_wait_time += 60
+        free_GB = io_function.get_free_disk_space_GB(work_dir)
+
+    # get subset of tifs
+    dem_poly_index = vector_gpd.get_poly_index_within_extent(dem_ext_polys, grid_poly)
+    if len(dem_poly_index) < 1:
+        basic.outputlogMessage('warning, no dem tifs within %d grid, skip' % grid_id)
+        return None
+
+    dem_list_sub = [reg_tifs[index] for index in dem_poly_index]
+
+    mosaic_tif_list = mosaic_crop_dem(dem_list_sub, save_dir, grid_id, grid_poly, b_mosaic_id, b_mosaic_date,
+                                      process_num, keep_dem_percent, o_res, pre_name, resample_method='average',
+                                      b_mask_matchtag=b_apply_matchtag, b_mask_stripDEM_outlier=b_mask_stripDEM_outlier,
+                                      b_mask_surface_water=b_mask_surface_water, b_mosaic_year=b_mosaic_year)
+
+    # dem co-registration (cancel, the result in not good with the default setting)
+
+    # mosaic multi-year DEM, put the newest one on the top
+    dem_mosaic_yeardate = [timeTools.get_yeardate_yyyymmdd(os.path.basename(tif)[:8]) for tif in mosaic_tif_list]
+    # sort, put the oldest one at the beginning, newest one at the end
+    new_dem_list = [tif for _, tif in sorted(zip(dem_mosaic_yeardate, mosaic_tif_list))]
+    # mosaic them using gdal_merge.py
+
+    dem_mosaic_newest_top = mosaic_dem_list_gdal_merge(key, new_dem_list, save_dir, True)
+
+    # convert to hillshade
+    if dem_to_hillshade(dem_mosaic_newest_top, hillshade_tif) is False:
+        return False
+
+    return hillshade_tif
 
 def combine_hillshade_headwall_line(grid_polys, grid_ids, pre_name, reg_tifs, headwall_line_shps_group, b_mosaic_id,
                                     b_mosaic_date, keep_dem_percent, o_res, process_num=1):
@@ -148,45 +196,10 @@ def combine_hillshade_headwall_line(grid_polys, grid_ids, pre_name, reg_tifs, he
             print('warning, %s exist, skip grid %d'%(save_hillshade_headwall_path,grid_id))
             continue
 
-        save_dir = 'grid_%d_tmp_files' % grid_id
-
-        # check free disk space
-        work_dir = './'
-        free_GB = io_function.get_free_disk_space_GB(work_dir)
-        total_wait_time = 0
-        while free_GB < 50 and total_wait_time < 60 * 60 * 12:
-            print(' The free disk space (%.4f) is less than 50 GB, wait 60 seconds' % free_GB)
-            time.sleep(60)
-            total_wait_time += 60
-            free_GB = io_function.get_free_disk_space_GB(work_dir)
-
-        # get subset of tifs
-        dem_poly_index = vector_gpd.get_poly_index_within_extent(dem_ext_polys, grid_poly)
-        if len(dem_poly_index) < 1:
-            basic.outputlogMessage('warning, no dem tifs within %d grid, skip' % grid_id)
+        hillshade_tif = get_hillshade_newest_top(grid_id, grid_poly, dem_ext_polys, reg_tifs, process_num,
+                                                 keep_dem_percent, o_res,pre_name)
+        if hillshade_tif is None:
             continue
-        dem_list_sub = [reg_tifs[index] for index in dem_poly_index]
-
-
-        mosaic_tif_list = mosaic_crop_dem(dem_list_sub, save_dir, grid_id, grid_poly, b_mosaic_id, b_mosaic_date,
-                                          process_num, keep_dem_percent, o_res, pre_name, resample_method='average',
-                                          b_mask_matchtag=b_apply_matchtag,b_mask_stripDEM_outlier=b_mask_stripDEM_outlier,
-                                          b_mask_surface_water=b_mask_surface_water,b_mosaic_year=b_mosaic_year)
-
-        # dem co-registration (cancel, the result in not good with the default setting)
-
-        # mosaic multi-year DEM, put the newest one on the top
-        dem_mosaic_yeardate = [ timeTools.get_yeardate_yyyymmdd(os.path.basename(tif)[:8]) for tif in mosaic_tif_list ]
-        # sort, put the oldest one at the beginning, newest one at the end
-        new_dem_list = [ tif for _,tif in sorted(zip(dem_mosaic_yeardate,mosaic_tif_list))]
-        # mosaic them using gdal_merge.py
-        key = 'dem_mosaic_newest_on_top_grid%d'%grid_id
-        dem_mosaic_newest_top = mosaic_dem_list_gdal_merge(key,new_dem_list,save_dir,True)
-
-        # convert to hillshade
-        hillshade_tif = io_function.get_name_by_adding_tail(dem_mosaic_newest_top,'hillshade')
-        if dem_to_hillshade(dem_mosaic_newest_top,hillshade_tif) is False:
-            return False
 
         headwall_line_shp = headwall_line_shps_group[grid_id]
         # merge the hillshade and Headwall Line
@@ -237,6 +250,8 @@ def main(options, args):
 
     if os.path.isdir(grid_hillshade_newest_HDLine_dir) is False:
         io_function.mkdir(grid_hillshade_newest_HDLine_dir)
+    if os.path.isdir(grd_hillshade_newest_on_top_dir) is False:
+        io_function.mkdir(grd_hillshade_newest_on_top_dir)
 
     # read grids and ids
     time0 = time.time()

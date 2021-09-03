@@ -40,6 +40,8 @@ dem_slope_dir = os.path.join(ArcticDEM_tmp_dir,'dem_slope')
 dem_hillshade_dir = os.path.join(ArcticDEM_tmp_dir,'dem_hillshade')
 dem_tpi_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_tpi_8bit')
 
+grd_hillshade_newest_on_top_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_hillshade_newest_top_grid')
+
 dem_headwall_shp_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_headwall_shp')
 grid_dem_headwall_shp_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_headwall_shp_grid')
 grid_hillshade_newest_HDLine_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_hillshade_newest_HDLine_grid')
