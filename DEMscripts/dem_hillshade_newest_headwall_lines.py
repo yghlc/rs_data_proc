@@ -143,7 +143,7 @@ def combine_hillshade_headwall_line(grid_polys, grid_ids, pre_name, reg_tifs, he
     # mosaic and crop
     for grid_id, grid_poly in zip(grid_ids, grid_polys):
 
-        save_hillshade_headwall_path = os.path.join(grid_hillshade_newest_HDLine_dir, 'hillshade_HDLine_grid%d.tif')
+        save_hillshade_headwall_path = os.path.join(grid_hillshade_newest_HDLine_dir, 'hillshade_HDLine_grid%d.tif'%grid_id)
         if os.path.isfile(save_hillshade_headwall_path):
             print('warning, %s exist, skip grid %d'%(save_hillshade_headwall_path,grid_id))
             continue
