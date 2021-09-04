@@ -60,36 +60,44 @@ def get_grid_20(extent_shp_or_id_txt, grid_polys, ids):
         grid_ids = io_function.read_list_from_txt(extent_shp_or_id_txt)
         grid_ids = [int(item) for item in grid_ids ]
     else:
-        # extent polygons and projection (proj4)
-        extent_shp_prj = map_projection.get_raster_or_vector_srs_info_proj4(extent_shp_or_id_txt)
-        if extent_shp_prj == '':
-            raise ValueError('get proj4 of %s failed'%extent_shp_or_id_txt)
-        grid_shp_prj = map_projection.get_raster_or_vector_srs_info_proj4(grid_20_shp)
-        if grid_shp_prj=='':
-            raise ValueError('get proj4 of %s failed' % grid_20_shp)
-
-        if extent_shp_prj != grid_shp_prj:
-            basic.outputlogMessage('%s and %s do not have the same projection, will reproject %s'
-                                   % (extent_shp_or_id_txt, grid_20_shp, os.path.basename(extent_shp_or_id_txt)))
-            epsg = map_projection.get_raster_or_vector_srs_info_epsg(grid_20_shp)
-            # print(epsg)
-            # extent_polys = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp,dem_shp_prj.strip())
-            extent_polys = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp_or_id_txt, epsg)
+        shp_corresponding_grid_ids_txt = file_name_base+'_grid_ids.txt'
+        if os.path.isfile(shp_corresponding_grid_ids_txt):
+            print('corresponding grid ids txt file for %s exists, read grid id from txt'%extent_shp_or_id_txt)
+            grid_ids = [ int(item) for item in io_function.read_list_from_txt(shp_corresponding_grid_ids_txt)]
+            basic.outputlogMessage('read %d grids within the extents (%s)'
+                                   % (len(grid_ids), os.path.basename(extent_shp_or_id_txt)))
         else:
-            extent_polys = vector_gpd.read_polygons_gpd(extent_shp_or_id_txt)
+            # extent polygons and projection (proj4)
+            extent_shp_prj = map_projection.get_raster_or_vector_srs_info_proj4(extent_shp_or_id_txt)
+            if extent_shp_prj == '':
+                raise ValueError('get proj4 of %s failed'%extent_shp_or_id_txt)
+            grid_shp_prj = map_projection.get_raster_or_vector_srs_info_proj4(grid_20_shp)
+            if grid_shp_prj=='':
+                raise ValueError('get proj4 of %s failed' % grid_20_shp)
 
-        if len(extent_polys) < 1:
-            raise ValueError('No polygons in %s'%extent_shp_or_id_txt)
-        grid_index = []
-        for ext_poly in extent_polys:
-            index = vector_gpd.get_poly_index_within_extent(grid_polys, ext_poly)
-            grid_index.append(index)
-        grid_index = list(set(grid_index))  # remove duplicated ids
-        basic.outputlogMessage('find %d grids within the extents (%s)' % (len(grid_index), os.path.basename(extent_shp_or_id_txt)) )
+            if extent_shp_prj != grid_shp_prj:
+                basic.outputlogMessage('%s and %s do not have the same projection, will reproject %s'
+                                       % (extent_shp_or_id_txt, grid_20_shp, os.path.basename(extent_shp_or_id_txt)))
+                epsg = map_projection.get_raster_or_vector_srs_info_epsg(grid_20_shp)
+                # print(epsg)
+                # extent_polys = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp,dem_shp_prj.strip())
+                extent_polys = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp_or_id_txt, epsg)
+            else:
+                extent_polys = vector_gpd.read_polygons_gpd(extent_shp_or_id_txt)
 
-        grid_ids = [ ids[idx] for idx in grid_index]
-        grid_ids_str = [str(item) for item in grid_ids ]
-        io_function.save_list_to_txt(file_name_base+'_grid_ids.txt',grid_ids_str)
+            if len(extent_polys) < 1:
+                raise ValueError('No polygons in %s'%extent_shp_or_id_txt)
+            grid_index = []
+            # if there are many polygons, this will take time.
+            for ext_poly in extent_polys:
+                index = vector_gpd.get_poly_index_within_extent(grid_polys, ext_poly)
+                grid_index.append(index)
+            grid_index = list(set(grid_index))  # remove duplicated ids
+            basic.outputlogMessage('find %d grids within the extents (%s)' % (len(grid_index), os.path.basename(extent_shp_or_id_txt)) )
+
+            grid_ids = [ ids[idx] for idx in grid_index]
+            grid_ids_str = [str(item) for item in grid_ids ]
+            io_function.save_list_to_txt(shp_corresponding_grid_ids_txt,grid_ids_str)
 
     id_index = [ids.index(id) for id in grid_ids]
     selected_grid_polys = [grid_polys[idx] for idx in id_index ]
