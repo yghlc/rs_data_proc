@@ -78,10 +78,14 @@ def get_grid_20(extent_shp_or_id_txt, grid_polys, ids):
         else:
             extent_polys = vector_gpd.read_polygons_gpd(extent_shp_or_id_txt)
 
-        if len(extent_polys) != 1:
-            raise ValueError('Only support one extent polygon')
-        grid_index = vector_gpd.get_poly_index_within_extent(grid_polys, extent_polys[0])
-        basic.outputlogMessage('find %d grids within the extent (%s)' % (len(grid_index), os.path.basename(extent_shp_or_id_txt)) )
+        if len(extent_polys) < 1:
+            raise ValueError('No polygons in %s'%extent_shp_or_id_txt)
+        grid_index = []
+        for ext_poly in extent_polys:
+            index = vector_gpd.get_poly_index_within_extent(grid_polys, ext_poly)
+            grid_index.append(index)
+        grid_index = list(set(grid_index))  # remove duplicated ids
+        basic.outputlogMessage('find %d grids within the extents (%s)' % (len(grid_index), os.path.basename(extent_shp_or_id_txt)) )
 
         grid_ids = [ ids[idx] for idx in grid_index]
         grid_ids_str = [str(item) for item in grid_ids ]
