@@ -95,6 +95,7 @@ def get_grid_20(extent_shp_or_id_txt, grid_polys, ids):
                 print(timeTools.get_now_time_str(),idx,ext_poly_count)
                 out_poly_list = vector_gpd.get_poly_within_extent(grid_polys, ext_poly,polygon_boxes=grid_polygon_boxes)
                 select_grid_poly_list.extend(out_poly_list)
+            grid_polys = grid_polys.tolist()
             grid_index = [ grid_polys.index(poly) for poly in select_grid_poly_list ]
             grid_index = list(set(grid_index))  # remove duplicated
             basic.outputlogMessage('find %d grids within the extents (%s)' % (len(grid_index), os.path.basename(extent_shp_or_id_txt)) )
