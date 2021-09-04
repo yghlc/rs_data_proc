@@ -85,13 +85,14 @@ def get_grid_20(extent_shp_or_id_txt, grid_polys, ids):
             else:
                 extent_polys = vector_gpd.read_polygons_gpd(extent_shp_or_id_txt)
 
-            if len(extent_polys) < 1:
+            ext_poly_count = len(extent_polys)
+            if ext_poly_count < 1:
                 raise ValueError('No polygons in %s'%extent_shp_or_id_txt)
             grid_index = []
             # if there are many polygons, this will take time.
             grid_polygon_boxes = [vector_gpd.get_polygon_bounding_box(item) for item in grid_polys]
             for idx,ext_poly in enumerate(extent_polys):
-                print(timeTools.get_now_time_str(),idx)
+                print(timeTools.get_now_time_str(),idx,ext_poly_count)
                 index = vector_gpd.get_poly_index_within_extent(grid_polys, ext_poly,polygon_boxes=grid_polygon_boxes)
                 grid_index.extend(index)
             grid_index = list(set(grid_index))  # remove duplicated ids
