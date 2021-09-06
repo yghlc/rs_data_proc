@@ -88,9 +88,9 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
     # print(options.create_mosaic)
 
-    if len(sys.argv) < 2 or len(args) < 1:
-        parser.print_help()
-        sys.exit(2)
+    # if len(sys.argv) < 2 or len(args) < 1:
+    #     parser.print_help()
+    #     sys.exit(2)
 
     main(options, args)
     pass
