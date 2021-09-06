@@ -27,16 +27,18 @@ from dem_common import arcticDEM_reg_tif_dir, grid_dem_diffs_dir
 import multiprocessing
 from multiprocessing import Pool
 
-def check_one_tif(idx,total,tif_path):
+def check_one_tif(idx,total,tif_path, good_tif_list):
+    if os.path.basename(tif_path) in good_tif_list:
+        return True
     try:
         print('checking %d/%d' % (idx, total))
         # src = raster_io.open_raster_read(tif_path)
         data, nodata = raster_io.read_raster_all_bands_np(tif_path)
     except:
         print('invalid tif: %s' % tif_path)
-        return tif_path
+        return False
 
-    return None
+    return True
 
 
 def main(options, args):
@@ -46,27 +48,33 @@ def main(options, args):
 
     tifs = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir, '*_dem_reg.tif')
     save_invalid_txt_path = os.path.basename(arcticDEM_reg_tif_dir) + '_invalid_list.txt'
-    # save_good_txt_path = os.path.basename(arcticDEM_reg_tif_dir) + '_good_list.txt'
+    save_good_txt_path = os.path.basename(arcticDEM_reg_tif_dir) + '_good_list.txt'
     tif_count = len(tifs)
 
+    good_tifs = []
+    if os.path.isfile(save_good_txt_path):
+        good_tifs.extend(io_function.read_list_from_txt(save_good_txt_path))
     invalid_tif = []
 
     if process_num == 1:
         # tifs = io_function.get_file_list_by_ext('.tif',arcticDEM_reg_tif_dir, bsub_folder=False)
         for idx,tif in enumerate(tifs):
-            tif_name = os.path.basename(tif)
-            result = check_one_tif(idx,tif_count,tif)
-            if result is None:
-                pass
+            if check_one_tif(idx,tif_count,tif,good_tifs):
+                good_tifs.append(os.path.basename(tif))
             else:
-                invalid_tif.append(tif_name)
+                invalid_tif.append(os.path.basename(tif))
     else:
         theadPool = Pool(process_num)  # multi processes
-        parameters_list = [(idx,tif_count,tif) for idx,tif in enumerate(tifs)]
+        parameters_list = [(idx,tif_count,tif,good_tifs) for idx,tif in enumerate(tifs)]
         results = theadPool.starmap(check_one_tif, parameters_list)  # need python3
-        invalid_tif = [ os.path.basename(out) for out in results if out is not None]
+        for tif, res in zip(tifs,results):
+            if res:
+                good_tifs.append(os.path.basename(tif))
+            else:
+                invalid_tif.append(os.path.basename(tif))
 
     io_function.save_list_to_txt(save_invalid_txt_path, invalid_tif)
+    io_function.save_list_to_txt(save_good_txt_path,good_tifs)
         
 
     # tifs = io_function.get_file_list_by_ext('.tif', grid_dem_diff_dir, bsub_folder=False)
