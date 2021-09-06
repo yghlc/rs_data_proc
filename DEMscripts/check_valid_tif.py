@@ -24,6 +24,8 @@ machine_name = os.uname()[1]
 # some folder paths
 from dem_common import arcticDEM_reg_tif_dir, grid_dem_diffs_dir
 
+import multiprocessing
+from multiprocessing import Pool
 
 # check valid tif
 def check_tif(tif_list):
@@ -39,20 +41,39 @@ def check_tif(tif_list):
             # src = raster_io.open_raster_read(tif_path)
             data, nodata = raster_io.read_raster_all_bands_np(tif_path)
         except:
-            basic.outputlogMessage(' invalid tif: %s'%tif_path)
+            basic.outputlogMessage('invalid tif: %s'%tif_path)
             invalid_list.append(tif_path)
     return invalid_list
 
+def check_one_tif(idx,total,tif_path):
+    try:
+        print('checking %d/%d' % (idx, total))
+        # src = raster_io.open_raster_read(tif_path)
+        data, nodata = raster_io.read_raster_all_bands_np(tif_path)
+    except:
+        print('invalid tif: %s' % tif_path)
+        return tif_path
+
+    return None
+
 
 def main():
+    process_num = multiprocessing.cpu_count()
 
-    tifs = io_function.get_file_list_by_ext('.tif',arcticDEM_reg_tif_dir, bsub_folder=False)
-    invalid_tif = check_tif(tifs)
+    tifs = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir, '*_dem_reg.tif')
     save_txt_path = os.path.basename(arcticDEM_reg_tif_dir) + '_invalid_list.txt'
-    io_function.save_list_to_txt(save_txt_path,invalid_tif)
-    # for tif in invalid_tif:
-    #     print('removing %s'%tif)
-        # io_function.delete_file_or_dir(tif)
+    tif_count = len(tifs)
+
+    if process_num == 1:
+        # tifs = io_function.get_file_list_by_ext('.tif',arcticDEM_reg_tif_dir, bsub_folder=False)
+        invalid_tif = check_tif(tifs)
+    else:
+        theadPool = Pool(process_num)  # multi processes
+        parameters_list = [(idx,tif_count,tif) for idx,tif in enumerate(tifs)]
+        results = theadPool.starmap(check_one_tif, parameters_list)  # need python3
+        invalid_tif = [ out for out in results if out is not None]
+
+    io_function.save_list_to_txt(save_txt_path, invalid_tif)
         
 
     # tifs = io_function.get_file_list_by_ext('.tif', grid_dem_diff_dir, bsub_folder=False)
