@@ -46,7 +46,7 @@ def main(options, args):
     # process_num = multiprocessing.cpu_count()
     process_num = options.process_num
 
-    tifs = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir, '*_dem_reg.tif')
+    tifs = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir, '*.tif') # _dem_reg check all tifs
     save_invalid_txt_path = os.path.basename(arcticDEM_reg_tif_dir) + '_invalid_list.txt'
     save_good_txt_path = os.path.basename(arcticDEM_reg_tif_dir) + '_good_list.txt'
     tif_count = len(tifs)
