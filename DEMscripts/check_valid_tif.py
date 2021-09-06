@@ -64,7 +64,7 @@ def main(options, args):
         theadPool = Pool(process_num)  # multi processes
         parameters_list = [(idx,tif_count,tif) for idx,tif in enumerate(tifs)]
         results = theadPool.starmap(check_one_tif, parameters_list)  # need python3
-        invalid_tif = [ out for out in results if out is not None]
+        invalid_tif = [ os.path.basename(out) for out in results if out is not None]
 
     io_function.save_list_to_txt(save_invalid_txt_path, invalid_tif)
         
