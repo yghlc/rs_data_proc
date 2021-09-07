@@ -376,7 +376,7 @@ def remove_based_on_slope_area(slope_bin_path, min_slope_area_size,max_slope_are
     '''
 
     # to shapefile
-    slope_bin_shp = vector_gpd.raster2shapefile(slope_bin_path,connect8=True)
+    slope_bin_shp = vector_gpd.raster2shapefile(slope_bin_path,connect8=True,format='GPKG')
     if slope_bin_shp is None:
         return False
 
