@@ -898,10 +898,10 @@ def test_extract_headwall_based_medial_axis_from_slope():
     # work_dir = os.path.expanduser('~/Data/dem_processing')
     # save_dir = os.path.expanduser('~/Data/dem_processing/grid_6174_tmp_files')
 
-    data_dir = os.path.expanduser('~/Data/dem_processing/grid_9274_tmp_files/slope_sub_9274')
-    slope_tif = os.path.join(data_dir,'20150507_dem_slope.tif')
-    work_dir = os.path.expanduser('~/Data/dem_processing/grid_9274_tmp_files')
-    save_dir = os.path.expanduser('~/Data/dem_processing/grid_9274_tmp_files')
+    data_dir = os.path.expanduser('~/Data/dem_processing/grid_9053_tmp_files/slope_sub_9053')
+    slope_tif = os.path.join(data_dir,'20140701_dem_slope.tif')
+    work_dir = os.path.expanduser('~/Data/dem_processing/grid_9053_tmp_files')
+    save_dir = os.path.expanduser('~/Data/dem_processing/grid_9053_tmp_files')
 
     slope_threshold = 20
     min_area_size = 200     # in m^2
