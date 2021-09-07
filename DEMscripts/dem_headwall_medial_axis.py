@@ -375,6 +375,11 @@ def remove_based_on_slope_area(slope_bin_path, min_slope_area_size,max_slope_are
     :return:
     '''
 
+    slope_bin_edit_path = io_function.get_name_by_adding_tail(slope_bin_path,'edit')
+    if os.path.isfile(slope_bin_edit_path):
+        print('%s exists, skip remove_based_on_slope_area'%slope_bin_edit_path)
+        return slope_bin_edit_path
+
     # to shapefile
     slope_bin_shp = vector_gpd.raster2shapefile(slope_bin_path,connect8=True,format='GPKG')
     if slope_bin_shp is None:
@@ -407,14 +412,12 @@ def remove_based_on_slope_area(slope_bin_path, min_slope_area_size,max_slope_are
     remain_polygons = [ vector_gpd.fill_holes_in_a_polygon(item) for item in polyons_noMulti ]
 
     # backup old slope file
-    slope_bin_path_bak = io_function.get_name_by_adding_tail(slope_bin_path,'bak')
-    io_function.move_file_to_dst(slope_bin_path,slope_bin_path_bak)
 
     # burn the remain polygons raster
-    raster_io.burn_polygons_to_a_raster(slope_bin_path_bak,remain_polygons,255,slope_bin_path)
-    raster_io.set_nodata_to_raster_metadata(slope_bin_path,0)
+    raster_io.burn_polygons_to_a_raster(slope_bin_path,remain_polygons,255,slope_bin_edit_path)
+    raster_io.set_nodata_to_raster_metadata(slope_bin_edit_path,0)
 
-    return slope_bin_path
+    return slope_bin_edit_path
 
 
 # def calculate_remove_based_on_line_segments(medial_axis_shp, max_line_segments,wkt, rm_line_segment_shp):
@@ -798,14 +801,14 @@ def extract_headwall_based_medial_axis_from_slope(idx, total, slope_tif, work_di
     if slope_tif_to_slope_bin(slope_tif, slope_bin_path, slope_threshold) is None:
         return False
 
-    # remove some large and small slope areas and updated slope_bin_path
-    slope_bin_path = remove_based_on_slope_area(slope_bin_path,min_area_size,max_area_size)
-    if slope_bin_path is False:
+    # remove some large and small slope areas and save to slope_bin_edit_path
+    slope_bin_edit_path = remove_based_on_slope_area(slope_bin_path,min_area_size,max_area_size)
+    if slope_bin_edit_path is False:
         return False
 
     # get medial axis raster
-    medial_axis_tif = io_function.get_name_by_adding_tail(slope_bin_path,'medial_axis')
-    if slope_bin_to_medial_axis_raster(slope_bin_path, medial_axis_tif) is None:
+    medial_axis_tif = io_function.get_name_by_adding_tail(slope_bin_edit_path,'medial_axis')
+    if slope_bin_to_medial_axis_raster(slope_bin_edit_path, medial_axis_tif) is None:
         return False
     medial_axis_dist_tif = io_function.get_name_by_adding_tail(medial_axis_tif,'dist')
     if os.path.isfile(medial_axis_dist_tif) is False:
