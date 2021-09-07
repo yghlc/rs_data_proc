@@ -549,6 +549,8 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
     if b_mask_surface_water:
         # the water mask, resolution is 30 meters
         mask_water_tifs = mask_dem_by_surface_water(dem_tif_list, extent_poly, extent_id, crop_tif_dir, 30, process_num)
+        if mask_water_tifs is False:
+            raise ValueError('masking by surface water failed')
         dem_tif_list = mask_water_tifs
 
 
