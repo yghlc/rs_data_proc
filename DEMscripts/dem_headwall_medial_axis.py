@@ -398,7 +398,13 @@ def remove_based_on_slope_area(slope_bin_path, min_slope_area_size,max_slope_are
 
     #fill holes before rasterize, making medial axis or skeleton easier
     # buffer to solve MultiPolygon issues
-    remain_polygons = [ vector_gpd.fill_holes_in_a_polygon(item.buffer(0.01)) for item in remain_polygons ]
+    remain_polygons = [ item.buffer(0.01) for item in remain_polygons ]
+    polyons_noMulti = []
+    for idx, poly in enumerate(remain_polygons):
+        tmp_polygons = vector_gpd.MultiPolygon_to_polygons(idx, poly)
+        polyons_noMulti.extend([ item for item in  tmp_polygons if item.area >= min_slope_area_size])
+    basic.outputlogMessage('convert MultiPolygon to polygons and remove tiny ones, remain %d ones' % (len(polyons_noMulti)))
+    remain_polygons = [ vector_gpd.fill_holes_in_a_polygon(item) for item in polyons_noMulti ]
 
     # backup old slope file
     slope_bin_path_bak = io_function.get_name_by_adding_tail(slope_bin_path,'bak')
