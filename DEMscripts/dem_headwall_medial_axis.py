@@ -13,6 +13,7 @@ import os,sys
 from optparse import OptionParser
 import time
 
+from skimage import measure
 from skimage import morphology
 import numpy as np
 import pandas as pd
@@ -380,42 +381,95 @@ def remove_based_on_slope_area(slope_bin_path, min_slope_area_size,max_slope_are
         print('%s exists, skip remove_based_on_slope_area'%slope_bin_edit_path)
         return slope_bin_edit_path
 
-    # to shapefile
-    slope_bin_shp = vector_gpd.raster2shapefile(slope_bin_path,connect8=True,format='GPKG')
-    if slope_bin_shp is None:
-        return False
+    ################################################################################
+    # the idea of polygonize, then remove large and samll region based on areas is not good
+    # because polygonize make take a lot of time (> 12 hours) if the slope_bin is large and complex.
+    #
+    # # to shapefile
+    # slope_bin_shp = vector_gpd.raster2shapefile(slope_bin_path,connect8=True,format='GPKG')
+    # if slope_bin_shp is None:
+    #     return False
+    #
+    # polygons = vector_gpd.read_polygons_gpd(slope_bin_shp, b_fix_invalid_polygon=False)
+    #
+    # remain_polygons = []
+    # # remove  large or small regions
+    # remove_count = 0
+    # for idx, poly in enumerate(polygons):
+    #     # remove quite large or too small ones
+    #     if poly.area > max_slope_area_size or poly.area < min_slope_area_size:
+    #         remove_count += 1
+    #         continue
+    #     remain_polygons.append(poly)
+    # basic.outputlogMessage('remove %d large or tiny slope areas based on area, remain %d ones' %(remove_count, len(remain_polygons)))
+    #
+    # if len(remain_polygons) < 1:
+    #     return False
+    #
+    # #fill holes before rasterize, making medial axis or skeleton easier
+    # # buffer to solve MultiPolygon issues
+    # remain_polygons = [ item.buffer(0.01) for item in remain_polygons ]
+    # polyons_noMulti = []
+    # for idx, poly in enumerate(remain_polygons):
+    #     tmp_polygons = vector_gpd.MultiPolygon_to_polygons(idx, poly)
+    #     polyons_noMulti.extend([ item for item in  tmp_polygons if item.area >= min_slope_area_size])
+    # basic.outputlogMessage('convert MultiPolygon to polygons and remove tiny ones, remain %d ones' % (len(polyons_noMulti)))
+    # remain_polygons = [ vector_gpd.fill_holes_in_a_polygon(item) for item in polyons_noMulti ]
+    #
+    #
+    # # burn the remain polygons raster
+    # raster_io.burn_polygons_to_a_raster(slope_bin_path,remain_polygons,255,slope_bin_edit_path)
+    # raster_io.set_nodata_to_raster_metadata(slope_bin_edit_path,0)
 
-    polygons = vector_gpd.read_polygons_gpd(slope_bin_shp, b_fix_invalid_polygon=False)
+    ################################################################################
+    # edit the raaster direclty using skimage
+    resx, resy = raster_io.get_xres_yres_file(slope_bin_path)
+    slope_bin_np,nodata = raster_io.read_raster_one_band_np(slope_bin_path)
+    # set background, label 0 will be ignored
+    labels = measure.label(slope_bin_np,background=nodata,connectivity=2)  # 2-connectivity, 8 neighbours
+    # get regions
+    regions = measure.regionprops(labels)
 
-    remain_polygons = []
-    # remove  large or small regions
+    # based on each region, to edit raster
+    edit_slope_np = np.zeros_like(slope_bin_np)
     remove_count = 0
-    for idx, poly in enumerate(polygons):
-        # remove quite large or too small ones
-        if poly.area > max_slope_area_size or poly.area < min_slope_area_size:
+    remain_regions = []
+    for idx, reg in enumerate(regions):
+        # area = reg.area * resx * resy # pixel to m^2
+        area = reg.filled_area * resx * resy # pixel to m^2   filled_area or area_filled
+        if area > max_slope_area_size or area < min_slope_area_size:
             remove_count += 1
             continue
-        remain_polygons.append(poly)
-    basic.outputlogMessage('remove %d large or tiny slope areas based on area, remain %d ones' %(remove_count, len(remain_polygons)))
+        remain_regions.append(reg)
 
-    if len(remain_polygons) < 1:
-        return False
+    basic.outputlogMessage('remove %d large or tiny slope areas based on area, remain %d ones' % (remove_count, len(remain_regions)))
 
-    #fill holes before rasterize, making medial axis or skeleton easier
-    # buffer to solve MultiPolygon issues
-    remain_polygons = [ item.buffer(0.01) for item in remain_polygons ]
-    polyons_noMulti = []
-    for idx, poly in enumerate(remain_polygons):
-        tmp_polygons = vector_gpd.MultiPolygon_to_polygons(idx, poly)
-        polyons_noMulti.extend([ item for item in  tmp_polygons if item.area >= min_slope_area_size])
-    basic.outputlogMessage('convert MultiPolygon to polygons and remove tiny ones, remain %d ones' % (len(polyons_noMulti)))
-    remain_polygons = [ vector_gpd.fill_holes_in_a_polygon(item) for item in polyons_noMulti ]
+    # fill holes?
 
-    # backup old slope file
+    # write remain_regions to
+    for idx, reg in enumerate(remain_regions):
+        # get regions
+        # print(reg.coords)
+        # row, col = reg.coords[:,0], reg.coords[:,1]
+        # if reg.area != reg.filled_area:
+        #     print(reg.area, reg.filled_area)
+        #     print(reg.filled_image)
+        #     print(np.sum(reg.filled_image))
+        #     # print(row, col)
+        #     sys.exit(0)
+        # edit_slope_np[row, col] = 255
 
-    # burn the remain polygons raster
-    raster_io.burn_polygons_to_a_raster(slope_bin_path,remain_polygons,255,slope_bin_edit_path)
-    raster_io.set_nodata_to_raster_metadata(slope_bin_edit_path,0)
+        # get region and fill the hole
+        bbox = reg.bbox # (min_row, min_col, max_row, max_col) #Pixels belonging to the bounding box are in the half-open interval [min_row; max_row) and [min_col; max_col).
+        loc = np.where(reg.filled_image==True)
+        # print(loc)
+        row = loc[0] + bbox[0]
+        col = loc[1] + bbox[1]
+        # print(row,col)
+        edit_slope_np[row, col] = 255
+        # sys.exit(0)
+
+    raster_io.save_numpy_array_to_rasterfile(edit_slope_np,slope_bin_edit_path,slope_bin_path,compress='lzw',tiled='yes',bigtiff='if_safer')
 
     return slope_bin_edit_path
 
