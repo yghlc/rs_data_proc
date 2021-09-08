@@ -177,9 +177,9 @@ def submit_produce_dem_diff_job(ids_list, idx,grid_base_name,max_job_count):
 
 def submit_hillshade_newest_headwall_line_grid_job(ids_list, idx, grid_base_name,max_job_count):
 
-    wait_if_reach_max_jobs(max_job_count,'dLine')   # draw Line on hillshade
+    wait_if_reach_max_jobs(max_job_count,'dLi')   # draw Line on hillshade
 
-    job_name = 'dLine%d'%idx
+    job_name = 'dLi%d'%idx
     check_length_jobname(job_name)
     work_dir = working_dir_string(idx, 'hillshade_newest_headwall_line_', root=root_dir)
     if os.path.isdir(work_dir) is False:
