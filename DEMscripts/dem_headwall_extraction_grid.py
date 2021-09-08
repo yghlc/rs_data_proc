@@ -112,16 +112,16 @@ def dem_list_to_slope_list(dem_list, save_dir, extent_id, process_num=1):
 
     return slope_list
 
-def merge_multi_headwall_shp_to_one(shp_dir, save_path):
+def merge_multi_headwall_shp_to_one(shp_list, save_path):
     '''
     merge multiple shapefile of headwall on different dates to one file
     :param shp_dir:
     :param save_path:
     :return:
     '''
-    shp_list = io_function.get_file_list_by_ext('.shp',shp_dir,bsub_folder=False)
+    # shp_list = io_function.get_file_list_by_ext('.shp',shp_dir,bsub_folder=False)
     if len(shp_list) < 1:
-        print('Warning, no shapefile in %s, skip merging multiple shapefiles'%shp_dir)
+        print('Warning, no input shapefile, skip merging multiple shapefiles')
         return False
 
     if os.path.isfile(save_path):
@@ -208,13 +208,18 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
                                                              min_size, max_size,min_length, max_length, max_hole_count, max_axis_width, process_num) is False:
                 basic.outputlogMessage('extract headwall from %s failed'%slope)
 
+        headwall_shp_list = io_function.get_file_list_by_ext('.shp', multi_headwall_shp_dir, bsub_folder=False)
+        if len(headwall_shp_list) < 1:
+            basic.outputlogMessage('Warning, no headwall shapefile in %s' % multi_headwall_shp_dir)
+            return False
+
         # merge headwall detected on different dates.
         save_headwall_folder = os.path.join(grid_dem_headwall_shp_dir,'headwall_shps_grid%d'%grid_id)
         if os.path.isdir(save_headwall_folder) is False:
             io_function.mkdir(save_headwall_folder)
 
         save_merged_shp = os.path.join(save_headwall_folder, 'headwall_shp_multiDates_%d.shp' % grid_id)
-        if merge_multi_headwall_shp_to_one(multi_headwall_shp_dir, save_merged_shp) is False:
+        if merge_multi_headwall_shp_to_one(headwall_shp_list, save_merged_shp) is False:
             return False
 
         # have not find a good method to merge them, just copy all of them now
