@@ -44,7 +44,7 @@ grd_hillshade_newest_on_top_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_hillshade
 
 dem_headwall_shp_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_headwall_shp')
 grid_dem_headwall_shp_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_headwall_shp_grid')
-grid_hillshade_newest_HDLine_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_hillshade_newest_HDLine_grid')
+grid_hillshade_newest_HDLine_dir = os.path.join(ArcticDEM_tmp_dir, 'dem_hillshade_newest_HWLine_grid')
 
 
 dem_hillshade_subImages_headwall = os.path.join(ArcticDEM_tmp_dir, 'dem_hillshade_subImages_headwall')
