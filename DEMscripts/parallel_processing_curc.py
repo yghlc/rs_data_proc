@@ -30,6 +30,10 @@ jobsh_dir = os.path.expanduser('/projects/lihu9680/Data/Arctic/dem_proc_jobs')
 machine_name = os.uname()[1]
 curc_username = 'lihu9680'
 
+def check_length_jobname(job_name):
+    if len(job_name) > 8:
+        raise ValueError('the length job name exceed 8 letters, will be cut off to 8, leading to troubles')
+
 def wait_if_reach_max_jobs(max_job_count,job_name_substr):
     while True:
         job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr=job_name_substr)
@@ -73,6 +77,7 @@ def submit_segment_dem_diff_job(dem_diff_list, idx,max_job_count):
     wait_if_reach_max_jobs(max_job_count,'seg')
 
     job_name = 'seg%d'%idx
+    check_length_jobname(job_name)
     work_dir = working_dir_string(idx, 'seg_dem_diff_', root=root_dir)
     if os.path.isdir(work_dir) is False:
         io_function.mkdir(work_dir)
@@ -132,6 +137,7 @@ def submit_produce_dem_diff_job(ids_list, idx,grid_base_name,max_job_count):
     wait_if_reach_max_jobs(max_job_count,'demD')
 
     job_name = 'demD%d'%idx
+    check_length_jobname(job_name)
     work_dir = working_dir_string(idx, 'dem_diff_', root=root_dir)
     if os.path.isdir(work_dir) is False:
         io_function.mkdir(work_dir)
@@ -174,6 +180,7 @@ def submit_hillshade_newest_headwall_line_grid_job(ids_list, idx, grid_base_name
     wait_if_reach_max_jobs(max_job_count,'dLine')   # draw Line on hillshade
 
     job_name = 'dLine%d'%idx
+    check_length_jobname(job_name)
     work_dir = working_dir_string(idx, 'hillshade_newest_headwall_line_', root=root_dir)
     if os.path.isdir(work_dir) is False:
         io_function.mkdir(work_dir)
@@ -248,6 +255,7 @@ def submit_extract_headwall_grid_job(ids_list, idx, grid_base_name,max_job_count
     wait_if_reach_max_jobs(max_job_count,'gHW')
 
     job_name = 'gHW%d'%idx
+    check_length_jobname(job_name)
     work_dir = working_dir_string(idx, 'extract_headwall_grid_', root=root_dir)
     if os.path.isdir(work_dir) is False:
         io_function.mkdir(work_dir)
@@ -288,6 +296,7 @@ def submit_extract_headwall_job(slope_tifs, idx, max_job_count):
     wait_if_reach_max_jobs(max_job_count,'HW')
 
     job_name = 'HW%d'%idx
+    check_length_jobname(job_name)
     work_dir = working_dir_string(idx, 'extract_headwall_', root=root_dir)
     if os.path.isdir(work_dir) is False:
         io_function.mkdir(work_dir)
