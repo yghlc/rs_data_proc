@@ -279,6 +279,9 @@ def medial_axis_raster_to_vector(in_medial_axis_tif, medial_axis_dist_tif,out_ve
 
 
     polys = vector_gpd.read_polygons_gpd(out_vector_shp,b_fix_invalid_polygon=False)
+    if len(polys) < 1:
+        basic.outputlogMessage('warning, no medial_axis in %s'%in_medial_axis_tif)
+        return None
 
     # calculate the attributes before buffer
     # from the area, we can tell how many pixels in each line (line segment), each pixel have size of 2*2 m^2
