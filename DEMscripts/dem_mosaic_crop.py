@@ -584,7 +584,7 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
                                                move_dem_threshold=keep_dem_percent, area_pixel_num=area_pixel_count)
 
     if len(dem_tif_list) < 1:
-        basic.outputlogMessage('No DEM with valid_percent greater than %s'%str(keep_dem_percent))
+        basic.outputlogMessage('No dem_stripID_mosaic with valid_percent greater than %s'%str(keep_dem_percent))
         return []
 
 
