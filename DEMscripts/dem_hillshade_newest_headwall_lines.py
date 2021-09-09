@@ -167,6 +167,9 @@ def get_hillshade_newest_top(grid_id,grid_poly,dem_ext_polys,reg_tifs,process_nu
                                       b_mask_matchtag=b_apply_matchtag, b_mask_stripDEM_outlier=b_mask_stripDEM_outlier,
                                       b_mask_surface_water=b_mask_surface_water, b_mosaic_year=b_mosaic_year)
 
+    if len(mosaic_tif_list)<1:
+        basic.outputlogMessage('warning, failed to get DEM mosaic for grid %d'%grid_id)
+        return None
     # dem co-registration (cancel, the result in not good with the default setting)
 
     # mosaic multi-year DEM, put the newest one on the top
