@@ -56,6 +56,10 @@ def main(options, args):
         good_tifs.extend(io_function.read_list_from_txt(save_good_txt_path))
     invalid_tif = []
 
+    # remove good one for the list
+    if len(good_tifs)>0:
+        tifs = [item for item in tifs if os.path.basename(item) not in good_tifs]
+
     if process_num == 1:
         # tifs = io_function.get_file_list_by_ext('.tif',arcticDEM_reg_tif_dir, bsub_folder=False)
         for idx,tif in enumerate(tifs):

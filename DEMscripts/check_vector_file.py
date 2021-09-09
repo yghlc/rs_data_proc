@@ -62,6 +62,10 @@ def main(options, args):
         good_files.extend(io_function.read_list_from_txt(save_good_txt_path))
     incomplete_files = []
 
+    # remove good one for the list
+    if len(good_files)>0:
+        vector_files = [item for item in vector_files if os.path.basename(item) not in good_files]
+
     if process_num == 1:
         # tifs = io_function.get_file_list_by_ext('.tif',arcticDEM_reg_tif_dir, bsub_folder=False)
         for idx, tif in enumerate(vector_files):
