@@ -45,11 +45,16 @@ def main(options, args):
 
     # process_num = multiprocessing.cpu_count()
     process_num = options.process_num
+    data_folder = arcticDEM_reg_tif_dir
+    if len(args) > 0:
+        data_folder = args[0]
 
-    tifs = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir, '*.tif') # _dem_reg check all tifs
-    save_invalid_txt_path = os.path.basename(arcticDEM_reg_tif_dir) + '_invalid_list.txt'
-    save_good_txt_path = os.path.basename(arcticDEM_reg_tif_dir) + '_good_list.txt'
+    tifs = io_function.get_file_list_by_pattern(data_folder, '*.tif') # _dem_reg check all tifs
+    save_invalid_txt_path = os.path.basename(data_folder) + '_invalid_list.txt'
+    save_good_txt_path = os.path.basename(data_folder) + '_good_list.txt'
     tif_count = len(tifs)
+
+    basic.outputlogMessage('get %d tif files in %s' % (tif_count,data_folder))
 
     good_tifs = []
     if os.path.isfile(save_good_txt_path):
@@ -61,7 +66,6 @@ def main(options, args):
         tifs = [item for item in tifs if os.path.basename(item) not in good_tifs]
 
     if process_num == 1:
-        # tifs = io_function.get_file_list_by_ext('.tif',arcticDEM_reg_tif_dir, bsub_folder=False)
         for idx,tif in enumerate(tifs):
             if check_one_tif(idx,tif_count,tif,good_tifs):
                 good_tifs.append(os.path.basename(tif))
