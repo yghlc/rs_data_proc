@@ -51,10 +51,11 @@ def main(options, args):
     data_folder = grid_dem_headwall_shp_dir
 
 
-    vector_files = io_function.get_file_list_by_ext(data_folder, '*.shp',bsub_folder=True)
+    vector_files = io_function.get_file_list_by_ext('.shp',data_folder ,bsub_folder=True)
     save_invalid_txt_path = os.path.basename(data_folder) + '_incomplete_list.txt'
     save_good_txt_path = os.path.basename(data_folder) + '_good_list.txt'
     file_count = len(vector_files)
+    basic.outputlogMessage('The number of vector files: %d'%file_count)
 
     good_files = []
     if os.path.isfile(save_good_txt_path):
