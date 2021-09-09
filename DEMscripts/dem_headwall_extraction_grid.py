@@ -185,6 +185,9 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
                                           b_mask_matchtag=b_apply_matchtag,b_mask_stripDEM_outlier=b_mask_stripDEM_outlier,
                                           b_mask_surface_water=b_mask_surface_water,b_mosaic_year=b_mosaic_year)
 
+        if len(mosaic_tif_list) < 1:
+            basic.outputlogMessage('warning, failed to get DEM mosaic for grid %d' % grid_id)
+            continue
         # dem co-registration (cancel, the result in not good with the default setting)
 
         # to slope
@@ -211,7 +214,7 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
         headwall_shp_list = io_function.get_file_list_by_ext('.shp', multi_headwall_shp_dir, bsub_folder=False)
         if len(headwall_shp_list) < 1:
             basic.outputlogMessage('Warning, no headwall shapefile in %s' % multi_headwall_shp_dir)
-            return False
+            continue
 
         # merge headwall detected on different dates.
         save_headwall_folder = os.path.join(grid_dem_headwall_shp_dir,'headwall_shps_grid%d'%grid_id)
@@ -220,7 +223,7 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
 
         save_merged_shp = os.path.join(save_headwall_folder, 'headwall_shp_multiDates_%d.shp' % grid_id)
         if merge_multi_headwall_shp_to_one(headwall_shp_list, save_merged_shp) is False:
-            return False
+            continue
 
         # have not find a good method to merge them, just copy all of them now
         # res = os.system('cp -r %s %s'%(multi_headwall_shp_dir,save_headwall_folder))

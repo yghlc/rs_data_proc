@@ -182,7 +182,7 @@ def get_hillshade_newest_top(grid_id,grid_poly,dem_ext_polys,reg_tifs,process_nu
 
     # convert to hillshade
     if dem_to_hillshade(dem_mosaic_newest_top, hillshade_tif) is False:
-        return False
+        return None
 
     return hillshade_tif
 
@@ -207,7 +207,7 @@ def combine_hillshade_headwall_line(grid_polys, grid_ids, pre_name, reg_tifs, he
         headwall_line_shp = headwall_line_shps_group[grid_id]
         # merge the hillshade and Headwall Line
         if draw_headwallLine_on_hillshade(hillshade_tif,headwall_line_shp,save_hillshade_headwall_path) is False:
-            return False
+            continue
 
         hillshade_HDLine_tifs.append(save_hillshade_headwall_path)
 
