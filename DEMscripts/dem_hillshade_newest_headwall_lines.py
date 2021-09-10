@@ -206,7 +206,9 @@ def combine_hillshade_headwall_line(grid_polys, grid_ids, pre_name, reg_tifs, he
                                                  keep_dem_percent, o_res,pre_name)
         if hillshade_tif is None:
             continue
-
+        if grid_id not in headwall_line_shps_group.keys():
+            basic.outputlogMessage('warning, grid %d does not have shapefile of headwall lines, skip'%grid_id)
+            continue
         headwall_line_shp = headwall_line_shps_group[grid_id]
         # merge the hillshade and Headwall Line
         if draw_headwallLine_on_hillshade(hillshade_tif,headwall_line_shp,save_hillshade_headwall_path) is False:
