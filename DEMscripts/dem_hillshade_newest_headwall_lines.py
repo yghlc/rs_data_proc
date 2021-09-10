@@ -44,6 +44,9 @@ b_mask_surface_water = True     # mask pixel of surface water
 def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
     #
     lines, years = vector_gpd.read_polygons_attributes_list(headwall_line_shp,'dem_year',b_fix_invalid_polygon=False)
+    sorted_years = sorted(set(years))
+    if np.sum(np.isnan(sorted_years)) > 0:
+        raise ValueError('dem_year: nan values in %s '% headwall_line_shp )
     print('Years:', sorted(set(years)))
     relative_years = [ item - 1970 for item in years]  # in computer, the date calculate from 1970 Jan 1st.
     xres, yres = raster_io.get_xres_yres_file(hillshade_tif)
