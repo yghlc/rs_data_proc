@@ -128,6 +128,7 @@ def get_max_min_histogram_percent_allBands(bin_edges, hist_allBands, min_percent
 def main(options, args):
 
     img_dir_or_path = args[0]
+    file_pattern = options.file_pattern
     if os.path.isdir(img_dir_or_path):
         pre_name = os.path.basename(img_dir_or_path)
     else:
@@ -158,7 +159,8 @@ def main(options, args):
         if options.planet_geojson is True:
             tif_list = get_Planet_image_tif_list(img_dir_or_path, options.extent_shp)
         elif os.path.isdir(img_dir_or_path):
-            tif_list = io_function.get_file_list_by_ext('.tif', img_dir_or_path, bsub_folder=True)
+            # tif_list = io_function.get_file_list_by_ext('.tif', img_dir_or_path, bsub_folder=True)
+            tif_list = io_function.get_file_list_by_pattern(img_dir_or_path,pattern=file_pattern)
         else:
             tif_list = [img_dir_or_path]
         if len(tif_list) < 1:
@@ -267,6 +269,10 @@ if __name__ == '__main__':
     parser.add_option("-e", "--extent_shp",
                       action="store", dest="extent_shp",
                       help="the path for extent, shapefile")
+
+    parser.add_option("", "--file_pattern",
+                      action="store", dest="file_pattern",default='*.tif',
+                      help="the pattern to get raster list in a folder")
 
     parser.add_option("-p", "--planet_geojson",
                       action="store_true", dest="planet_geojson",default=False,
