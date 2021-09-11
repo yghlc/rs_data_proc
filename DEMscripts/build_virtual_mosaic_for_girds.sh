@@ -4,6 +4,7 @@
 ## in QGIS, open many rasters at once are really slow
 
 # if there are many files, it's relatively slow, but still manageable
+# build overview files may can help
 
 # ref: https://gis.stackexchange.com/questions/52367/handling-many-raster-files-in-qgis
 
@@ -19,3 +20,7 @@ ls ${dir}/*.tif > infile_list.txt
 save_vrt=~/Data/dem_processing/dem_hillshade_newest_HWLine_grid.vrt
 gdalbuildvrt -resolution average -r nearest -input_file_list infile_list.txt ${save_vrt}
 rm infile_list.txt
+
+
+# merge shapefile (GPKG format can support > 2GB)
+#ogrmerge.py -o headwall_line_shps.gpkg -f GPKG -single -progress  headwall_shps_grid*/*.shp
