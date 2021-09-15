@@ -363,6 +363,16 @@ def main(options, args):
     n_tif_per_jobs = options.n_tif_per_job  # each job, have how many tif to segment
     extent_shp = options.extent_shp
 
+    if options.user_name is not None:
+        global curc_username
+        curc_username = options.user_name
+    if options.working_dir is not None:
+        global root_dir
+        root_dir = options.working_dir
+    if options.script_dir is not None:
+        global jobsh_dir
+        jobsh_dir = options.script_dir
+
     if task_name == 'segment':
         run_segment_jobs(max_job_count, n_tif_per_jobs)
     elif task_name == 'dem_diff':
@@ -395,6 +405,18 @@ if __name__ == '__main__':
     parser.add_option("-e", "--extent_shp",
                       action="store", dest="extent_shp",
                       help="the extent shapefile")
+
+    parser.add_option("-u", "--user_name",
+                      action="store", dest="user_name",
+                      help="the username of the server")
+
+    parser.add_option("", "--working_dir",
+                      action="store", dest="working_dir",
+                      help="the working directory")
+    parser.add_option("", "--script_dir",
+                      action="store", dest="script_dir",
+                      help="the directory that template scripts ")
+
 
     (options, args) = parser.parse_args()
     # print(options.create_mosaic)

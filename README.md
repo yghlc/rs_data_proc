@@ -10,5 +10,11 @@ This repo provides scriptos for downloading and pre-processing different sources
     planetScripts/get_planet_image_list.py: the the metadata and coverage of
     downloade Planet images.     
 
+### Install notes
+Some functions in this repo depend on [DeeplabforRS](https://github.com/yghlc/DeeplabforRS.git),
+please clone them:
+
+    git clone https://github.com/yghlc/DeeplabforRS.git ~/codes/PycharmProjects/DeeplabforRS
+
     
     
