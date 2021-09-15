@@ -75,7 +75,7 @@ def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
             line_raster_count += raster_array_np
 
         # the later year will replace the previous one
-        line_raster_array[np.where(raster_array_np) == 1] = year
+        line_raster_array[np.where(raster_array_np == 1) ] = year
 
     # save line for each pixel
     line_count_path = io_function.get_name_by_adding_tail(save_path,'count')
