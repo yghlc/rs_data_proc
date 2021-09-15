@@ -104,6 +104,10 @@ def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
     for band in range(3):
         img_3band[band,:,:] = hillshade_np[0,:,:]
 
+    # delete to save memory
+    del hillshade_np
+    gc.collect()
+
     print('created an image with three bands, used memory:', proc.memory_info()[0]/(1024*1024*1024.0),'GB')
     print('img_3band, used memory:', img_3band.size*img_3band.itemsize/(1024*1024*1024.0),'GB')
 
