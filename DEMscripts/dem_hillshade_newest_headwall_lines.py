@@ -10,6 +10,7 @@ email:huanglingcao@gmail.com
 add time: 02 September, 2021
 """
 import os,sys
+import psutil
 from optparse import OptionParser
 import time
 import re
@@ -43,17 +44,23 @@ b_mask_surface_water = True     # mask pixel of surface water
 
 def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
     #
+    proc = psutil.Process(os.getpid())
+
     lines, years = vector_gpd.read_polygons_attributes_list(headwall_line_shp,'dem_year',b_fix_invalid_polygon=False)
     sorted_years = sorted(set(years))
     if np.sum(np.isnan(sorted_years)) > 0:
         raise ValueError('dem_year: nan values in %s '% headwall_line_shp )
     print('Years:', sorted(set(years)))
+    print('before rasterizing lines, used memory:', proc.memory_info()[0]/(1024*1024*1024.0),'GB')
     relative_years = [ item - 1970 for item in years]  # in computer, the date calculate from 1970 Jan 1st.
     xres, yres = raster_io.get_xres_yres_file(hillshade_tif)
     # convert lines to polygons
     line_polys = [ poly.buffer(xres) for poly in lines ]
-
+    
     line_raster_array = raster_io.burn_polygons_to_a_raster(hillshade_tif,line_polys,relative_years,None)
+    print('complete rasterizing lines, used memory:', proc.memory_info()[0]/(1024*1024*1024.0),'GB')
+    print('line_raster_array, used memory:', line_raster_array.size*line_raster_array.itemsize/(1024*1024*1024.0),'GB')
+    line_polys = None   # set as None, to save memory
     # assigned color
     # we choose some color from: https://www.rapidtables.com/web/color/RGB_Color.html#color-table
     # because hillshade is white, so we avoid light color
@@ -93,6 +100,9 @@ def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
     for band in range(3):
         img_3band[band,:,:] = hillshade_np[0,:,:]
 
+    print('created an image with three bands, used memory:', proc.memory_info()[0]/(1024*1024*1024.0),'GB')
+    print('img_3band, used memory:', img_3band.size*img_3band.itemsize/(1024*1024*1024.0),'GB')
+
     # copy lines
     years_of_lines = np.unique(line_raster_array)
     years_of_lines = [ item + 1970 for item in years_of_lines if item > 0]
@@ -109,6 +119,8 @@ def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
         img_3band[1,loc[0],loc[1]] = year_color_table[year][1]
         img_3band[2,loc[0],loc[1]] = year_color_table[year][2]
 
+
+    print('complete assigning line colors, used memory:', proc.memory_info()[0]/(1024*1024*1024.0),'GB')
 
     # save to file
     raster_io.save_numpy_array_to_rasterfile(img_3band,save_path,hillshade_tif,nodata=None,compress='lzw',tiled='yes',bigtiff='if_safer')
