@@ -39,7 +39,7 @@ b_mosaic_date = True        # mosaic dem within one day
 b_mosaic_year = True        # mosaic dem for the same year, choose DEM close to July 1 on top.
 b_apply_matchtag = False     # don't apply matchtag, it seems that matchtag make local value DEM after merging worse
 b_mask_stripDEM_outlier = True  # mask outliers in strip DEM using the ArcticDEM tiles
-b_mask_surface_water = True     # mask pixel of surface water
+b_mask_surface_water = False     # don't mask pixel of surface water, since it may not accurate and mask some true ground surface
 
 
 def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
