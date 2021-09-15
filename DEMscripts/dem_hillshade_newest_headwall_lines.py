@@ -11,6 +11,7 @@ add time: 02 September, 2021
 """
 import os,sys
 import psutil
+import gc
 from optparse import OptionParser
 import time
 import re
@@ -60,7 +61,10 @@ def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
     line_raster_array = raster_io.burn_polygons_to_a_raster(hillshade_tif,line_polys,relative_years,None)
     print('complete rasterizing lines, used memory:', proc.memory_info()[0]/(1024*1024*1024.0),'GB')
     print('line_raster_array, used memory:', line_raster_array.size*line_raster_array.itemsize/(1024*1024*1024.0),'GB')
-    line_polys = None   # set as None, to save memory
+    # delete to save memory
+    del line_polys
+    gc.collect()
+
     # assigned color
     # we choose some color from: https://www.rapidtables.com/web/color/RGB_Color.html#color-table
     # because hillshade is white, so we avoid light color
