@@ -63,7 +63,7 @@ def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
     # rasterize lines for each year
     line_raster_year_group = {}
     line_raster_count = None
-    line_raster_array = np.zeros((3, height, width), dtype=np.int16)
+    line_raster_array = np.zeros((height, width), dtype=np.int16)
     for idx, year in enumerate(sorted_years):
         line_polys_year = [ line for line, y in zip(line_polys,years) if y == year ]
         print('rasterize %d line polygons of year: %d'%(len(line_polys_year), year))
