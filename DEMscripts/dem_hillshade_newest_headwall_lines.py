@@ -53,12 +53,37 @@ def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
         raise ValueError('dem_year: nan values in %s '% headwall_line_shp )
     print('Years:', sorted(set(years)))
     print('before rasterizing lines, used memory:', proc.memory_info()[0]/(1024*1024*1024.0),'GB')
-    relative_years = [ item - 1970 for item in years]  # in computer, the date calculate from 1970 Jan 1st.
+    # relative_years = [ item - 1970 for item in years]  # in computer, the date calculate from 1970 Jan 1st.
     xres, yres = raster_io.get_xres_yres_file(hillshade_tif)
     # convert lines to polygons
     line_polys = [ poly.buffer(xres) for poly in lines ]
+
+    height, width,_,_ = raster_io.get_height_width_bandnum_dtype(hillshade_tif)
     
-    line_raster_array = raster_io.burn_polygons_to_a_raster(hillshade_tif,line_polys,relative_years,None)
+    # rasterize lines for each year
+    line_raster_year_group = {}
+    line_raster_count = None
+    line_raster_array = np.zeros((3, height, width), dtype=np.int16)
+    for idx, year in enumerate(sorted_years):
+        line_polys_year = [ line for line, y in zip(line_polys,years) if y == year ]
+        print('rasterize %d line polygons of year: %d'%(len(line_polys_year), year))
+        raster_array_np = raster_io.burn_polygons_to_a_raster(hillshade_tif,line_polys_year,1,None,date_type='uint8')
+        line_raster_year_group[year] = raster_array_np
+        if idx == 0:
+            line_raster_count = raster_array_np.copy()  # copy the entire array.
+        else:
+            line_raster_count += raster_array_np
+
+        # the later year will replace the previous one
+        line_raster_array[np.where(raster_array_np) == 1] = year
+
+    # save line for each pixel
+    line_count_path = io_function.get_name_by_adding_tail(save_path,'count')
+    raster_io.save_numpy_array_to_rasterfile(line_raster_count, line_count_path, hillshade_tif, nodata=None, compress='lzw',tiled='yes', bigtiff='if_safer')
+    raster_io.remove_nodata_from_raster_metadata(line_count_path)
+
+    # line_raster_array = raster_io.burn_polygons_to_a_raster(hillshade_tif,line_polys,relative_years,None)
+
     print('complete rasterizing lines, used memory:', proc.memory_info()[0]/(1024*1024*1024.0),'GB')
     print('line_raster_array, used memory:', line_raster_array.size*line_raster_array.itemsize/(1024*1024*1024.0),'GB')
     # delete to save memory
@@ -98,7 +123,6 @@ def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
     }
 
     hillshade_np,nodata = raster_io.read_raster_all_bands_np(hillshade_tif)
-    height, width = line_raster_array.shape
     img_3band = np.zeros((3,height, width),dtype=np.uint8)
     # copy hillshade to thre band
     for band in range(3):
@@ -112,10 +136,10 @@ def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
     print('img_3band, used memory:', img_3band.size*img_3band.itemsize/(1024*1024*1024.0),'GB')
 
     # copy lines
-    years_of_lines = np.unique(line_raster_array)
-    years_of_lines = [ item + 1970 for item in years_of_lines if item > 0]
-    line_raster_array = line_raster_array.astype(np.int32) + 1970    # from uint8 to year
-    for year in years_of_lines:
+    # years_of_lines = np.unique(line_raster_array)
+    # years_of_lines = [ item + 1970 for item in years_of_lines if item > 0]
+    # line_raster_array = line_raster_array.astype(np.int32) + 1970    # from uint8 to year
+    for year in sorted_years:
         if year not in year_color_table.keys():
             print(year_color_table)
             raise ValueError('Year %d is not in the above color table'%year)
