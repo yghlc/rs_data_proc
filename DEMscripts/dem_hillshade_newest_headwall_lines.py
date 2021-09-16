@@ -43,6 +43,81 @@ b_mask_stripDEM_outlier = True  # mask outliers in strip DEM using the ArcticDEM
 b_mask_surface_water = False     # don't mask pixel of surface water, since it may not accurate and mask some true ground surface
 
 
+def output_line_color_legend(color_table,year_color_table, save_path):
+
+    if os.path.isfile(save_path):
+        print('Already exists: %s' % os.path.abspath(save_path))
+        return save_path
+
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(6, 4))  #
+    ax1 = fig.add_subplot(111)
+
+    for idx,year in enumerate(year_color_table.keys()):
+        x0, y0 = 0.5, idx + 1
+        x1, y1 = 2.5, idx + 1
+
+        color_name = ""
+        for name in color_table.keys():
+            if year_color_table[year] == color_table[name]:
+                color_name = name
+                break
+
+
+        color_0_1 = [item/255.0 for item in year_color_table[year]  ]   # to 0-1
+        print(year_color_table[year], color_0_1)
+        ax1.plot((x0,x1),(y0,y1),color=color_0_1, linewidth=3)      # label='Sine wave'
+        ax1.text(x1 + 0.1,y1 - 0.2,'%d, %s'%(year,color_name),fontsize=12)
+
+    plt.xlim([0, 4])
+    plt.title('Legend of annual headwall lines', fontsize=14)
+    plt.axis('off')
+    # plt.show()
+    plt.savefig(save_path, dpi=200)
+    print('Saving to %s'%os.path.abspath(save_path))
+
+    pass
+
+
+def test_output_line_color_legend():
+
+    # assigned color
+    # we choose some color from: https://www.rapidtables.com/web/color/RGB_Color.html#color-table
+    # because hillshade is white, so we avoid light color
+    color_table = {
+        'Red':(255,0,0),
+        'Lime':(0,255,0),  # bright green
+        'Blue':(0,0,255),
+        'Yellow':(255,255,0),
+        'Cyan':(0,255,255),
+        'Magenta':(255,0,255),
+        'Maroon':(128,0,0),
+        'Olive':(128,128,0),
+        'Green':(0,128,0),
+        'Purple':(128,0,128),
+        'Teal':(0,128,128),
+        'Navy':(0,0,128)
+    }
+
+    #from dem_date_statistics.py, we can see DEM year range from 2008 to 2017
+    year_color_table = {
+        2008:color_table['Red'],    # that is (255,0,0)
+        2009:color_table['Lime'],
+        2010:color_table['Blue'],
+        2011:color_table['Yellow'],
+        2012:color_table['Cyan'],
+        2013:color_table['Magenta'],
+        2014:color_table['Maroon'],
+        2015:color_table['Olive'],
+        2016:color_table['Green'],
+        2017:color_table['Purple']
+    }
+
+    save_path = 'line_color_legned.jpg'
+
+    output_line_color_legend(color_table, year_color_table, save_path)
+
+
 def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
     #
     proc = psutil.Process(os.getpid())
@@ -121,6 +196,10 @@ def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
         2016:color_table['Green'],
         2017:color_table['Purple']
     }
+    # save the legend to files
+    legend_path = 'line_color_legned.jpg'
+    if os.path.isfile(legend_path) is False:
+        output_line_color_legend(color_table, year_color_table, legend_path)
 
     hillshade_np,nodata = raster_io.read_raster_all_bands_np(hillshade_tif)
     img_3band = np.zeros((3,height, width),dtype=np.uint8)
@@ -338,6 +417,7 @@ def main(options, args):
 
 if __name__ == '__main__':
     # test_draw_headwallLine_on_hillshade()
+    # test_output_line_color_legend()
     # sys.exit(0)
     usage = "usage: %prog [options] extent_shp or grid_id_list.txt "
     parser = OptionParser(usage=usage, version="1.0 2021-3-6")
