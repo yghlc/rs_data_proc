@@ -16,8 +16,13 @@
 set -eE -o functrace
 
 dir=~/Data/dem_processing/dem_hillshade_newest_HWLine_grid
-ls ${dir}/*.tif > infile_list.txt
-save_vrt=~/Data/dem_processing/dem_hillshade_newest_HWLine_grid.vrt
+#ls ${dir}/*.tif | grep -v count > infile_list.txt
+#save_vrt=~/Data/dem_processing/dem_hillshade_newest_HWLine_grid.vrt
+#gdalbuildvrt -resolution average -r nearest -input_file_list infile_list.txt ${save_vrt}
+#rm infile_list.txt
+
+ls ${dir}/*count.tif > infile_list.txt
+save_vrt=~/Data/dem_processing/dem_hillshade_newest_HWLine_count_grid.vrt
 gdalbuildvrt -resolution average -r nearest -input_file_list infile_list.txt ${save_vrt}
 rm infile_list.txt
 
