@@ -85,18 +85,18 @@ def test_output_line_color_legend():
     # we choose some color from: https://www.rapidtables.com/web/color/RGB_Color.html#color-table
     # because hillshade is white, so we avoid light color
     color_table = {
-        'Red':(255,0,0),
-        'Lime':(0,255,0),  # bright green
-        'Blue':(0,0,255),
-        'Yellow':(255,255,0),
-        'Cyan':(0,255,255),
-        'Magenta':(255,0,255),
-        'Maroon':(128,0,0),
-        'Olive':(128,128,0),
-        'Green':(0,128,0),
-        'Purple':(128,0,128),
-        'Teal':(0,128,128),
-        'Navy':(0,0,128)
+        'Red':(255,1,1),
+        'Lime':(1,255,1),  # bright green
+        'Blue':(1,1,255),
+        'Yellow':(255,255,1),
+        'Cyan':(1,255,255),
+        'Magenta':(255,1,255),
+        'Maroon':(128,1,1),
+        'Olive':(128,128,1),
+        'Green':(1,128,1),
+        'Purple':(128,1,128),
+        'Teal':(1,128,128),
+        'Navy':(1,1,128)
     }
 
     #from dem_date_statistics.py, we can see DEM year range from 2008 to 2017
@@ -169,18 +169,18 @@ def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
     # we choose some color from: https://www.rapidtables.com/web/color/RGB_Color.html#color-table
     # because hillshade is white, so we avoid light color
     color_table = {
-        'Red':(255,0,0),
-        'Lime':(0,255,0),  # bright green
-        'Blue':(0,0,255),
-        'Yellow':(255,255,0),
-        'Cyan':(0,255,255),
-        'Magenta':(255,0,255),
-        'Maroon':(128,0,0),
-        'Olive':(128,128,0),
-        'Green':(0,128,0),
-        'Purple':(128,0,128),
-        'Teal':(0,128,128),
-        'Navy':(0,0,128)
+        'Red':(255,1,1),
+        'Lime':(1,255,1),  # bright green
+        'Blue':(1,1,255),
+        'Yellow':(255,255,1),
+        'Cyan':(1,255,255),
+        'Magenta':(255,1,255),
+        'Maroon':(128,1,1),
+        'Olive':(128,128,1),
+        'Green':(1,128,1),
+        'Purple':(128,1,128),
+        'Teal':(1,128,128),
+        'Navy':(1,1,128)
     }
 
     #from dem_date_statistics.py, we can see DEM year range from 2008 to 2017
