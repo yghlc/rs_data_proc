@@ -69,7 +69,7 @@ for tif in ${dir}/*.tif; do
     echo ${mask_tif} exists, skip
   else
     gdal_calc.py -A $tif --A_band=1 -B $tif --B_band=2 -C $tif --C_band=3  -D $tif --allBands=D \
-        --outfile=${mask_tif}  --calc="((A+B+C)<3)*D"
+        --outfile=${mask_tif} --NoDataValue=${src_nodata}  --calc="((A+B+C)<3)*D"
   fi
 
   # reporject
