@@ -64,7 +64,7 @@ for tif in ${dir}/*.tif; do
   fi
 
   # mask nodata pixel
-  mask_tif=${filename_noext}_mask.tif
+  mask_tif=${tmp}/${filename_noext}_mask.tif
   if [ -f ${mask_tif} ]; then
     echo ${mask_tif} exists, skip
   else
@@ -88,6 +88,7 @@ for tif in ${dir}/*.tif; do
           -s ${src_min_b3} ${src_max_b3} ${dst_min} ${dst_max} \
           -N ${src_nodata} -n ${nodata} ${prj_out} ${out_8bit}
 
+  rm ${mask_tif}
   rm ${prj_out}
 
 done
