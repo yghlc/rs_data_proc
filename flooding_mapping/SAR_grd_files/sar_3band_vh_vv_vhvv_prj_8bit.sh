@@ -26,7 +26,7 @@ src_min_b2=0.74
 src_max_b2=1.0
 
 src_min_b3=1.0
-src_max_b3=1.0
+src_max_b3=2.0
 
 dst_min=1
 dst_max=255
