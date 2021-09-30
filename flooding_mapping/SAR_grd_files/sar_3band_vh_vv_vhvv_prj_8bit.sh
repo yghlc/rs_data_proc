@@ -32,7 +32,10 @@ dst_min=1
 dst_max=255
 
 # set nodata  in the source images
-src_nodata=1
+# trouble: all the values in 3rd is 1, nodata region (outside image) is also 1, so sad.
+# so we try to set pixel with band1+band2+band3 >=3 as 0, but may also mask some valid pixel.
+
+src_nodata=0
 nodata=0
 
 # 98% cut histogram, min, max information
@@ -60,13 +63,22 @@ for tif in ${dir}/*.tif; do
     continue
   fi
 
+  # mask nodata pixel
+  mask_tif=${filename_noext}_mask.tif
+  if [ -f ${mask_tif} ]; then
+    echo ${mask_tif} exists, skip
+  else
+    gdal_calc.py -A $tif --A_band=1 -B $tif --B_band=2 -C $tif --C_band=3  -D $tif --allBands=D \
+        --outfile=${mask_tif}  --calc="((A+B+C)<3)*D"
+  fi
+
   # reporject
   prj_out=${tmp}/${filename_noext}_prj.tif
   if [ -f ${prj_out} ]; then
     echo ${prj_out} exist, skip
   else
     gdalwarp -tr ${res} ${res} -t_srs ${prj} \
-          -multi -wo NUM_THREADS=8  -r cubic -dstnodata ${src_nodata} $tif  ${prj_out}
+          -multi -wo NUM_THREADS=8  -r cubic -dstnodata ${src_nodata} $mask_tif  ${prj_out}
   fi
 
   # to 8bit
