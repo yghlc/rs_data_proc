@@ -30,6 +30,9 @@ src_max_b3=2.0
 
 dst_min=1
 dst_max=255
+
+# set nodata  in the source images
+src_nodata=1
 nodata=0
 
 # 98% cut histogram, min, max information
@@ -63,7 +66,7 @@ for tif in ${dir}/*.tif; do
     echo ${prj_out} exist, skip
   else
     gdalwarp -tr ${res} ${res} -t_srs ${prj} \
-          -multi -wo NUM_THREADS=8  -r cubic -dstnodata ${nodata} $tif  ${prj_out}
+          -multi -wo NUM_THREADS=8  -r cubic -dstnodata ${src_nodata} $tif  ${prj_out}
   fi
 
   # to 8bit
@@ -71,7 +74,7 @@ for tif in ${dir}/*.tif; do
   $py8  -s ${src_min_b1} ${src_max_b1} ${dst_min} ${dst_max}  \
           -s ${src_min_b2} ${src_max_b2} ${dst_min} ${dst_max} \
           -s ${src_min_b3} ${src_max_b3} ${dst_min} ${dst_max} \
-          -n ${nodata} ${prj_out} ${out_8bit}
+          -N ${src_nodata} -n ${nodata} ${prj_out} ${out_8bit}
 
   rm ${prj_out}
 

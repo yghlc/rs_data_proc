@@ -29,6 +29,8 @@ def main(options, args):
     io_function.is_file_exist(img_path)
 
     img_np_allbands, src_nodata = raster_io.read_raster_all_bands_np(img_path)
+    if options.src_nodata is not None:
+        src_nodata = options.src_nodata
 
     scales = options.scale
     if scales is not None:
@@ -60,6 +62,10 @@ if __name__ == '__main__':
     parser.add_option("-s", "--scale", nargs=4, action='append',
                       help="similar to src_min src_max dst_min dst_max, "
                            "repeat -s for multiple time for different bands if need")
+
+    parser.add_option("-N", "--src_nodata", action='store', type=float,
+                      help="nodata for the source data (different from the one in metadata), if None")
+
     parser.add_option("-n", "--dst_nodata", action='store', type=int,
                       help="nodata for output, if None, then is the same as source file")
 
