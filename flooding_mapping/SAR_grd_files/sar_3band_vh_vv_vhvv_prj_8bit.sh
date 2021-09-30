@@ -51,17 +51,27 @@ for tif in ${dir}/*.tif; do
   filename=$(basename $tif)
   filename_noext=${filename%.*}
 
+  out_8bit=${filename_noext}_prj_8bit.tif
+  if [ -f ${out_8bit} ]; then
+    echo ${out_8bit} exist, skip
+    continue
+  fi
+
   # reporject
   prj_out=${tmp}/${filename_noext}_prj.tif
-  gdalwarp -tr ${res} ${res} -t_srs ${prj} \
+  if [ -f ${prj_out} ]; then
+    echo ${prj_out} exist, skip
+  else
+    gdalwarp -tr ${res} ${res} -t_srs ${prj} \
           -multi -wo NUM_THREADS=8  -r cubic -dstnodata ${nodata} $tif  ${prj_out}
+  fi
 
   # to 8bit
-  out_8bit=${filename_noext}_prj_8bit.tif
+
   $py8  -s ${src_min_b1} ${src_max_b1} ${dst_min} ${dst_max}  \
-        -s ${src_min_b2} ${src_max_b2} ${dst_min} ${dst_max} \
-        -s ${src_min_b3} ${src_max_b3} ${dst_min} ${dst_max} \
-        -n ${nodata} ${prj_out} ${out_8bit}
+          -s ${src_min_b2} ${src_max_b2} ${dst_min} ${dst_max} \
+          -s ${src_min_b3} ${src_max_b3} ${dst_min} ${dst_max} \
+          -n ${nodata} ${prj_out} ${out_8bit}
 
   rm ${prj_out}
 
