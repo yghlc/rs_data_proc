@@ -68,8 +68,10 @@ for tif in ${dir}/*.tif; do
   if [ -f ${mask_tif} ]; then
     echo ${mask_tif} exists, skip
   else
+    # it's so weird that (A+B+C)<3 works for 20170829_RGB_composite.tif, but not for 20170829_RGB_composite_north.tif
+    # change 3 to 2.999, to see if it works.
     gdal_calc.py -A $tif --A_band=1 -B $tif --B_band=2 -C $tif --C_band=3  -D $tif --allBands=D \
-        --outfile=${mask_tif} --NoDataValue=${src_nodata}  --calc="((A+B+C)<3)*D"
+        --outfile=${mask_tif} --NoDataValue=${src_nodata}  --calc="((A+B+C)<2.999)*D"
   fi
 
   # reporject
