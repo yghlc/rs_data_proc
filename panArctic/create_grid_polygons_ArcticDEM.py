@@ -54,7 +54,7 @@ def main():
                 id += 1
 
     # save
-    save_path = ArcticDEM_coverage = os.path.join(shp_dir,'ArcticDEM_grid_20km.shp')
+    save_path = os.path.join(shp_dir,'ArcticDEM_grid_20km.shp')
     save_polyons_attributes = {'id':keep_grid_ids, "Polygons":keep_grids}
 
     # wkt_string = map_projection.get_raster_or_vector_srs_info_wkt(qtp_main_perma_area_simp)
