@@ -27,7 +27,7 @@ def main():
 
     # ref_raster='grid_20km_bin.tif'
     polygons,ids = vector_gpd.read_polygons_attributes_list(ArcticDEM_grid_20km,'id',b_fix_invalid_polygon=False)
-    save_raster = os.path.join(shp_dir, 'grid_20km_id.tif')
+    save_raster = os.path.join(shp_dir, 'ArcticDEM_grid_20km_id.tif')
     # raster_io.burn_polygons_to_a_raster(ref_raster,polygons,ids,save_raster,date_type='uint16')
 
 
