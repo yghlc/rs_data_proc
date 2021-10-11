@@ -36,9 +36,9 @@ def main():
     # print(extent)
     res = 20000  # 20 km
     wkt_string = map_projection.get_raster_or_vector_srs_info_proj4(ArcticDEM_grid_20km)
-
+    nodata = 2**16 - 1
     raster_io.burn_polygons_to_a_raster(None,polygons,ids,save_raster,date_type='uint16',
-                                        xres=res,yres=res,extent=extent,ref_prj=wkt_string)
+                                        xres=res,yres=res,extent=extent,ref_prj=wkt_string, nodata=nodata)
 
 
 
