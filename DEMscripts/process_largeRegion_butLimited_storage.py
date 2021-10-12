@@ -35,9 +35,13 @@ machine_name = os.uname()[1]
 from dem_common import grid_20_shp,grid_20_id_raster,dem_strip_shp,dem_tile_shp
 
 # log or txt files
-from dem_common import process_log_dir, grid_complete_list, strip_dem_cover_grids, tile_dem_cover_grids
+from dem_common import process_log_dir, grid_complete_list_txt, strip_dem_cover_grids_txt, tile_dem_cover_grids_txt
 if os.path.isdir(process_log_dir) is False:
     io_function.mkdir(process_log_dir)
+
+# results dir
+from dem_common import grid_hillshade_newest_HDLine_dir
+
 
 from produce_DEM_diff_ArcticDEM import get_grid_20
 
@@ -100,23 +104,75 @@ def build_dict_of_dem_cover_grid_ids(dem_info_shp,grid_20_shp,save_dict_txt):
 
     # save to dict
     io_function.save_dict_to_txt_json(save_dict_txt,dem_cover_grids)
+    theadPool.close()
     return True
 
 def test_build_dict_of_dem_cover_grid_ids():
     # for test, only have three polygons
     dem_info_shp = os.path.expanduser('~/Data/tmp_data/test_ArcticDEM/ArcticDEM_Tile_Index_Rel7.shp')
-    save_dict_txt = tile_dem_cover_grids
+    save_dict_txt = tile_dem_cover_grids_txt
     build_dict_of_dem_cover_grid_ids(dem_info_shp, grid_20_shp, save_dict_txt)
+
+def get_not_completed_grids(grid_polys, grid_ids):
+    completed_id_list = []
+    if os.path.isfile(grid_complete_list_txt):
+        completed_id_list =  [int(item) for item in io_function.read_list_from_txt(grid_complete_list_txt)]
+
+    if len(completed_id_list) < 1:
+        return [],[]
+
+    no_complete_polys =[]
+    no_complete_ids = []
+    for poly, id in zip(grid_polys, grid_ids):
+        if id in completed_id_list:
+            pass
+        else:
+            no_complete_polys.append(poly)
+            no_complete_ids.append(id)
+    return no_complete_polys, no_complete_ids
+
+
+def is_exist_dem_hillshade_newest_HWLine_grid(id):
+    hillshade_newest_HDLine_tifs = io_function.get_file_list_by_pattern(grid_hillshade_newest_HDLine_dir, '*_grid%d.tif' % id)
+    if len(hillshade_newest_HDLine_tifs) == 1:
+        return True
+    elif len(hillshade_newest_HDLine_tifs) > 1:
+        basic.outputlogMessage('warning, There are multiple hillshade (newest) HDLine tif for grid: %d' % id)
+        for item in hillshade_newest_HDLine_tifs:
+            basic.outputlogMessage(item)
+            return True
+    else:
+        return False
+
+
+def update_complete_grid_list(grid_ids):
+    # based on some criteria, to check if results exist, then update grid_complete_list_txt
+    completed_id_list = []
+    if os.path.isfile(grid_complete_list_txt):
+        completed_id_list =  [int(item) for item in io_function.read_list_from_txt(grid_complete_list_txt)]
+
+    for g_id in grid_ids:
+        if g_id in completed_id_list:
+            continue
+        # check if it has been completed based on multiple criteria
+        if is_exist_dem_hillshade_newest_HWLine_grid(g_id):
+            completed_id_list.append(g_id)
+
+    # save the txt
+    completed_id_list = [str(item) for item in completed_id_list]
+    io_function.save_list_to_txt(grid_complete_list_txt,completed_id_list)
+
 
 def main(options, args):
     extent_shp = args[0]
+    task_list = [args[item] for item in range(1, len(args)) ]
+    # task_name = args[1]
 
     # build map dem cover grid (take time, but only need to run once at the beginning)
-    build_dict_of_dem_cover_grid_ids(dem_strip_shp, grid_20_shp, strip_dem_cover_grids)
-    build_dict_of_dem_cover_grid_ids(dem_tile_shp, grid_20_shp, tile_dem_cover_grids)
+    build_dict_of_dem_cover_grid_ids(dem_strip_shp, grid_20_shp, strip_dem_cover_grids_txt)
+    build_dict_of_dem_cover_grid_ids(dem_tile_shp, grid_20_shp, tile_dem_cover_grids_txt)
 
     # get grids for processing
-
     # read grids and ids
     time0 = time.time()
     all_grid_polys, all_ids = vector_gpd.read_polygons_attributes_list(grid_20_shp, 'id')
@@ -124,6 +180,7 @@ def main(options, args):
 
     # get grid ids based on input extent
     grid_polys, grid_ids = get_grid_20(extent_shp,all_grid_polys, all_ids)
+
 
 
     if machine_name == 'ubuntu' or machine_name == 'uist':
@@ -139,7 +196,7 @@ def main(options, args):
 
 
 if __name__ == '__main__':
-    usage = "usage: %prog [options] extent_shp "
+    usage = "usage: %prog [options] extent_shp task_name ... (dem_diff, segment, dem_headwall)"
     parser = OptionParser(usage=usage, version="1.0 2021-10-11")
     parser.description = 'Introduction: process ArcticDEM with limited storage  '
 
