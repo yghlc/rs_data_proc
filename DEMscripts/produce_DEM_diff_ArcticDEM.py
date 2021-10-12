@@ -52,6 +52,14 @@ from dem_common import arcticDEM_reg_tif_dir,grid_dem_diffs_dir
 
 
 def get_grid_20(extent_shp_or_id_txt, grid_polys, ids):
+    '''
+    get grid polygons and ids based on input extent (polygon in shpaefile) or ids (txt file)
+    if "file_name_base+'_grid_ids.txt'" exists, it will read id in this file directly.
+    :param extent_shp_or_id_txt:
+    :param grid_polys:
+    :param ids:
+    :return:
+    '''
 
     io_function.is_file_exist(extent_shp_or_id_txt)
     file_name_base = os.path.splitext(os.path.basename(extent_shp_or_id_txt))[0]

@@ -14,7 +14,7 @@ machine_name = os.uname()[1]
 
 # some folder paths
 if machine_name == 'uist':
-    ArcticDEM_tmp_dir = '/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir'
+    ArcticDEM_tmp_dir = '/home/lhuang/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir'
 
 elif machine_name == 'ubuntu':  # tesia
     ArcticDEM_tmp_dir = '/home/lihu9680/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir'
@@ -66,8 +66,17 @@ arcticDEM_tile_tpi_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_
 mask_water_dir = os.path.join(os.path.dirname(ArcticDEM_tmp_dir), 'global_surface_water' , 'extent_epsg3413')
 
 grid_20_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp/ArcticDEM_grid_20km.shp')
+grid_20_id_raster = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp/ArcticDEM_grid_20km_id.tif')
 dem_strip_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/BROWSE_SERVER/indexes/ArcticDEM_Strip_Index_Rel7/ArcticDEM_Strip_Index_Rel7.shp')
+dem_tile_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/BROWSE_SERVER/indexes/ArcticDEM_Tile_Index_Rel7/ArcticDEM_Tile_Index_Rel7.shp')
 
+
+# some log and information files
+process_log_dir = os.path.join(ArcticDEM_tmp_dir, 'log_dir')
+grid_complete_list = os.path.join(process_log_dir,'grid_complete_ids.txt')  # store ids of grids that have completed
+
+strip_dem_cover_grids = os.path.join(process_log_dir,'strip_dem_cover_grids.txt') # each strip cover how many grids (ids), dict
+tile_dem_cover_grids = os.path.join(process_log_dir,'tile_dem_cover_grids.txt') # each tile cover how many grids (ids), dict
 
 # rts results
 grid_rts_shp_dir = os.path.join(ArcticDEM_tmp_dir, 'grid_rts_shp')
