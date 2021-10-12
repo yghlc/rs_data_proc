@@ -25,9 +25,8 @@ import re
 from datetime import datetime
 import time
 
-# some path
-import dem_common
-# grid_20_shp,grid_20_id_raster
+import multiprocessing
+from multiprocessing import Pool
 
 
 machine_name = os.uname()[1]
@@ -46,6 +45,12 @@ from produce_DEM_diff_ArcticDEM import get_grid_20
 def download_arctic_dem():
     # download tarball
     pass
+
+def get_overlap_grids_for_one_extent(all_ids,all_grid_polys, dem_poly, dem_name, idx, dem_poly_count):
+    print(timeTools.get_now_time_str(), idx, dem_poly_count)
+    index = vector_gpd.get_poly_index_within_extent(all_grid_polys, dem_poly)
+    gird_ids = [all_ids[idx] for idx in index]
+    return dem_name,gird_ids
 
 def build_dict_of_dem_cover_grid_ids(dem_info_shp,grid_20_shp,save_dict_txt):
     # this will take time, but only need to run once at the beginning
@@ -77,12 +82,20 @@ def build_dict_of_dem_cover_grid_ids(dem_info_shp,grid_20_shp,save_dict_txt):
 
     dem_cover_grids = {}
     # this will take time.
-    for idx, (dem_poly,dem_name) in enumerate(zip(dem_polygons, dem_names)):
-        print(timeTools.get_now_time_str(), idx, dem_poly_count)
-        index = vector_gpd.get_poly_index_within_extent(all_grid_polys, dem_poly)
-        gird_ids = [ all_ids[idx] for idx in index ]
-        # if dem_name in dem_cover_grids.keys():
-        #     basic.outputlogMessage('\n Warning, %s already in dict \n'%dem_name)
+    # for idx, (dem_poly,dem_name) in enumerate(zip(dem_polygons, dem_names)):
+    #     print(timeTools.get_now_time_str(), idx, dem_poly_count)
+    #     index = vector_gpd.get_poly_index_within_extent(all_grid_polys, dem_poly)
+    #     gird_ids = [ all_ids[idx] for idx in index ]
+    #     # if dem_name in dem_cover_grids.keys():
+    #     #     basic.outputlogMessage('\n Warning, %s already in dict \n'%dem_name)
+    #     dem_cover_grids[dem_name] = gird_ids
+
+    ### parallel version
+    theadPool = Pool(multiprocessing.cpu_count())  # multi processes
+    parameters_list = [(all_ids,all_grid_polys, dem_poly,dem_name, idx, dem_poly_count) for idx, (dem_poly,dem_name) in enumerate(zip(dem_polygons, dem_names))]
+    results = theadPool.starmap(get_overlap_grids_for_one_extent, parameters_list)  # need python3
+    for res in results:
+        dem_name, gird_ids = res
         dem_cover_grids[dem_name] = gird_ids
 
     # save to dict
