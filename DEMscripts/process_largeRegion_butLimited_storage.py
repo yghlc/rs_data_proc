@@ -20,10 +20,13 @@ import basic_src.io_function as io_function
 import basic_src.map_projection as map_projection
 import basic_src.basic as basic
 import basic_src.timeTools as timeTools
+import raster_io
 
 import re
 from datetime import datetime
 import time
+import numpy as np
+import pandas as pd
 
 import multiprocessing
 from multiprocessing import Pool
@@ -40,14 +43,24 @@ if os.path.isdir(process_log_dir) is False:
     io_function.mkdir(process_log_dir)
 
 # results dir
-from dem_common import grid_hillshade_newest_HDLine_dir
+from dem_common import grid_hillshade_newest_HDLine_dir, grid_dem_diffs_dir
 
 
 from produce_DEM_diff_ArcticDEM import get_grid_20
 
 
-def download_arctic_dem():
+def download_process_send_arctic_dem(extent_shp,subset_id):
+
+    # wait if subset_id for download is far more ahead than processing (curc)
+
     # download tarball
+
+
+    # registration
+
+
+    # send to
+
     pass
 
 def get_overlap_grids_for_one_extent(all_ids,all_grid_polys, dem_poly, dem_name, idx, dem_poly_count):
@@ -119,7 +132,7 @@ def get_not_completed_grids(grid_polys, grid_ids):
         completed_id_list =  [int(item) for item in io_function.read_list_from_txt(grid_complete_list_txt)]
 
     if len(completed_id_list) < 1:
-        return [],[]
+        return grid_polys, grid_ids
 
     no_complete_polys =[]
     no_complete_ids = []
@@ -132,7 +145,7 @@ def get_not_completed_grids(grid_polys, grid_ids):
     return no_complete_polys, no_complete_ids
 
 
-def is_exist_dem_hillshade_newest_HWLine_grid(id):
+def b_exist_dem_hillshade_newest_HWLine_grid(id):
     hillshade_newest_HDLine_tifs = io_function.get_file_list_by_pattern(grid_hillshade_newest_HDLine_dir, '*_grid%d.tif' % id)
     if len(hillshade_newest_HDLine_tifs) == 1:
         return True
@@ -144,18 +157,39 @@ def is_exist_dem_hillshade_newest_HWLine_grid(id):
     else:
         return False
 
+def b_exist_gid_dem_diff(id):
+    dem_diff_files = io_function.get_file_list_by_pattern(grid_dem_diffs_dir, '*_DEM_diff_grid%d.tif' % id)
+    if len(dem_diff_files) == 1:
+        return True
+    elif len(dem_diff_files) > 1:
+        basic.outputlogMessage('warning, There are multiple hillshade (newest) HDLine tif for grid: %d' % id)
+        for item in dem_diff_files:
+            basic.outputlogMessage(item)
+            return True
+    else:
+        return False
 
-def update_complete_grid_list(grid_ids):
+def update_complete_grid_list(grid_ids, task_list):
     # based on some criteria, to check if results exist, then update grid_complete_list_txt
     completed_id_list = []
     if os.path.isfile(grid_complete_list_txt):
-        completed_id_list =  [int(item) for item in io_function.read_list_from_txt(grid_complete_list_txt)]
+        completed_id_list = [int(item) for item in io_function.read_list_from_txt(grid_complete_list_txt)]
+    n_task = len(task_list)
+    if n_task < 1:
+        raise ValueError('No task in %s'%str(task_list))
 
     for g_id in grid_ids:
         if g_id in completed_id_list:
             continue
         # check if it has been completed based on multiple criteria
-        if is_exist_dem_hillshade_newest_HWLine_grid(g_id):
+        complete_count = 0
+        if 'dem_diff' in task_list and b_exist_gid_dem_diff(g_id):
+            complete_count += 1
+        if 'hillshade_headwall_line' in task_list and b_exist_dem_hillshade_newest_HWLine_grid(g_id):
+            complete_count += 1
+        # we may check more task results: segment, dem_headwall_grid, dem_headwall
+
+        if complete_count == n_task:
             completed_id_list.append(g_id)
 
     # save the txt
@@ -163,10 +197,97 @@ def update_complete_grid_list(grid_ids):
     io_function.save_list_to_txt(grid_complete_list_txt,completed_id_list)
 
 
+def find_neighbours_2d(grid_ids_2d,visited,seed,connect):
+    '''
+    find neighbourhood voxels
+    :param grid_ids_2d: 2D data
+    :param visited: indicates pixels has been checked
+    :param seed: a seed
+    :param connect: pixel connectivity
+    :return: a list containing voxels
+    '''
+
+    height, width = grid_ids_2d.shape
+    y,x = seed[0],seed[1]
+    visited[y, x] = 1
+
+    neigh_range = [-1,0,1]
+    neighbours = [[i,j] for i in neigh_range for j in neigh_range  ]
+    neighbours.remove([0,0])
+
+    # distance within 1
+    if connect==4:
+        connectivity =  [ [y+dy, x+dx] for (dy,dx) in neighbours if (dy*dy + dx*dx) <= 1 ]
+    # distance within sqrt(2)
+    elif connect==8:
+        connectivity = [[y + dy, x + dx] for (dy, dx) in neighbours if (dy * dy + dx * dx) <= 2]
+    else:
+        raise ValueError('Only accept connectivity of 4 or 8')
+
+    new_seeds = []
+    for [y,x] in connectivity:
+        # out extent
+        if y<0 or x<0 or y >= height or x >= width:
+            continue
+        # already visited
+        if visited[y,x]:
+            continue
+        new_seeds.append([y,x])
+
+        # masked as visited
+        visited[y,x] = 1
+
+    return new_seeds
+
+
+def get_grids_for_download_process(grid_polys, grid_ids, max_grid_count, grid_ids_2d, visit_np, save_path, proj=None):
+    '''
+    get grids for donwload ArcticDEM and ids
+    :param grid_polys:
+    :param grid_ids:
+    :param max_grid_count: max grid count, it will return number close to this value
+    :param grid_ids_2d: gird_ids in 2d array
+    :param visit_np: visit_np like a mask, to indicate which pixels has been checked, 0 no visit previously, 1 visited
+    :param proj: projection information, for save grid_poygons
+    :return:
+    '''
+
+    # find a connected region with for donwload and processing, and save to files
+    seed_loc = np.where(grid_ids_2d == grid_ids[0])
+    selected_gird_id_list = [grid_ids[0]]
+    seed_list = [ [seed_loc[0][0], seed_loc[1][0]]]
+    while len(selected_gird_id_list) < max_grid_count and len(seed_list) > 0:
+        # find neighbours
+        new_seeds = find_neighbours_2d(grid_ids_2d,visit_np,seed_list[0],8)
+        del seed_list[0]
+        seed_list.extend(new_seeds)
+        # find new ids
+        for seed in new_seeds:
+            row, col = seed
+            selected_gird_id_list.append( grid_ids_2d[row, col])
+
+    select_grid_polys = [ grid_polys[grid_ids.index(item) ] for item in selected_gird_id_list ]
+
+    # save to shapefile to download and processing
+    save_pd = pd.DataFrame({'id':selected_gird_id_list, 'Polygon':select_grid_polys})
+    vector_gpd.save_polygons_to_files(save_pd,'Polygon',proj,save_path)
+
+    return select_grid_polys, selected_gird_id_list
+
+
+def remove_no_need_dem_files():
+    pass
+
+
 def main(options, args):
     extent_shp = args[0]
     task_list = [args[item] for item in range(1, len(args)) ]
     # task_name = args[1]
+    if len(task_list) < 1:
+        raise ValueError('There is no task: %s'%str(task_list))
+
+    max_grid_count = options.max_grids
+
 
     # build map dem cover grid (take time, but only need to run once at the beginning)
     build_dict_of_dem_cover_grid_ids(dem_strip_shp, grid_20_shp, strip_dem_cover_grids_txt)
@@ -178,19 +299,71 @@ def main(options, args):
     all_grid_polys, all_ids = vector_gpd.read_polygons_attributes_list(grid_20_shp, 'id')
     print('time cost of read polygons and attributes', time.time() - time0)
 
+    gird_prj = map_projection.get_raster_or_vector_srs_info_proj4(grid_20_shp)
+
     # get grid ids based on input extent
     grid_polys, grid_ids = get_grid_20(extent_shp,all_grid_polys, all_ids)
 
+    # based on extent shape, subset grid_20_id_raster
+    # # using gdalwarp to crop the mask, also have 0.5 pixel offset, so dont use it
+    # grid_20_id_raster_sub = io_function.get_name_by_adding_tail(os.path.basename(grid_20_id_raster),'sub')
+    # if RSImageProcess.subset_image_by_shapefile(grid_20_id_raster,extent_shp,save_path=grid_20_id_raster_sub) is False:
+    #     return False
 
+    # read grid_ids_2d, then mask it
+    grid_ids_2d, grid_nodata = raster_io.read_raster_one_band_np(grid_20_id_raster)  # 2d array of gird ids
+    # rasterize grid_polys, will served as mask.
+    grid_ids_2d_mask = raster_io.burn_polygons_to_a_raster(grid_20_id_raster,grid_polys,1,None)
+    raster_io.save_numpy_array_to_rasterfile(grid_ids_2d_mask,'grid_ids_2d_mask.tif',grid_20_id_raster,nodata=255)  # save to disk for checking
+    loc_masked_out = np.where(grid_ids_2d_mask != 1)
+    # grid_ids_2d[ loc_masked_out ] = grid_nodata
+    visit_np = np.zeros_like(grid_ids_2d, dtype=np.uint8)
+    visit_np[loc_masked_out] = 1    # 1 indicate already visited
 
-    if machine_name == 'ubuntu' or machine_name == 'uist':
-        # download and unpack ArcticDEM, do registration, send to curc
-        download_arctic_dem()
-    elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:  # curc
-        # process ArcticDEM using the computing resource on CURC
-        pass
-    else:
-        print('unknown machine name')
+    subset_id = 0
+    io_function.mkdir('subset_grids')
+
+    # grid is being process but not complete yet
+    running_grid_ids = []
+
+    while True:
+        # on tesia, uist, vpn-connected laptop
+        if machine_name == 'ubuntu' or machine_name == 'uist' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
+
+            no_complete_polys, no_complete_ids = get_not_completed_grids(grid_polys, grid_ids)
+            if len(no_complete_ids) < 1:
+                break
+            # update with running girds
+            to_work_ids = [item for item in no_complete_ids if item not in running_grid_ids]
+            if len(to_work_ids) < 1:
+                print('No new grids need to download or process')
+                break
+            to_polys = [no_complete_polys[no_complete_ids.index(item)] for item in to_work_ids]
+
+            select_grids_shp = os.path.join('subset_grids',io_function.get_name_by_adding_tail(os.path.basename(grid_20_shp),'sub%d' % subset_id))
+            select_grid_polys, selected_gird_ids = get_grids_for_download_process(to_polys, to_work_ids, max_grid_count,
+                                                                                  grid_ids_2d, visit_np,
+                                                                                  select_grids_shp, proj=gird_prj)
+            # print(len(select_grid_polys),len(selected_gird_ids),selected_gird_ids)
+            running_grid_ids.extend(selected_gird_ids)
+
+            # download and unpack ArcticDEM, do registration, send to curc
+            download_process_send_arctic_dem(select_grids_shp)
+
+        elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:  # curc
+            # process ArcticDEM using the computing resource on CURC
+            pass
+        else:
+            print('unknown machine name')
+            break
+
+        # update complete id list
+        update_complete_grid_list(grid_ids, task_list)
+
+        # remove no need dem files
+
+        subset_id += 1
+
 
 
 
