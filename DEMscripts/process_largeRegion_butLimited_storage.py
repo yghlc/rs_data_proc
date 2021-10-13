@@ -67,6 +67,10 @@ def update_subset_info(txt_path, key_list=None, info_list=None):
     info_dict = {}
     if os.path.isfile(txt_path):
         info_dict = io_function.read_dict_from_txt_json(txt_path)
+    if isinstance(key_list,str):
+        key_list = [key_list]
+    if isinstance(info_list,str):
+        info_list = [info_list]
     for key, info in zip(key_list, info_list):
         info_dict[key] = info
     io_function.save_dict_to_txt_json(txt_path,info_dict)
@@ -135,6 +139,16 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
     # copy to remote machine
     if scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir, subset_info_txt):
         scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir,subset_shp_dir)
+
+
+def copy_results_from_remote_node():
+    # rsync results from remote machine (it's ok if fil)
+    rsync_sh = os.path.join(ArcticDEM_tmp_dir,'rsync_from_curc.sh')
+    res = os.system(rsync_sh)
+    if res != 0:
+        sys.exit(1)
+
+
 
 
 def get_overlap_grids_for_one_extent(all_ids,all_grid_polys, dem_poly, dem_name, idx, dem_poly_count):
@@ -350,7 +364,48 @@ def get_grids_for_download_process(grid_polys, grid_ids, max_grid_count, grid_id
 
 
 def remove_no_need_dem_files():
-    pass
+    if os.path.isfile(grid_complete_list_txt):
+        completed_id_list =  [int(item) for item in io_function.read_list_from_txt(grid_complete_list_txt)]
+    else:
+        print(datetime.now(), 'no complete grids')
+        return True
+    if len(completed_id_list) < 1:
+        return True
+
+    completed_id_set = set(completed_id_list)
+
+    # check four folders: arcticDEM_tile_tarball_dir,arcticDEM_tile_reg_tif_dir,tarball_dir,arcticDEM_reg_tif_dir
+    strip_dem_cover_grids = io_function.read_dict_from_txt_json(strip_dem_cover_grids_txt)
+
+    strip_no_need_list = [strip for strip in strip_dem_cover_grids.keys()
+                          if set(strip_dem_cover_grids[strip]).issubset(completed_id_set) ]
+
+    tile_dem_cover_grids = io_function.read_dict_from_txt_json(tile_dem_cover_grids_txt)
+    tile_no_need_list = [tile for tile in tile_dem_cover_grids.keys() if
+                         set(tile_dem_cover_grids[tile].issubset(completed_id_set))]
+
+    # remove
+    basic.outputlogMessage('will remove %d strip DEM'%len(strip_no_need_list))
+    for strip in strip_no_need_list:
+        basic.outputlogMessage('removing %s'%strip)
+        res = os.system(' rm %s/%s '%(tarball_dir,strip+'*'))
+        if res != 0:
+            sys.exit(1)
+        res = os.system(' rm %s/%s '%(arcticDEM_reg_tif_dir,strip+'*'))
+        if res != 0:
+            sys.exit(1)
+
+
+    basic.outputlogMessage('will remove %d tile DEM'%len(tile_no_need_list))
+    for tile in tile_no_need_list:
+        basic.outputlogMessage('removing %s'%tile)
+        res = os.system(' rm %s/%s '%(arcticDEM_tile_tarball_dir,tile+'*'))
+        if res != 0:
+            sys.exit(1)
+        res = os.system(' rm %s/%s '%(arcticDEM_tile_reg_tif_dir,tile+'*'))
+        if res != 0:
+            sys.exit(1)
+
 
 
 def main(options, args):
@@ -361,6 +416,7 @@ def main(options, args):
         raise ValueError('There is no task: %s'%str(task_list))
 
     r_working_dir = '/home/lihu9680/Data/dem_processing' if options.remote_working_dir is None else options.remote_working_dir
+    r_log_dir = '/scratch/summit/lihu9680/ArcticDEM_tmp_dir/log_dir' if options.remote_log_dir is None else options.remote_log_dir
     process_node = '$curc_host' if options.process_node is None else options.process_node
     download_node = '$curc_host' if options.download_node is None else options.download_node
 
@@ -432,17 +488,25 @@ def main(options, args):
             # download and unpack ArcticDEM, do registration, send to curc
             download_process_send_arctic_dem(subset_info_txt, r_working_dir,process_node)
 
+            # copy file from remote machine
+            copy_results_from_remote_node()
+
+            # update complete id list
+            update_complete_grid_list(grid_ids, task_list)
+
+            # copy complete id list, dem info to remote machine
+            scp_communicate.copy_file_folder_to_remote_machine(process_node, r_log_dir, process_log_dir)
+
         elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:  # curc
             # process ArcticDEM using the computing resource on CURC
             pass
         else:
-            print('unknown machine name')
+            print('unknown machine : %s '%machine_name)
             break
 
-        # update complete id list
-        update_complete_grid_list(grid_ids, task_list)
 
         # remove no need dem files
+        remove_no_need_dem_files()
 
         subset_id += 1
 
@@ -462,6 +526,10 @@ if __name__ == '__main__':
     parser.add_option("-w", "--remote_working_dir",
                       action="store", dest="remote_working_dir",
                       help="the working directory in remote machine.")
+
+    parser.add_option("-l", "--remote_log_dir",
+                      action="store", dest="remote_log_dir",
+                      help="the log directory in remote machine.")
 
     parser.add_option("-p", "--process_node",
                       action="store", dest="process_node",
