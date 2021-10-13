@@ -67,7 +67,7 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
         # if exist, check if it complete
         pass
 
-    update_subset_info(subset_info, key_list=['pre_status'], info_list='working')
+    update_subset_info(subset_info_txt, key_list=['pre_status'], info_list='working')
 
     # download strip tarball, upack, registration
     res = os.system(dem_download_py + ' ' + subset_info['shp'] + ' ' + dem_strip_shp )
