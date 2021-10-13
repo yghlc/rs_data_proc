@@ -117,17 +117,22 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
     res = os.system(dem_download_py + ' ' + subset_info['shp'] + ' ' + dem_strip_shp )
     if res != 0:
         sys.exit(1)
-    res = os.system(dem_unpack_reg_py + ' ' + tarball_dir  + ' -d ' + arcticDEM_reg_tif_dir + ' -r ' )  # -r: --remove_inter_data
-    if res != 0:
-        sys.exit(1)
+    # res = os.system(dem_unpack_reg_py + ' ' + tarball_dir  + ' -d ' + arcticDEM_reg_tif_dir + ' -r ' )  # -r: --remove_inter_data
+    # if res != 0:
+    #     sys.exit(1)
 
     # download tile tarball and unpack
     res = os.system(dem_download_py + ' ' + subset_info['shp'] + ' ' + dem_tile_shp )
     if res != 0:
         sys.exit(1)
-    res = os.system(dem_unpack_reg_py + ' ' +arcticDEM_tile_tarball_dir + ' -d ' + arcticDEM_tile_reg_tif_dir + ' -r ' )
+    # res = os.system(dem_unpack_reg_py + ' ' +arcticDEM_tile_tarball_dir + ' -d ' + arcticDEM_tile_reg_tif_dir + ' -r ' )
+    # if res != 0:
+    #     sys.exit(1)
+    # parallel unpack and registration for Strip and Tile DEM
+    res = os.system('parallel_unpack.sh')
     if res != 0:
         sys.exit(1)
+
 
     # send to remote machine
     rsync_sh = os.path.join(ArcticDEM_tmp_dir,'rsync_to_curc.sh')
