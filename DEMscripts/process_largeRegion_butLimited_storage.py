@@ -55,19 +55,59 @@ dem_download_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMsc
 dem_unpack_reg_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMscripts/ArcticDEM_unpack_registration.py')
 subset_shp_dir = 'subset_grids_shp'
 
+
+
+def update_subset_info(txt_path, key_list=None, info_list=None):
+    # maintain a info of subset for processing, dict
+    # id: subset_id
+    # shp: the shapefile contain all grids in this subset
+    # "pre_status": the status of downloading and registration of ArcticDEM, has values: 'notYet', 'working', 'done'
+    # 'proc_status': the status of processing ArcticDEM, has values of 'notYet', 'working', 'done'
+
+    info_dict = {}
+    if os.path.isfile(txt_path):
+        info_dict = io_function.read_dict_from_txt_json(txt_path)
+    for key, info in zip(key_list, info_list):
+        info_dict[key] = info
+    io_function.save_dict_to_txt_json(txt_path,info_dict)
+
+def get_subset_info(txt_path):
+    return io_function.read_dict_from_txt_json(txt_path)
+
+def get_subset_info_txt_list(key,values,remote_node=None, remote_folder=None, local_folder='./'):
+    # get subset info with specific key and values
+    # 'subset%d.txt' % subset_id
+    # sync 'subset%d.txt' files from remote node
+    if remote_node is not None:
+        # this will overwrite 'subset%d.txt' in local
+        scp_communicate.copy_file_folder_from_remote_machine(remote_node,os.path.join(remote_folder,'subset*.txt'),
+                                                             os.path.join(local_folder,'.'))
+
+    select_txt_list = []
+    subinfo_txt_list = io_function.get_file_list_by_pattern(local_folder,'subset*.txt')
+    for txt in subinfo_txt_list:
+        info_dict = get_subset_info(txt)
+        if info_dict[key] in values:
+            select_txt_list.append(txt)
+    return select_txt_list
+
+
 def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node):
     # this function run on tesia
 
     subset_info = get_subset_info(subset_info_txt)
 
     # if subset_id for download is far more ahead than processing (curc), then wait, in case occupy too much storage
-    if scp_communicate.b_remote_exists(remote_node,r_working_dir,subset_info_txt) is False:
-        scp_communicate.copy_file_folder_to_remote_machine(remote_node,r_working_dir,subset_info_txt)
-    else:
-        # if exist, check if it complete
-        pass
+    while True:
+        remote_sub_txt = get_subset_info_txt_list('proc_status',['notYet', 'working'],remote_node=remote_node,remote_folder=r_working_dir)
+        if len(remote_sub_txt) > 5:
+            print(datetime.now(),'there is %d subset in remote machine have not complete,'
+                                 ' wait 300 seconds to download too many data'%len(remote_sub_txt))
+            time.sleep(300)
+        else:
+            break
 
-    update_subset_info(subset_info_txt, key_list=['pre_status'], info_list='working')
+    update_subset_info(subset_info_txt, key_list=['pre_status'], info_list=['working'])
 
     # download strip tarball, upack, registration
     res = os.system(dem_download_py + ' ' + subset_info['shp'] + ' ' + dem_strip_shp )
@@ -91,7 +131,7 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
     if res != 0:
         sys.exit(1)
 
-    update_subset_info(subset_info,key_list=['pre_status'],info_list='done')
+    update_subset_info(subset_info,key_list=['pre_status'],info_list=['done'])
     # copy to remote machine
     if scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir, subset_info_txt):
         scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir,subset_shp_dir)
@@ -273,22 +313,6 @@ def find_neighbours_2d(grid_ids_2d,visited,seed,connect):
 
     return new_seeds
 
-def get_subset_info(txt_path):
-    return io_function.read_dict_from_txt_json(txt_path)
-
-def update_subset_info(txt_path, key_list=None, info_list=None):
-    # maintain a info of subset for processing, dict
-    # id: subset_id
-    # shp: the shapefile contain all grids in this subset
-    # "pre_status": the status of downloading and registration of ArcticDEM, has values: 'notYet', 'working', 'done'
-    # 'proc_status': the status of processing ArcticDEM, has values of 'notYet', 'working', 'done'
-
-    info_dict = {}
-    if os.path.isfile(txt_path):
-        info_dict = io_function.read_dict_from_txt_json(txt_path)
-    for key, info in zip(key_list, info_list):
-        info_dict[key] = info
-    io_function.save_dict_to_txt_json(txt_path,info_dict)
 
 def get_grids_for_download_process(grid_polys, grid_ids, max_grid_count, grid_ids_2d, visit_np, save_path, proj=None):
     '''
@@ -336,7 +360,7 @@ def main(options, args):
     if len(task_list) < 1:
         raise ValueError('There is no task: %s'%str(task_list))
 
-    r_working_dir = '~/Data/dem_processing' if options.remote_working_dir is None else options.remote_working_dir
+    r_working_dir = '/home/lihu9680/Data/dem_processing' if options.remote_working_dir is None else options.remote_working_dir
     process_node = '$curc_host' if options.process_node is None else options.process_node
     download_node = '$curc_host' if options.download_node is None else options.download_node
 
