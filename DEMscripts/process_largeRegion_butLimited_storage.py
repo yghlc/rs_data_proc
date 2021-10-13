@@ -140,7 +140,7 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
     if res != 0:
         sys.exit(1)
 
-    update_subset_info(subset_info,key_list=['pre_status'],info_list=['done'])
+    update_subset_info(subset_info_txt,key_list=['pre_status'],info_list=['done'])
     # copy to remote machine
     if scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir, subset_info_txt):
         scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir,subset_shp_dir)
@@ -431,7 +431,7 @@ def produce_dem_products(tasks):
             if res !=0:
                 sys.exit(1)
 
-        # if allow grid has been submit, then marked as done, we don't check results for each grids
+        # if allow grid has been submit, then marked as done, we don't check results for each grids here
         update_subset_info(sub_txt, key_list=['proc_status'], info_list=['done'])
 
     pass
