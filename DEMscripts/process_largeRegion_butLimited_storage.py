@@ -129,7 +129,7 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
     # if res != 0:
     #     sys.exit(1)
     # parallel unpack and registration for Strip and Tile DEM
-    res = os.system('parallel_unpack.sh')
+    res = os.system('./parallel_unpack.sh')
     if res != 0:
         sys.exit(1)
 
@@ -412,6 +412,25 @@ def remove_no_need_dem_files():
             sys.exit(1)
 
 
+def produce_dem_products():
+    # this function run on process node, such as curc
+
+    subset_txt_list = get_subset_info_txt_list('proc_status',['notYet', 'working'])
+    if len(subset_txt_list) < 1:
+        print(datetime.now(), 'No subset for processing, wait 300 seconds')
+        time.sleep(300)
+        return True
+
+    subset_txt_list = sorted(subset_txt_list)
+    for sub_txt in subset_txt_list:
+        pass
+
+
+
+
+
+    pass
+
 
 def main(options, args):
     extent_shp = args[0]
@@ -504,7 +523,7 @@ def main(options, args):
 
         elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:  # curc
             # process ArcticDEM using the computing resource on CURC
-            pass
+            produce_dem_products()
         else:
             print('unknown machine : %s '%machine_name)
             break
