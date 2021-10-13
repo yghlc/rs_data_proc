@@ -111,7 +111,8 @@ def main(options, args):
         else:
             save_folder = tarball_dir
 
-    extent_shp_base = os.path.splitext(os.path.basename(extent_shp))[0]
+    pre_name = os.path.splitext(os.path.basename(extent_shp))[0]
+    pre_name += '_Tile' if 'Tile' in os.path.basename(dem_index_shp) else '_Strip'
 
     # extent polygons and projection (proj4)
     extent_shp_prj = map_projection.get_raster_or_vector_srs_info_proj4(extent_shp)
@@ -132,7 +133,7 @@ def main(options, args):
     else:
         basic.outputlogMessage('%d extent polygons in %s'%(len(extent_polys),extent_shp))
 
-    download_dem_tarball(dem_index_shp,extent_polys,save_folder,extent_shp_base,reg_tif_dir=arcticDEM_reg_tif_dir)
+    download_dem_tarball(dem_index_shp,extent_polys,save_folder,pre_name,reg_tif_dir=arcticDEM_reg_tif_dir)
 
 
 if __name__ == "__main__":
