@@ -412,7 +412,7 @@ def remove_no_need_dem_files():
             sys.exit(1)
 
 
-def produce_dem_products():
+def produce_dem_products(tasks):
     # this function run on process node, such as curc
 
     subset_txt_list = get_subset_info_txt_list('proc_status',['notYet', 'working'])
@@ -423,11 +423,16 @@ def produce_dem_products():
 
     subset_txt_list = sorted(subset_txt_list)
     for sub_txt in subset_txt_list:
-        pass
+        update_subset_info(sub_txt,key_list=['proc_status'],info_list=['working'])
+        subset_info = io_function.read_dict_from_txt_json(sub_txt)
+        ext_shp = subset_info['shp']
+        for task in tasks:
+            res = os.system('./run.sh %s %s'%(ext_shp,task))
+            if res !=0:
+                sys.exit(1)
 
-
-
-
+        # if allow grid has been submit, then marked as done, we don't check results for each grids
+        update_subset_info(sub_txt, key_list=['proc_status'], info_list=['done'])
 
     pass
 
@@ -523,7 +528,7 @@ def main(options, args):
 
         elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:  # curc
             # process ArcticDEM using the computing resource on CURC
-            produce_dem_products()
+            produce_dem_products(task_list)
         else:
             print('unknown machine : %s '%machine_name)
             break
