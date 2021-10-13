@@ -21,6 +21,7 @@ import basic_src.map_projection as map_projection
 import basic_src.basic as basic
 import basic_src.timeTools as timeTools
 import raster_io
+import scp_communicate
 
 import re
 from datetime import datetime
@@ -42,26 +43,59 @@ from dem_common import process_log_dir, grid_complete_list_txt, strip_dem_cover_
 if os.path.isdir(process_log_dir) is False:
     io_function.mkdir(process_log_dir)
 
+from dem_common import arcticDEM_tile_tarball_dir,arcticDEM_tile_reg_tif_dir,tarball_dir,arcticDEM_reg_tif_dir,ArcticDEM_tmp_dir
+
 # results dir
 from dem_common import grid_hillshade_newest_HDLine_dir, grid_dem_diffs_dir
 
-
 from produce_DEM_diff_ArcticDEM import get_grid_20
 
+# scripts
+dem_download_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMscripts/download_arcticDEM.py')
+dem_unpack_reg_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMscripts/ArcticDEM_unpack_registration.py')
+subset_shp_dir = 'subset_grids_shp'
 
-def download_process_send_arctic_dem(extent_shp,subset_id):
+def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node):
+    # this function run on tesia
 
-    # wait if subset_id for download is far more ahead than processing (curc)
+    subset_info = get_subset_info(subset_info_txt)
 
-    # download tarball
+    # if subset_id for download is far more ahead than processing (curc), then wait, in case occupy too much storage
+    if scp_communicate.b_remote_exists(remote_node,r_working_dir,subset_info_txt) is False:
+        scp_communicate.copy_file_folder_to_remote_machine(remote_node,r_working_dir,subset_info_txt)
+    else:
+        # if exist, check if it complete
+        pass
 
+    update_subset_info(subset_info, key_list=['pre_status'], info_list='working')
 
-    # registration
+    # download strip tarball, upack, registration
+    res = os.system(dem_download_py + ' ' + subset_info['shp'] + ' ' + dem_strip_shp )
+    if res != 0:
+        sys.exit(1)
+    res = os.system(dem_unpack_reg_py + ' ' + tarball_dir  + ' -d ' + arcticDEM_reg_tif_dir + ' -r ' )  # -r: --remove_inter_data
+    if res != 0:
+        sys.exit(1)
 
+    # download tile tarball and unpack
+    res = os.system(dem_download_py + ' ' + subset_info['shp'] + ' ' + dem_tile_shp )
+    if res != 0:
+        sys.exit(1)
+    res = os.system(dem_unpack_reg_py + ' ' +arcticDEM_tile_tarball_dir + ' -d ' + arcticDEM_tile_reg_tif_dir + ' -r ' )
+    if res != 0:
+        sys.exit(1)
 
-    # send to
+    # send to remote machine
+    rsync_sh = os.path.join(ArcticDEM_tmp_dir,'rsync_to_curc.sh')
+    res = os.system(rsync_sh)
+    if res != 0:
+        sys.exit(1)
 
-    pass
+    update_subset_info(subset_info,key_list=['pre_status'],info_list='done')
+    # copy to remote machine
+    if scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir, subset_info_txt):
+        scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir,subset_shp_dir)
+
 
 def get_overlap_grids_for_one_extent(all_ids,all_grid_polys, dem_poly, dem_name, idx, dem_poly_count):
     print(timeTools.get_now_time_str(), idx, dem_poly_count)
@@ -239,6 +273,22 @@ def find_neighbours_2d(grid_ids_2d,visited,seed,connect):
 
     return new_seeds
 
+def get_subset_info(txt_path):
+    return io_function.read_dict_from_txt_json(txt_path)
+
+def update_subset_info(txt_path, key_list=None, info_list=None):
+    # maintain a info of subset for processing, dict
+    # id: subset_id
+    # shp: the shapefile contain all grids in this subset
+    # "pre_status": the status of downloading and registration of ArcticDEM, has values: 'notYet', 'working', 'done'
+    # 'proc_status': the status of processing ArcticDEM, has values of 'notYet', 'working', 'done'
+
+    info_dict = {}
+    if os.path.isfile(txt_path):
+        info_dict = io_function.read_dict_from_txt_json(txt_path)
+    for key, info in zip(key_list, info_list):
+        info_dict[key] = info
+    io_function.save_dict_to_txt_json(txt_path,info_dict)
 
 def get_grids_for_download_process(grid_polys, grid_ids, max_grid_count, grid_ids_2d, visit_np, save_path, proj=None):
     '''
@@ -286,6 +336,10 @@ def main(options, args):
     if len(task_list) < 1:
         raise ValueError('There is no task: %s'%str(task_list))
 
+    r_working_dir = '~/Data/dem_processing' if options.remote_working_dir is None else options.remote_working_dir
+    process_node = '$curc_host' if options.process_node is None else options.process_node
+    download_node = '$curc_host' if options.download_node is None else options.download_node
+
     max_grid_count = options.max_grids
 
 
@@ -314,14 +368,14 @@ def main(options, args):
     grid_ids_2d, grid_nodata = raster_io.read_raster_one_band_np(grid_20_id_raster)  # 2d array of gird ids
     # rasterize grid_polys, will served as mask.
     grid_ids_2d_mask = raster_io.burn_polygons_to_a_raster(grid_20_id_raster,grid_polys,1,None)
-    raster_io.save_numpy_array_to_rasterfile(grid_ids_2d_mask,'grid_ids_2d_mask.tif',grid_20_id_raster,nodata=255)  # save to disk for checking
+    # raster_io.save_numpy_array_to_rasterfile(grid_ids_2d_mask,'grid_ids_2d_mask.tif',grid_20_id_raster,nodata=255)  # save to disk for checking
     loc_masked_out = np.where(grid_ids_2d_mask != 1)
     # grid_ids_2d[ loc_masked_out ] = grid_nodata
     visit_np = np.zeros_like(grid_ids_2d, dtype=np.uint8)
     visit_np[loc_masked_out] = 1    # 1 indicate already visited
 
     subset_id = 0
-    io_function.mkdir('subset_grids')
+    io_function.mkdir(subset_shp_dir)
 
     # grid is being process but not complete yet
     running_grid_ids = []
@@ -340,15 +394,18 @@ def main(options, args):
                 break
             to_polys = [no_complete_polys[no_complete_ids.index(item)] for item in to_work_ids]
 
-            select_grids_shp = os.path.join('subset_grids',io_function.get_name_by_adding_tail(os.path.basename(grid_20_shp),'sub%d' % subset_id))
+            select_grids_shp = os.path.join(subset_shp_dir,io_function.get_name_by_adding_tail(os.path.basename(grid_20_shp),'sub%d' % subset_id))
             select_grid_polys, selected_gird_ids = get_grids_for_download_process(to_polys, to_work_ids, max_grid_count,
                                                                                   grid_ids_2d, visit_np,
                                                                                   select_grids_shp, proj=gird_prj)
             # print(len(select_grid_polys),len(selected_gird_ids),selected_gird_ids)
             running_grid_ids.extend(selected_gird_ids)
+            subset_info_txt = 'subset%d.txt'%subset_id
+            update_subset_info(subset_info_txt,key_list=['id','shp','pre_status','proc_status'],
+                               info_list=[subset_id,select_grids_shp, 'notYet','notYet'])
 
             # download and unpack ArcticDEM, do registration, send to curc
-            download_process_send_arctic_dem(select_grids_shp)
+            download_process_send_arctic_dem(subset_info_txt, r_working_dir,process_node)
 
         elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:  # curc
             # process ArcticDEM using the computing resource on CURC
@@ -376,6 +433,19 @@ if __name__ == '__main__':
     parser.add_option("-n", "--max_grids",
                       action="store", dest="max_grids", type=int, default=100,
                       help="the maximum number of grids for process in parallel, large storage allows large number")
+
+    parser.add_option("-w", "--remote_working_dir",
+                      action="store", dest="remote_working_dir",
+                      help="the working directory in remote machine.")
+
+    parser.add_option("-p", "--process_node",
+                      action="store", dest="process_node",
+                      help="the username and machine for processing ")
+
+    parser.add_option("-d", "--download_node",
+                      action="store", dest="download_node",
+                      help="the username and machine for download ")
+
 
     (options, args) = parser.parse_args()
     if len(sys.argv) < 2 or len(args) < 1:
