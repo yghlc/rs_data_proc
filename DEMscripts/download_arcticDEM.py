@@ -45,7 +45,7 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
         poly_ids = [idx for idx in range(len(extent_polys)) ]
 
     for count, (idx, ext_poly) in enumerate(zip(poly_ids, extent_polys)):
-        basic.outputlogMessage('get data for the %d th extent (%d/%d)' % (idx, count+1, len(extent_polys)))
+        basic.outputlogMessage('get data for the %d th extent (%d/%d)' % (idx, count, len(extent_polys)))
 
         save_txt_path = pre_name + '_dem_urls_poly_%d.txt' % idx
         if os.path.isfile(save_txt_path):
