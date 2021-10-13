@@ -373,6 +373,7 @@ def main(options, args):
     # grid_ids_2d[ loc_masked_out ] = grid_nodata
     visit_np = np.zeros_like(grid_ids_2d, dtype=np.uint8)
     visit_np[loc_masked_out] = 1    # 1 indicate already visited
+    visit_np[np.where(grid_ids_2d == grid_nodata)] = 1    # 1 indicate already visited
 
     subset_id = 0
     io_function.mkdir(subset_shp_dir)
