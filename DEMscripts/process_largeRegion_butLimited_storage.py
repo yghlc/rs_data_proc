@@ -444,7 +444,7 @@ def main(options, args):
     if len(task_list) < 1:
         raise ValueError('There is no task: %s'%str(task_list))
 
-    r_working_dir = '/home/lihu9680/Data/dem_processing' if options.remote_working_dir is None else options.remote_working_dir
+    r_working_dir = '/scratch/summit/lihu9680/Arctic/dem_processing' if options.remote_working_dir is None else options.remote_working_dir
     r_log_dir = '/scratch/summit/lihu9680/ArcticDEM_tmp_dir/log_dir' if options.remote_log_dir is None else options.remote_log_dir
     process_node = '$curc_host' if options.process_node is None else options.process_node
     download_node = '$curc_host' if options.download_node is None else options.download_node
