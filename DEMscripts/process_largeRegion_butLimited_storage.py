@@ -50,6 +50,8 @@ from dem_common import grid_hillshade_newest_HDLine_dir, grid_dem_diffs_dir,grid
 
 from produce_DEM_diff_ArcticDEM import get_grid_20
 
+from parallel_processing_curc import curc_username
+
 # scripts
 dem_download_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMscripts/download_arcticDEM.py')
 dem_unpack_reg_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMscripts/ArcticDEM_unpack_registration.py')
@@ -293,6 +295,8 @@ def update_complete_grid_list(grid_ids, task_list):
             complete_count += 1
         if 'hillshade_headwall_line' in task_list and b_exist_dem_hillshade_newest_HWLine_grid(g_id):
             complete_count += 1
+        if 'dem_headwall_grid' in task_list and b_exist_grid_headwall_shp(g_id):
+            complete_count += 1
         # we may check more task results: segment, dem_headwall_grid, dem_headwall
 
         if complete_count == n_task:
@@ -444,9 +448,27 @@ def produce_dem_products(tasks):
         update_subset_info(sub_txt,key_list=['proc_status'],info_list=['working'])
         subset_info = io_function.read_dict_from_txt_json(sub_txt)
         ext_shp = subset_info['shp']
+        # tasks: dem_diff dem_headwall_grid  hillshade_headwall_line
+        b_handle_specifi_task = False
+        if 'hillshade_headwall_line' in tasks:
+            tasks.remove('hillshade_headwall_line')
+            b_handle_specifi_task = True
+
         for task in tasks:
             res = os.system('./run.sh %s %s'%(ext_shp,task))
             if res !=0:
+                sys.exit(1)
+        if b_handle_specifi_task:
+            # wait until all "dem_headwall_grid" jobs have completed
+            while True:
+                job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr='gHW')
+                if job_count > 0:
+                    print(machine_name, datetime.now(),'wait until all dem_headwall_grid task complete ')
+                    time.sleep(60) #
+                    continue
+                break
+            res = os.system('./run.sh %s %s' % (ext_shp, 'hillshade_headwall_line'))
+            if res != 0:
                 sys.exit(1)
 
         # if allow grid has been submit, then marked as done, we don't check results for each grids here
