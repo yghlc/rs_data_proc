@@ -560,6 +560,10 @@ def main(options, args):
             # print(len(select_grid_polys),len(selected_gird_ids),selected_gird_ids)
             running_grid_ids.extend(selected_gird_ids)
             subset_info_txt = 'subset%d.txt'%subset_id
+            if os.path.isfile(subset_info_txt):
+                subset_info = io_function.read_dict_from_txt_json(subset_info_txt)
+                if subset_info['pre_status'] == 'done':
+                    continue
             update_subset_info(subset_info_txt,key_list=['id','shp','pre_status','proc_status'],
                                info_list=[subset_id,select_grids_shp, 'notYet','notYet'])
 
