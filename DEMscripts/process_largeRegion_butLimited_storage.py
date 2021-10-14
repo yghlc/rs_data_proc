@@ -103,6 +103,13 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
 
     subset_info = get_subset_info(subset_info_txt)
 
+    if subset_info['pre_status'] == 'done':
+        print(datetime.now(),'pre_status for %s is done, skip'%subset_info_txt)
+        # copy to remote machine
+        if scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir, subset_info_txt):
+            scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir, subset_shp_dir)
+        return True
+
     # if subset_id for download is far more ahead than processing (curc), then wait, in case occupy too much storage
     while True:
         remote_sub_txt = get_subset_info_txt_list('proc_status',['notYet', 'working'],remote_node=remote_node,remote_folder=r_working_dir)
@@ -567,12 +574,10 @@ def main(options, args):
             # print(len(select_grid_polys),len(selected_gird_ids),selected_gird_ids)
             running_grid_ids.extend(selected_gird_ids)
             subset_info_txt = 'subset%d.txt'%subset_id
-            if os.path.isfile(subset_info_txt):
-                subset_info = io_function.read_dict_from_txt_json(subset_info_txt)
-                if subset_info['pre_status'] == 'done':
-                    continue
-            update_subset_info(subset_info_txt,key_list=['id','shp','pre_status','proc_status'],
-                               info_list=[subset_id,select_grids_shp, 'notYet','notYet'])
+            if os.path.isfile(subset_info_txt) is False:
+                # init the file
+                update_subset_info(subset_info_txt, key_list=['id', 'shp', 'pre_status', 'proc_status'],
+                                   info_list=[subset_id, select_grids_shp, 'notYet', 'notYet'])
 
             # download and unpack ArcticDEM, do registration, send to curc
             download_process_send_arctic_dem(subset_info_txt, r_working_dir,process_node)
