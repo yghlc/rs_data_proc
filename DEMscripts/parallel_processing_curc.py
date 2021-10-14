@@ -222,15 +222,21 @@ def run_grid_jobs(max_job_count,n_tif_per_jobs,task_name,extent_shp):
     if os.path.isdir(grid_dem_diffs_dir) is  False:
         io_function.mkdir(grid_dem_diffs_dir)
 
-    # read grids and ids
-    time0 = time.time()
-    all_grid_polys, all_ids = vector_gpd.read_polygons_attributes_list(grid_20_shp, 'id')
-    print('time cost of read polygons and attributes', time.time() - time0)
-
     # get grid ids based on input extent
     # grid_base_name = os.path.splitext(os.path.basename(extent_shp))[0]
     grid_base_name = 'grid_ids'
-    grid_polys, grid_ids = get_grid_20(extent_shp,all_grid_polys, all_ids)
+    if 'ArcticDEM_grid_20km' in os.path.basename(extent_shp):
+        print('input %s like a grid files, read grid polygons and ids from it directly'%extent_shp)
+        grid_polys, grid_ids = vector_gpd.read_polygons_attributes_list(extent_shp, 'id')
+        file_name_base = os.path.splitext(os.path.basename(extent_shp))[0]
+        shp_corresponding_grid_ids_txt = file_name_base + '_grid_ids.txt'
+        io_function.save_list_to_txt(shp_corresponding_grid_ids_txt,[str(item) for item in grid_ids])
+    else:
+        # read grids and ids
+        time0 = time.time()
+        all_grid_polys, all_ids = vector_gpd.read_polygons_attributes_list(grid_20_shp, 'id')
+        print('time cost of read polygons and attributes', time.time() - time0)
+        grid_polys, grid_ids = get_grid_20(extent_shp,all_grid_polys, all_ids)
 
     # divide grid_ids to many groups
     grid_ids_count = len(grid_ids)
