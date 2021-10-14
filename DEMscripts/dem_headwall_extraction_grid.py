@@ -24,6 +24,7 @@ import basic_src.io_function as io_function
 
 import pandas as pd
 from multiprocessing import Pool
+import psutil
 
 # some parameters
 b_mosaic_id = True          # mosaic dem with the same id
@@ -155,6 +156,7 @@ def merge_multi_headwall_shp_to_one(shp_list, save_path):
 def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
                            b_mosaic_date,keep_dem_percent, o_res,process_num=1):
 
+    proc = psutil.Process(os.getpid())
     dem_ext_polys = get_dem_tif_ext_polygons(reg_tifs)
     headwall_shp_folders = []
     # mosaic and crop
@@ -221,6 +223,7 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
         if os.path.isdir(save_headwall_folder) is False:
             io_function.mkdir(save_headwall_folder)
 
+        print('before merge_multi_headwall_shp_to_one, used memory:', proc.memory_info()[0] / (1024 * 1024 * 1024.0), 'GB')
         save_merged_shp = os.path.join(save_headwall_folder, 'headwall_shp_multiDates_%d.shp' % grid_id)
         if merge_multi_headwall_shp_to_one(headwall_shp_list, save_merged_shp) is False:
             continue
