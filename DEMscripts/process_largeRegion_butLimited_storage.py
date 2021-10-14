@@ -450,11 +450,12 @@ def produce_dem_products(tasks):
         ext_shp = subset_info['shp']
         # tasks: dem_diff dem_headwall_grid  hillshade_headwall_line
         b_handle_specifi_task = False
+        tasks_copy = tasks.copy()
         if 'hillshade_headwall_line' in tasks:
-            tasks.remove('hillshade_headwall_line')
+            tasks_copy.remove('hillshade_headwall_line')
             b_handle_specifi_task = True
 
-        for task in tasks:
+        for task in tasks_copy:
             res = os.system('./run.sh %s %s'%(ext_shp,task))
             if res !=0:
                 sys.exit(1)
@@ -470,6 +471,14 @@ def produce_dem_products(tasks):
             res = os.system('./run.sh %s %s' % (ext_shp, 'hillshade_headwall_line'))
             if res != 0:
                 sys.exit(1)
+
+        # remove temporal folders
+        if 'dem_diff' in tasks:
+            os.system('rm -r dem_diff_*')
+        if 'dem_headwall_grid' in tasks:
+            os.system('rm -r extract_headwall_grid_*')
+        if 'hillshade_headwall_line' in tasks:
+            os.system('rm -r hillshade_newest_headwall_line_*')
 
         # if allow grid has been submit, then marked as done, we don't check results for each grids here
         update_subset_info(sub_txt, key_list=['proc_status'], info_list=['done'])
