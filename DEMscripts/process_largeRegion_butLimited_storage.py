@@ -395,26 +395,26 @@ def remove_no_need_dem_files():
                          set(tile_dem_cover_grids[tile]).issubset(completed_id_set)]
 
     # remove
-    basic.outputlogMessage('will remove %d strip DEM'%len(strip_no_need_list))
+    basic.outputlogMessage('there are %d no need strip DEM'%len(strip_no_need_list))
     for strip in strip_no_need_list:
-        basic.outputlogMessage('removing %s'%strip)
-        res = os.system(' rm %s/%s '%(tarball_dir,strip+'*'))
-        if res != 0:
-            sys.exit(1)
-        res = os.system(' rm %s/%s '%(arcticDEM_reg_tif_dir,strip+'*'))
-        if res != 0:
-            sys.exit(1)
+        file_list = io_function.get_file_list_by_pattern(tarball_dir,strip+'*')
+        file_list_2 = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir,strip+'*')
+        file_list.extend(file_list_2)
+        if len(file_list) > 0:
+            for path in file_list:
+                basic.outputlogMessage('removing %s' % path)
+                io_function.delete_file_or_dir(path)
 
 
-    basic.outputlogMessage('will remove %d tile DEM'%len(tile_no_need_list))
+    basic.outputlogMessage('there are %d no need tile DEM'%len(tile_no_need_list))
     for tile in tile_no_need_list:
-        basic.outputlogMessage('removing %s'%tile)
-        res = os.system(' rm %s/%s '%(arcticDEM_tile_tarball_dir,tile+'*'))
-        if res != 0:
-            sys.exit(1)
-        res = os.system(' rm %s/%s '%(arcticDEM_tile_reg_tif_dir,tile+'*'))
-        if res != 0:
-            sys.exit(1)
+        file_list = io_function.get_file_list_by_pattern(arcticDEM_tile_tarball_dir,tile+'*')
+        file_list_2 = io_function.get_file_list_by_pattern(arcticDEM_tile_reg_tif_dir,tile+'*')
+        file_list.extend(file_list_2)
+        if len(file_list) > 0:
+            for path in file_list:
+                basic.outputlogMessage('removing %s' % path)
+                io_function.delete_file_or_dir(path)
 
 
 def produce_dem_products(tasks):
