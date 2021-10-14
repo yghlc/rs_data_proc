@@ -39,7 +39,7 @@ machine_name = os.uname()[1]
 from dem_common import grid_20_shp,grid_20_id_raster,dem_strip_shp,dem_tile_shp
 
 # log or txt files
-from dem_common import process_log_dir, grid_complete_list_txt, strip_dem_cover_grids_txt, tile_dem_cover_grids_txt
+from dem_common import process_log_dir, grid_complete_list_txt, grid_excluded_list_txt,strip_dem_cover_grids_txt, tile_dem_cover_grids_txt
 if os.path.isdir(process_log_dir) is False:
     io_function.mkdir(process_log_dir)
 
@@ -374,6 +374,11 @@ def remove_no_need_dem_files():
     else:
         print(datetime.now(), 'no complete grids')
         return True
+
+    if os.path.isfile(grid_excluded_list_txt):
+        exclude_id_list = [int(item) for item in io_function.read_list_from_txt(grid_excluded_list_txt)]
+        completed_id_list.extend(exclude_id_list)
+
     if len(completed_id_list) < 1:
         return True
 
