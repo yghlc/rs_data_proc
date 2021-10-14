@@ -90,7 +90,8 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                     status, result = basic.exec_command_string(cmd_str)
                     if status != 0:
                         print(result)
-                        sys.exit(status)
+                        # sys.exit(status)
+                        basic.outputlogMessage('failed to download DEM: %s'%url)
                     os.chdir(curr_dir)
 
                 dem_tar_ball_list.append(save_dem_path)
