@@ -46,7 +46,7 @@ if os.path.isdir(process_log_dir) is False:
 from dem_common import arcticDEM_tile_tarball_dir,arcticDEM_tile_reg_tif_dir,tarball_dir,arcticDEM_reg_tif_dir,ArcticDEM_tmp_dir
 
 # results dir
-from dem_common import grid_hillshade_newest_HDLine_dir, grid_dem_diffs_dir
+from dem_common import grid_hillshade_newest_HDLine_dir, grid_dem_diffs_dir,grid_dem_headwall_shp_dir
 
 from produce_DEM_diff_ArcticDEM import get_grid_20
 
@@ -238,6 +238,19 @@ def get_not_completed_grids(grid_polys, grid_ids):
     return no_complete_polys, no_complete_ids
 
 
+def b_exist_grid_headwall_shp(id):
+
+    headwall_shps_dir = io_function.get_file_list_by_pattern(grid_dem_headwall_shp_dir, '*_grid%d' % id)
+    if len(headwall_shps_dir) == 1:
+        return True
+    elif len(headwall_shps_dir) > 1:
+        basic.outputlogMessage('warning, There are multiple headwall shps for grid: %d' % id)
+        for item in headwall_shps_dir:
+            basic.outputlogMessage(item)
+        return True
+    else:
+        return False
+
 def b_exist_dem_hillshade_newest_HWLine_grid(id):
     hillshade_newest_HDLine_tifs = io_function.get_file_list_by_pattern(grid_hillshade_newest_HDLine_dir, '*_grid%d.tif' % id)
     if len(hillshade_newest_HDLine_tifs) == 1:
@@ -246,7 +259,7 @@ def b_exist_dem_hillshade_newest_HWLine_grid(id):
         basic.outputlogMessage('warning, There are multiple hillshade (newest) HDLine tif for grid: %d' % id)
         for item in hillshade_newest_HDLine_tifs:
             basic.outputlogMessage(item)
-            return True
+        return True
     else:
         return False
 
