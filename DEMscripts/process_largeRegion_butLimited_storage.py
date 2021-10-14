@@ -387,7 +387,7 @@ def remove_no_need_dem_files():
 
     tile_dem_cover_grids = io_function.read_dict_from_txt_json(tile_dem_cover_grids_txt)
     tile_no_need_list = [tile for tile in tile_dem_cover_grids.keys() if
-                         set(tile_dem_cover_grids[tile].issubset(completed_id_set))]
+                         set(tile_dem_cover_grids[tile]).issubset(completed_id_set)]
 
     # remove
     basic.outputlogMessage('will remove %d strip DEM'%len(strip_no_need_list))
