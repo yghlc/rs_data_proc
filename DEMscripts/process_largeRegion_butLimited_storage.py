@@ -464,21 +464,28 @@ def produce_dem_products(tasks):
             while True:
                 job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr='gHW')
                 if job_count > 0:
-                    print(machine_name, datetime.now(),'wait until all dem_headwall_grid task complete ')
-                    time.sleep(60) #
+                    print(machine_name, datetime.now(),'wait 300 seconds until all dem_headwall_grid task complete ')
+                    time.sleep(300) #
                     continue
                 break
             res = os.system('./run.sh %s %s' % (ext_shp, 'hillshade_headwall_line'))
             if res != 0:
                 sys.exit(1)
 
-        # remove temporal folders
-        if 'dem_diff' in tasks:
-            os.system('rm -r dem_diff_*')
-        if 'dem_headwall_grid' in tasks:
-            os.system('rm -r extract_headwall_grid_*')
-        if 'hillshade_headwall_line' in tasks:
-            os.system('rm -r hillshade_newest_headwall_line_*')
+        # wait until all jobs finished
+        while True:
+            if slurm_utility.get_submit_job_count(curc_username, job_name_substr=None) > 0:
+                print(machine_name, datetime.now(),'wait 300 seconds until all submitted jobs are completed ')
+                time.sleep(300)
+                continue
+            # remove temporal folders
+            if 'dem_diff' in tasks:
+                os.system('rm -r dem_diff_*')
+            if 'dem_headwall_grid' in tasks:
+                os.system('rm -r extract_headwall_grid_*')
+            if 'hillshade_headwall_line' in tasks:
+                os.system('rm -r hillshade_newest_headwall_line_*')
+            break
 
         # if allow grid has been submit, then marked as done, we don't check results for each grids here
         update_subset_info(sub_txt, key_list=['proc_status'], info_list=['done'])
