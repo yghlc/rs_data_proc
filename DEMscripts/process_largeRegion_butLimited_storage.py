@@ -557,18 +557,19 @@ def main(options, args):
         # on tesia, uist, vpn-connected laptop
         if machine_name == 'ubuntu' or machine_name == 'uist' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
 
-            no_complete_polys, no_complete_ids = get_not_completed_grids(grid_polys, grid_ids)
-            if len(no_complete_ids) < 1:
-                break
-            # update with running girds
-            to_work_ids = [item for item in no_complete_ids if item not in running_grid_ids]
-            if len(to_work_ids) < 1:
-                print('No new grids need to download or process')
-                break
-            to_polys = [no_complete_polys[no_complete_ids.index(item)] for item in to_work_ids]
+            #### note: no need to check no_complete ids when dividing them to many subsets
+            # no_complete_polys, no_complete_ids = get_not_completed_grids(grid_polys, grid_ids)
+            # if len(no_complete_ids) < 1:
+            #     break
+            # # update with running girds
+            # to_work_ids = [item for item in no_complete_ids if item not in running_grid_ids]
+            # if len(to_work_ids) < 1:
+            #     print('No new grids need to download or process')
+            #     break
+            # to_polys = [no_complete_polys[no_complete_ids.index(item)] for item in to_work_ids]
 
             select_grids_shp = os.path.join(subset_shp_dir,io_function.get_name_by_adding_tail(os.path.basename(grid_20_shp),'sub%d' % subset_id))
-            select_grid_polys, selected_gird_ids = get_grids_for_download_process(to_polys, to_work_ids, max_grid_count,
+            select_grid_polys, selected_gird_ids = get_grids_for_download_process(grid_polys, grid_ids, max_grid_count,
                                                                                   grid_ids_2d, visit_np,
                                                                                   select_grids_shp, proj=gird_prj)
             # print(len(select_grid_polys),len(selected_gird_ids),selected_gird_ids)
