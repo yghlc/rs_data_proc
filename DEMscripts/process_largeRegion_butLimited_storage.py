@@ -384,7 +384,7 @@ def get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_cou
     seed_loc = np.where(visit_np == 0)
     if len(seed_loc[0]) < 1:
         print('warning, all pixels have been visited')
-        return [], []
+        return None, None
     # seed_loc = np.where(grid_ids_2d == grid_ids[0])
     y, x = seed_loc[0][0], seed_loc[1][0]
     selected_gird_id_list = [grid_ids_2d[y, x]]
@@ -401,6 +401,8 @@ def get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_cou
 
     # remove some ids
     selected_gird_id_list = [id for id in selected_gird_id_list if id not in ignore_ids]
+    if len(selected_gird_id_list) < 1:
+        return [], []
 
     select_grid_polys = [ grid_polys[grid_ids.index(item) ] for item in selected_gird_id_list ]
 
@@ -582,8 +584,10 @@ def main(options, args):
             select_grid_polys, selected_gird_ids = get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_count,
                                                                                   grid_ids_2d, visit_np,
                                                                                   select_grids_shp, proj=gird_prj)
+            if selected_gird_ids is None:
+                break   # no more grids
             if len(selected_gird_ids) < 1:
-                break
+                continue
 
             subset_info_txt = 'subset%d.txt'%subset_id
             if os.path.isfile(subset_info_txt) is False:
