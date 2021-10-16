@@ -246,6 +246,16 @@ def get_not_completed_grids(grid_polys, grid_ids):
             no_complete_ids.append(id)
     return no_complete_polys, no_complete_ids
 
+def get_complete_ignore_grid_ids():
+    id_list = []
+    if os.path.isfile(grid_complete_list_txt):
+        completed_id_list =  [int(item) for item in io_function.read_list_from_txt(grid_complete_list_txt)]
+        id_list.extend(completed_id_list)
+    # get manual excluded ids
+    if os.path.isfile(grid_excluded_list_txt):
+        exclude_id_list = [int(item) for item in io_function.read_list_from_txt(grid_excluded_list_txt)]
+        id_list.extend(exclude_id_list)
+    return id_list
 
 def b_exist_grid_headwall_shp(id):
 
@@ -357,11 +367,12 @@ def find_neighbours_2d(grid_ids_2d,visited,seed,connect):
     return new_seeds
 
 
-def get_grids_for_download_process(grid_polys, grid_ids, max_grid_count, grid_ids_2d, visit_np, save_path, proj=None):
+def get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_count, grid_ids_2d, visit_np, save_path, proj=None):
     '''
     get grids for donwload ArcticDEM and ids
     :param grid_polys:
     :param grid_ids:
+    :param ignore_ids: ids need to be ignored (complete or excluded)
     :param max_grid_count: max grid count, it will return number close to this value
     :param grid_ids_2d: gird_ids in 2d array
     :param visit_np: visit_np like a mask, to indicate which pixels has been checked, 0 no visit previously, 1 visited
@@ -387,6 +398,9 @@ def get_grids_for_download_process(grid_polys, grid_ids, max_grid_count, grid_id
         for seed in new_seeds:
             row, col = seed
             selected_gird_id_list.append( grid_ids_2d[row, col])
+
+    # remove some ids
+    selected_gird_id_list = [id for id in selected_gird_id_list if id not in ignore_ids]
 
     select_grid_polys = [ grid_polys[grid_ids.index(item) ] for item in selected_gird_id_list ]
 
@@ -556,32 +570,21 @@ def main(options, args):
     subset_id = 0
     io_function.mkdir(subset_shp_dir)
 
-    # grid is being process but not complete yet
-    running_grid_ids = []
 
     while True:
         # on tesia, uist, vpn-connected laptop
         if machine_name == 'ubuntu' or machine_name == 'uist' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
 
-            #### note: no need to check no_complete ids when dividing them to many subsets
-            # no_complete_polys, no_complete_ids = get_not_completed_grids(grid_polys, grid_ids)
-            # if len(no_complete_ids) < 1:
-            #     break
-            # # update with running girds
-            # to_work_ids = [item for item in no_complete_ids if item not in running_grid_ids]
-            # if len(to_work_ids) < 1:
-            #     print('No new grids need to download or process')
-            #     break
-            # to_polys = [no_complete_polys[no_complete_ids.index(item)] for item in to_work_ids]
+            # remove grids that has been complete or ignored
+            ignore_ids = get_complete_ignore_grid_ids()
 
             select_grids_shp = os.path.join(subset_shp_dir,io_function.get_name_by_adding_tail(os.path.basename(grid_20_shp),'sub%d' % subset_id))
-            select_grid_polys, selected_gird_ids = get_grids_for_download_process(grid_polys, grid_ids, max_grid_count,
+            select_grid_polys, selected_gird_ids = get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_count,
                                                                                   grid_ids_2d, visit_np,
                                                                                   select_grids_shp, proj=gird_prj)
             if len(selected_gird_ids) < 1:
                 break
-            # print(len(select_grid_polys),len(selected_gird_ids),selected_gird_ids)
-            running_grid_ids.extend(selected_gird_ids)
+
             subset_info_txt = 'subset%d.txt'%subset_id
             if os.path.isfile(subset_info_txt) is False:
                 # init the file
