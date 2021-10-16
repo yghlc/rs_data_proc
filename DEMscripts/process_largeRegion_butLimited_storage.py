@@ -582,7 +582,8 @@ def main(options, args):
                                    info_list=[subset_id, select_grids_shp, 'notYet', 'notYet'])
 
             # download and unpack ArcticDEM, do registration, send to curc
-            download_process_send_arctic_dem(subset_info_txt, r_working_dir,process_node)
+            if download_process_send_arctic_dem(subset_info_txt, r_working_dir,process_node) is True:
+                continue
 
             # copy file from remote machine
             copy_results_from_remote_node()
