@@ -375,8 +375,9 @@ def get_grids_for_download_process(grid_polys, grid_ids, max_grid_count, grid_id
         print('warning, all pixels have been visited')
         return [], []
     # seed_loc = np.where(grid_ids_2d == grid_ids[0])
-    selected_gird_id_list = [grid_ids[0]]
-    seed_list = [ [seed_loc[0][0], seed_loc[1][0]]]
+    y, x = seed_loc[0][0], seed_loc[1][0]
+    selected_gird_id_list = [grid_ids_2d[y, x]]
+    seed_list = [ [y, x]]
     while len(selected_gird_id_list) < max_grid_count and len(seed_list) > 0:
         # find neighbours
         new_seeds = find_neighbours_2d(grid_ids_2d,visit_np,seed_list[0],8)
