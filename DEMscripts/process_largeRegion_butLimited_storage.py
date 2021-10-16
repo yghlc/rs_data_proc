@@ -370,7 +370,8 @@ def get_grids_for_download_process(grid_polys, grid_ids, max_grid_count, grid_id
     '''
 
     # find a connected region with for donwload and processing, and save to files
-    seed_loc = np.where(grid_ids_2d == grid_ids[0])
+    seed_loc = np.where(visit_np == 0)
+    # seed_loc = np.where(grid_ids_2d == grid_ids[0])
     selected_gird_id_list = [grid_ids[0]]
     seed_list = [ [seed_loc[0][0], seed_loc[1][0]]]
     while len(selected_gird_id_list) < max_grid_count and len(seed_list) > 0:
