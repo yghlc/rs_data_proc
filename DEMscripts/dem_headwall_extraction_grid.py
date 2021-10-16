@@ -169,7 +169,7 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
         free_GB = io_function.get_free_disk_space_GB(work_dir)
         total_wait_time = 0
         while free_GB < 50 and total_wait_time < 60 * 60 * 12:
-            print(' The free disk space (%.4f) is less than 50 GB, wait 60 seconds' % free_GB)
+            basic.outputlogMessage(' The free disk space (%.4f) is less than 50 GB, wait 60 seconds' % free_GB)
             time.sleep(60)
             total_wait_time += 60
             free_GB = io_function.get_free_disk_space_GB(work_dir)
