@@ -371,6 +371,9 @@ def get_grids_for_download_process(grid_polys, grid_ids, max_grid_count, grid_id
 
     # find a connected region with for donwload and processing, and save to files
     seed_loc = np.where(visit_np == 0)
+    if len(seed_loc[0]) < 1:
+        print('warning, all pixels have been visited')
+        return [], []
     # seed_loc = np.where(grid_ids_2d == grid_ids[0])
     selected_gird_id_list = [grid_ids[0]]
     seed_list = [ [seed_loc[0][0], seed_loc[1][0]]]
@@ -389,6 +392,7 @@ def get_grids_for_download_process(grid_polys, grid_ids, max_grid_count, grid_id
     # save to shapefile to download and processing
     save_pd = pd.DataFrame({'id':selected_gird_id_list, 'Polygon':select_grid_polys})
     vector_gpd.save_polygons_to_files(save_pd,'Polygon',proj,save_path)
+    basic.outputlogMessage('saved %d grids to %s'%(len(select_grid_polys), save_path))
 
     return select_grid_polys, selected_gird_id_list
 
@@ -573,6 +577,8 @@ def main(options, args):
             select_grid_polys, selected_gird_ids = get_grids_for_download_process(grid_polys, grid_ids, max_grid_count,
                                                                                   grid_ids_2d, visit_np,
                                                                                   select_grids_shp, proj=gird_prj)
+            if len(selected_gird_ids) < 1:
+                break
             # print(len(select_grid_polys),len(selected_gird_ids),selected_gird_ids)
             running_grid_ids.extend(selected_gird_ids)
             subset_info_txt = 'subset%d.txt'%subset_id
