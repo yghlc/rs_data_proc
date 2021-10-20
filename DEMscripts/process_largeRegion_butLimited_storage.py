@@ -569,11 +569,12 @@ def main(options, args):
     visit_np[loc_masked_out] = 1    # 1 indicate already visited
     visit_np[np.where(grid_ids_2d == grid_nodata)] = 1    # 1 indicate already visited
 
-    subset_id = 0
+    subset_id = -1
     io_function.mkdir(subset_shp_dir)
 
 
     while True:
+        subset_id += 1
         # on tesia, uist, vpn-connected laptop
         if machine_name == 'ubuntu' or machine_name == 'uist' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
 
@@ -618,8 +619,6 @@ def main(options, args):
 
         # remove no need dem files
         remove_no_need_dem_files()
-
-        subset_id += 1
 
 
 
