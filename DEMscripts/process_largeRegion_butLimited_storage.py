@@ -114,8 +114,8 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
     while True:
         remote_sub_txt = get_subset_info_txt_list('proc_status',['notYet', 'working'],remote_node=remote_node,remote_folder=r_working_dir)
         if len(remote_sub_txt) > 5:
-            print(datetime.now(),'there is %d subset in remote machine have not complete,'
-                                 ' wait 300 seconds to download too many data'%len(remote_sub_txt))
+            print(datetime.now(),'there is %d subset have not complete,'
+                                 ' wait 300 seconds, avoid downloading too many data'%len(remote_sub_txt))
             time.sleep(300)
         else:
             break
