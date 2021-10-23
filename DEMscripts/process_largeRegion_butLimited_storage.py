@@ -620,6 +620,29 @@ def main(options, args):
         # remove no need dem files
         remove_no_need_dem_files()
 
+    # monitor results in remote computer
+    check_time = 200
+    while check_time > 0:
+        # on tesia, uist, vpn-connected laptop
+        if machine_name == 'ubuntu' or machine_name == 'uist' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
+            print(datetime.now(),'wait 10 min')
+            time.sleep(600)
+            # copy file from remote machine
+            copy_results_from_remote_node()
+            # update complete id list
+            update_complete_grid_list(grid_ids, task_list)
+            # copy complete id list, dem info to remote machine
+            scp_communicate.copy_file_folder_to_remote_machine(process_node, r_log_dir, process_log_dir)
+
+            remote_sub_txt = get_subset_info_txt_list('proc_status', ['notYet', 'working'], remote_node=process_node,
+                                                      remote_folder=r_working_dir)
+            if len(remote_sub_txt) < 1 and check_time != 1:
+                check_time = 1  # set to 1, then will only check one more time
+            else:
+                check_time -= 1
+        else:
+            break
+
 
 
 
