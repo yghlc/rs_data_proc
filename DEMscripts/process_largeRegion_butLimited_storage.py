@@ -410,6 +410,11 @@ def get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_cou
     save_pd = pd.DataFrame({'id':selected_gird_id_list, 'Polygon':select_grid_polys})
     vector_gpd.save_polygons_to_files(save_pd,'Polygon',proj,save_path)
     basic.outputlogMessage('saved %d grids to %s'%(len(select_grid_polys), save_path))
+    # save the ids to txt
+    save_id_txt = os.path.splitext(save_path)[0] + '_grid_ids.txt'
+    selected_grid_ids_str = [str(item) for item in selected_gird_id_list]
+    io_function.save_list_to_txt(save_id_txt, selected_grid_ids_str)
+
 
     return select_grid_polys, selected_gird_id_list
 
