@@ -13,7 +13,7 @@ import os,sys
 machine_name = os.uname()[1]
 
 # some folder paths
-if machine_name == 'uist':
+if machine_name == 'uist-int-colorado-edu':
     ArcticDEM_tmp_dir = '/home/lhuang/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir'
 
 elif machine_name == 'ubuntu':  # tesia
