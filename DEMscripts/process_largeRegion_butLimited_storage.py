@@ -633,7 +633,8 @@ def main(options, args):
             update_complete_grid_list(grid_ids, task_list)
             # copy complete id list, dem info to remote machine
             scp_communicate.copy_file_folder_to_remote_machine(process_node, r_log_dir, process_log_dir)
-
+            # remove no need dem files
+            remove_no_need_dem_files()
             remote_sub_txt = get_subset_info_txt_list('proc_status', ['notYet', 'working'], remote_node=process_node,
                                                       remote_folder=r_working_dir)
             if len(remote_sub_txt) < 1 and check_time != 1:
