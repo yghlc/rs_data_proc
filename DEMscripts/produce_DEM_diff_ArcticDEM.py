@@ -183,7 +183,15 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
     dem_ext_polys = get_dem_tif_ext_polygons(reg_tifs)
     dem_diff_tifs = []
     # mosaic and crop
+    if os.path.isfile(grid_dem_diff_less2dem_txt):
+        grid_id_less2dem_list = [ int(item) for item in io_function.read_list_from_txt(grid_dem_diff_less2dem_txt) ]   # no need covert to int
+    else:
+        grid_id_less2dem_list = []
     for grid_id, grid_poly in zip(grid_ids, grid_polys):
+
+        if grid_id in grid_id_less2dem_list:
+            basic.outputlogMessage('skip, previous processing shows that, the count of DEM is smaller than 2')
+            continue
 
         save_dir = 'grid_%d_tmp_files'%grid_id
 
@@ -225,6 +233,7 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
             dem_diff_tifs.append(save_dem_diff)
         else:
             save_id_grid_dem_less_2(grid_id)
+            grid_id_less2dem_list.append(grid_id)
     return dem_diff_tifs
 
 
