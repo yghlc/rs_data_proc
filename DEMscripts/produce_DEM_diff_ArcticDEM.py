@@ -47,6 +47,8 @@ b_mask_surface_water = True     # mask pixel of surface water
 
 from dem_common import grid_20_shp,dem_strip_shp
 
+from dem_common import grid_dem_diff_less2dem_txt, process_log_dir
+
 # some folder paths
 from dem_common import arcticDEM_reg_tif_dir,grid_dem_diffs_dir
 
@@ -158,6 +160,24 @@ def filter_dem_by_month(dem_list):
 
     return out_dem_list
 
+def save_id_grid_dem_less_2(grid_id):
+    # grid_dem_diff_less2dem_txt
+    if os.path.isdir(process_log_dir) is False:
+        io_function.mkdir(process_log_dir)
+    # update grid_dem_diff_less2dem_txt file
+    id_list = []
+    if os.path.isfile(grid_dem_diff_less2dem_txt):
+        id_list = io_function.read_list_from_txt(grid_dem_diff_less2dem_txt)    # no need covert to int
+    id_str = str(grid_id)
+    if id_str in id_list:
+        return True
+    else:
+        # save
+        id_list.append(str(grid_id))
+        io_function.save_list_to_txt(grid_dem_diff_less2dem_txt,id_list)
+        return True
+
+
 def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matchtag, b_mosaic_id,b_mosaic_date,keep_dem_percent,o_res,process_num=4):
 
     dem_ext_polys = get_dem_tif_ext_polygons(reg_tifs)
@@ -203,6 +223,8 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
         if dem_diff_newest_oldest(mosaic_tif_list, save_dem_diff, save_date_diff, process_num,
                                b_max_subsidence=b_max_subsidence,b_save_cm=True):
             dem_diff_tifs.append(save_dem_diff)
+        else:
+            save_id_grid_dem_less_2(grid_id)
     return dem_diff_tifs
 
 

@@ -77,6 +77,8 @@ grid_complete_list_txt = os.path.join(process_log_dir,'grid_complete_ids.txt')  
 # manually exclude some grids that dont have enough data
 grid_excluded_list_txt = os.path.join(process_log_dir,'grid_exclude_ids.txt')  # store ids of grids that have completed
 
+grid_dem_diff_less2dem_txt = os.path.join(process_log_dir,'grid_dem_diff_less2dem_ids.txt')  # store ids of grids that have completed
+
 strip_dem_cover_grids_txt = os.path.join(process_log_dir,'strip_dem_cover_grids.txt') # each strip cover how many grids (ids), dict
 tile_dem_cover_grids_txt = os.path.join(process_log_dir,'tile_dem_cover_grids.txt') # each tile cover how many grids (ids), dict
 
