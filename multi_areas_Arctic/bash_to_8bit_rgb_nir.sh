@@ -32,6 +32,7 @@ py=~/codes/PycharmProjects/rs_data_proc/tools/convertTo8bit.py
 
 function to8bit(){
     region=$1
+    mask_tif=$2
 
     in_dir=daily_mosaic/${region}_daily_mosaic
     dir_8bit=${in_dir}_8bit
@@ -83,6 +84,13 @@ function to8bit(){
 #            gdal_contrast_stretch -histeq 20 ${tif} ${out8bit}
 #            ${plot_py} ${out8bit} --value_range_min=1 --value_range_max=255 -b 254
 
+            # mask nodata region (mask is create from the images for obtaining training polygons)
+            for band in 1 2 3 4; do
+              gdal_calc.py --calc="A*B" --outfile=band_${band}.tif -A ${out8bit}  -B ${mask_tif} --A_band=${band} --NoDataValue 0
+            done
+            gdal_merge.py -o ${out8bit} -separate band_?.tif
+            rm band_?.tif
+
             # get RGB
             outrgb=${rgb_save_dir}/${filename_noext}_8bit_rgb.tif
             gdal_translate -b 3 -b 2 -b 1 -of GTiff -a_nodata 0 -co compress=lzw -co tiled=yes -co bigtiff=if_safer \
@@ -101,10 +109,13 @@ function to8bit(){
 }
 
 region=WR
-to8bit ${region}
+mask=~/Data/Arctic/canada_arctic/Willow_River/Planet2020/20200818_mosaic_nodataMask.tif
+to8bit ${region} ${mask}
 
 region=Banks_east
-to8bit ${region}
+mask=~/Data/Arctic/canada_arctic/Banks_east/Banks_Island_mosaic_nodataMask.tif
+to8bit ${region} ${mask}
 
 region=Ellesmere_Island
-to8bit ${region}
+mask=~/Data/Arctic/canada_arctic/Ellesmere_Island/HotWeatherCreek_Mosaic_nodataMask.tif
+to8bit ${region} ${mask}
