@@ -16,6 +16,7 @@ export PATH=~/programs/dans-gdal-scripts_install/bin:$PATH
 
 plot_py=~/codes/PycharmProjects/rs_data_proc/tools/plot_Images_histogram.py
 py=~/codes/PycharmProjects/rs_data_proc/tools/convertTo8bit.py
+crop_py=~/codes/PycharmProjects/rs_data_proc/tools/crop_image_to_another_raster.py
 
 #b1_min=100
 #b1_max=2000
@@ -85,11 +86,13 @@ function to8bit(){
 #            ${plot_py} ${out8bit} --value_range_min=1 --value_range_max=255 -b 254
 
             # mask nodata region (mask is create from the images for obtaining training polygons)
+            crop_py ${out8bit} ${mask_tif} -s tmp_mask.tif
             for band in 1 2 3 4; do
-              gdal_calc.py --calc="A*B" --outfile=band_${band}.tif -A ${out8bit}  -B ${mask_tif} --A_band=${band} --NoDataValue 0
+              gdal_calc.py --calc="A*B" --outfile=band_${band}.tif -A ${out8bit}  -B tmp_mask.tif  --A_band=${band} --NoDataValue 0
             done
             gdal_merge.py -o ${out8bit} -separate band_?.tif
             rm band_?.tif
+            rm tmp_mask.tif
 
             # get RGB
             outrgb=${rgb_save_dir}/${filename_noext}_8bit_rgb.tif
