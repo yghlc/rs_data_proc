@@ -17,18 +17,18 @@ export PATH=~/programs/dans-gdal-scripts_install/bin:$PATH
 plot_py=~/codes/PycharmProjects/rs_data_proc/tools/plot_Images_histogram.py
 py=~/codes/PycharmProjects/rs_data_proc/tools/convertTo8bit.py
 
-b1_min=100
-b1_max=2000
-b2_min=300
-b2_max=2200
-b3_min=500
-b3_max=2400
-b4_min=1000
-b4_max=4000
-
-# 0 for nodata
-dst_min=1
-dst_max=255
+#b1_min=100
+#b1_max=2000
+#b2_min=300
+#b2_max=2200
+#b3_min=500
+#b3_max=2400
+#b4_min=1000
+#b4_max=4000
+#
+## 0 for nodata
+#dst_min=1
+#dst_max=255
 
 function to8bit(){
     region=$1
@@ -78,10 +78,10 @@ function to8bit(){
 #            ${tif} ${out8bit}
 
             # for a small region, we may use gdal_contrast_stretch, but if there is cloud, it makes the result bad
-#            gdal_contrast_stretch -percentile-range 0.01 0.99 ${tif} ${out8bit}
+            gdal_contrast_stretch -percentile-range 0.01 0.99 ${tif} ${out8bit}
             # use histogram normalization
-            gdal_contrast_stretch -histeq 20 ${tif} ${out8bit}
-            ${plot_py} ${out8bit} --value_range_min=1 --value_range_max=255 -b 254
+#            gdal_contrast_stretch -histeq 20 ${tif} ${out8bit}
+#            ${plot_py} ${out8bit} --value_range_min=1 --value_range_max=255 -b 254
 
             # get RGB
             outrgb=${rgb_save_dir}/${filename_noext}_8bit_rgb.tif
