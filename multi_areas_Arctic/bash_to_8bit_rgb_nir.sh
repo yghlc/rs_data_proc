@@ -86,7 +86,7 @@ function to8bit(){
 #            ${plot_py} ${out8bit} --value_range_min=1 --value_range_max=255 -b 254
 
             # mask nodata region (mask is create from the images for obtaining training polygons)
-            crop_py ${out8bit} ${mask_tif} -s tmp_mask.tif
+            ${crop_py} ${out8bit} ${mask_tif} -s tmp_mask.tif
             for band in 1 2 3 4; do
               gdal_calc.py --calc="A*B" --outfile=band_${band}.tif -A ${out8bit}  -B tmp_mask.tif  --A_band=${band} --NoDataValue 0
             done
