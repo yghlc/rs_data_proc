@@ -156,7 +156,7 @@ def process_dem_tarball(tar_list, work_dir,inter_format, out_res, extent_poly=No
         if crop_tif is not None and out_dir is not None:
             dem_tif_list.append(crop_tif)
             tar_folder_list.append(out_dir)
-
+    theadPool.close()
 
     return dem_tif_list, tar_folder_list
 
@@ -246,6 +246,7 @@ def mosaic_dem_same_stripID(demTif_groups,save_tif_dir, resample_method, process
 
         results = theadPool.starmap(mosaic_dem_list, parameters_list)  # need python3
         mosaic_list = [ out for out in results if out is not False]
+        theadPool.close()
     else:
         raise ValueError('Wrong process_num: %d'%process_num)
 
@@ -292,6 +293,7 @@ def check_dem_valid_per(dem_tif_list, work_dir, process_num =1, move_dem_thresho
                 return False
             dem_tif_valid_per[tif] = res
             keep_dem_list.append(tif)
+        theadPool.close()
     else:
         raise ValueError("Wrong process_num: %d"%process_num)
     # sort

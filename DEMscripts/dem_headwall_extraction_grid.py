@@ -108,6 +108,7 @@ def dem_list_to_slope_list(dem_list, save_dir, extent_id, process_num=1):
         parameters_list = [(tif, slope_tif_dir) for idx, tif in enumerate(dem_list)]
         results = theadPool.starmap(one_dem_to_slope, parameters_list)  # need python3
         slope_list = [ out for out in results if out is not False]
+        theadPool.close()
     else:
         raise ValueError('Wrong process number: %s'%str(process_num))
 

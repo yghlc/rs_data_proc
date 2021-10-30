@@ -92,7 +92,7 @@ def dem_to_relative_dem(input,output, patch_width, patch_height, process_num):
             col_s = patch[0]
             col_e = patch[0] + patch[2]
             dem_relative_8bit_np[row_s:row_e, col_s:col_e] = patch_rel_dem_8bit
-
+        theadPool.close()
     # save date diff to tif (16 bit)
     raster_io.save_numpy_array_to_rasterfile(dem_relative_8bit_np,output,input, nodata=dst_nodata,compress='lzw',tiled='yes',bigtiff='if_safer')
 

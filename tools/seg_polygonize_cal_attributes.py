@@ -82,6 +82,7 @@ def polygonize_label_images(label_paths, org_raster=None, stats=None,prefix=None
                 label_shp_list.append(res)
             else:
                 raise ValueError('failed in polygonize %s'%label_path_list[idx])
+        theadPool.close()
     else:
         raise ValueError('Wrong process_num: %s'%str(process_num))
 

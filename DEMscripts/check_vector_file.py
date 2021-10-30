@@ -82,6 +82,7 @@ def main(options, args):
                 good_files.append(os.path.basename(tif))
             else:
                 incomplete_files.append(os.path.basename(tif))
+        theadPool.close()
 
     io_function.save_list_to_txt(save_invalid_txt_path, incomplete_files)
     io_function.save_list_to_txt(save_good_txt_path, good_files)

@@ -80,6 +80,7 @@ def main(options, args):
                 good_tifs.append(os.path.basename(tif))
             else:
                 invalid_tif.append(os.path.basename(tif))
+        theadPool.close()
 
     io_function.save_list_to_txt(save_invalid_txt_path, invalid_tif)
     io_function.save_list_to_txt(save_good_txt_path,good_tifs)

@@ -201,6 +201,7 @@ def mosaic_dem_same_stripID(demTif_groups,save_tif_dir, resample_method, process
 
         results = theadPool.starmap(mosaic_dem_list, parameters_list)  # need python3
         mosaic_list = [ out for out in results if out is not False]
+        theadPool.close()
     else:
         raise ValueError('Wrong process_num: %d'%process_num)
 

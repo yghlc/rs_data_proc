@@ -201,7 +201,7 @@ def main(options, args):
         for res in results:
             if res is not True:
                 failed_tifs.append(res)
-
+        theadPool.close()
 
     with open('to_hillshade_slope8bit_failed_cases.txt','w') as f_obj:
         for item in failed_tifs:
