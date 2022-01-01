@@ -155,7 +155,7 @@ def main(options, args):
         extent_polys = vector_gpd.read_polygons_gpd(extent_shp)
 
     # read 'grid_id' if the extent shp is from grid shp file, if not, grid_id_list will be None
-    grid_id_list = vector_gpd.read_attribute_values_list(extent_polys,'grid_id')
+    grid_id_list = vector_gpd.read_attribute_values_list(extent_shp,'grid_id')
 
     if len(extent_polys) < 1:
         raise ValueError('No polygons in %s'%extent_shp)
