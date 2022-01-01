@@ -227,14 +227,14 @@ def run_grid_jobs(max_job_count,n_tif_per_jobs,task_name,extent_shp):
     grid_base_name = 'grid_ids'
     if 'ArcticDEM_grid_20km' in os.path.basename(extent_shp):
         print('input %s like a grid files, read grid polygons and ids from it directly'%extent_shp)
-        grid_polys, grid_ids = vector_gpd.read_polygons_attributes_list(extent_shp, 'id')
+        grid_polys, grid_ids = vector_gpd.read_polygons_attributes_list(extent_shp, 'grid_id')
         file_name_base = os.path.splitext(os.path.basename(extent_shp))[0]
         shp_corresponding_grid_ids_txt = file_name_base + '_grid_ids.txt'
         io_function.save_list_to_txt(shp_corresponding_grid_ids_txt,[str(item) for item in grid_ids])
     else:
         # read grids and ids
         time0 = time.time()
-        all_grid_polys, all_ids = vector_gpd.read_polygons_attributes_list(grid_20_shp, 'id')
+        all_grid_polys, all_ids = vector_gpd.read_polygons_attributes_list(grid_20_shp, 'grid_id')
         print('time cost of read polygons and attributes', time.time() - time0)
         grid_polys, grid_ids = get_grid_20(extent_shp,all_grid_polys, all_ids)
 
