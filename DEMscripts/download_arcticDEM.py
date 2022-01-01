@@ -50,7 +50,7 @@ def save_id_grid_no_dem(grid_id):
         # save
         id_list.append(str(grid_id))
         io_function.save_list_to_txt(grid_no_dem_txt,id_list)
-        basic.outputlogMessage('Save gird id (%d) to %s' % grid_no_dem_txt)
+        basic.outputlogMessage('Save gird id (%d) to %s' % (grid_id,grid_no_dem_txt))
         return True
 
 def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg_tif_dir=None, poly_ids=None):
