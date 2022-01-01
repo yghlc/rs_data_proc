@@ -40,6 +40,7 @@ from dem_common import grid_20_shp,grid_20_id_raster,dem_strip_shp,dem_tile_shp
 
 # log or txt files
 from dem_common import process_log_dir, grid_complete_list_txt, grid_excluded_list_txt,strip_dem_cover_grids_txt, tile_dem_cover_grids_txt
+from dem_common import grid_no_dem_txt
 if os.path.isdir(process_log_dir) is False:
     io_function.mkdir(process_log_dir)
 
@@ -255,6 +256,11 @@ def get_complete_ignore_grid_ids():
     if os.path.isfile(grid_excluded_list_txt):
         exclude_id_list = [int(item) for item in io_function.read_list_from_txt(grid_excluded_list_txt)]
         id_list.extend(exclude_id_list)
+    # get ids that don't have DEM
+    if os.path.isfile(grid_no_dem_txt):
+        nodem_id_list = [int(item) for item in io_function.read_list_from_txt(grid_no_dem_txt)]
+        id_list.extend(nodem_id_list)
+
     return id_list
 
 def b_exist_grid_headwall_shp(id):
@@ -407,7 +413,7 @@ def get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_cou
     select_grid_polys = [ grid_polys[grid_ids.index(item) ] for item in selected_gird_id_list ]
 
     # save to shapefile to download and processing
-    save_pd = pd.DataFrame({'id':selected_gird_id_list, 'Polygon':select_grid_polys})
+    save_pd = pd.DataFrame({'grid_id':selected_gird_id_list, 'Polygon':select_grid_polys})
     vector_gpd.save_polygons_to_files(save_pd,'Polygon',proj,save_path)
     basic.outputlogMessage('saved %d grids to %s'%(len(select_grid_polys), save_path))
     # save the ids to txt

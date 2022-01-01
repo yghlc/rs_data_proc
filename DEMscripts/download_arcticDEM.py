@@ -24,6 +24,8 @@ import time
 
 from dem_common import tarball_dir,arcticDEM_reg_tif_dir,arcticDEM_tile_tarball_dir
 
+from dem_common import grid_no_dem_txt, process_log_dir
+
 def get_total_size(url_list):
     total_size = 0
     for url in url_list:
@@ -31,6 +33,25 @@ def get_total_size(url_list):
         if size is not False:
             total_size += size
     return total_size/(1024.0*1024.0*1024.0)    # GB
+
+
+def save_id_grid_no_dem(grid_id):
+    # grid_dem_diff_less2dem_txt
+    if os.path.isdir(process_log_dir) is False:
+        io_function.mkdir(process_log_dir)
+    # update grid_dem_diff_less2dem_txt file
+    id_list = []
+    if os.path.isfile(grid_no_dem_txt):
+        id_list = io_function.read_list_from_txt(grid_no_dem_txt)    # no need covert to int
+    id_str = str(grid_id)
+    if id_str in id_list:
+        return True
+    else:
+        # save
+        id_list.append(str(grid_id))
+        io_function.save_list_to_txt(grid_no_dem_txt,id_list)
+        basic.outputlogMessage('Save gird id (%d) to %s' % grid_no_dem_txt)
+        return True
 
 def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg_tif_dir=None, poly_ids=None):
     # read dem polygons and url
@@ -41,8 +62,10 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
     dem_tar_ball_list = []
     reg_tifs_list = []
     curr_dir = os.getcwd()
+    b_save_grid_id_noDEM = True
     if poly_ids is None:
         poly_ids = [idx for idx in range(len(extent_polys)) ]
+        b_save_grid_id_noDEM = False    # if poly_ids is not the global unique id, then don't save it.
 
     for count, (idx, ext_poly) in enumerate(zip(poly_ids, extent_polys)):
         basic.outputlogMessage('get data for the %d th extent (%d/%d)' % (idx, count, len(extent_polys)))
@@ -54,7 +77,7 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
         else:
             # get fileurl
             dem_poly_ids = vector_gpd.get_poly_index_within_extent(dem_polygons,ext_poly)
-            basic.outputlogMessage('find %d DEM within %d th extent' % (len(dem_poly_ids), (idx + 1)))
+            basic.outputlogMessage('find %d DEM within %d th extent' % (len(dem_poly_ids), (idx )))
             urls = [dem_urls[id] for id in dem_poly_ids]
 
             # save to txt
@@ -97,7 +120,9 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                 dem_tar_ball_list.append(save_dem_path)
 
         else:
-            basic.outputlogMessage('Warning, can not find DEMs within %d th extent'%(idx+1))
+            basic.outputlogMessage('Warning, can not find DEMs within %d th extent'%(idx))
+            if b_save_grid_id_noDEM:
+                save_id_grid_no_dem(idx)
 
     return dem_tar_ball_list, reg_tifs_list
 
@@ -129,12 +154,16 @@ def main(options, args):
     else:
         extent_polys = vector_gpd.read_polygons_gpd(extent_shp)
 
+    # read 'grid_id' if the extent shp is from grid shp file, if not, grid_id_list will be None
+    grid_id_list = vector_gpd.read_attribute_values_list(extent_polys,'grid_id')
+
     if len(extent_polys) < 1:
         raise ValueError('No polygons in %s'%extent_shp)
     else:
         basic.outputlogMessage('%d extent polygons in %s'%(len(extent_polys),extent_shp))
 
-    download_dem_tarball(dem_index_shp,extent_polys,save_folder,pre_name,reg_tif_dir=arcticDEM_reg_tif_dir)
+    download_dem_tarball(dem_index_shp,extent_polys,save_folder,pre_name,reg_tif_dir=arcticDEM_reg_tif_dir,
+                         poly_ids=grid_id_list)
 
 
 if __name__ == "__main__":
