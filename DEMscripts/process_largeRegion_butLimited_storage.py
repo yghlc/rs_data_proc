@@ -555,7 +555,7 @@ def main(options, args):
         raise ValueError('There is no task: %s'%str(task_list))
 
     r_working_dir = '/scratch/summit/lihu9680/Arctic/dem_processing' if options.remote_working_dir is None else options.remote_working_dir
-    r_log_dir = '/scratch/summit/lihu9680/ArcticDEM_tmp_dir' if options.remote_log_dir is None else options.remote_log_dir
+    r_log_dir = '/scratch/summit/lihu9680/ArcticDEM_tmp_dir/log_dir' if options.remote_log_dir is None else options.remote_log_dir
     process_node = '$curc_host' if options.process_node is None else options.process_node
     download_node = '$curc_host' if options.download_node is None else options.download_node
 
@@ -656,7 +656,7 @@ def main(options, args):
             copy_results_from_remote_node()
             # update complete id list
             update_complete_grid_list(grid_ids, task_list)
-            # sycn complete id list, dem info, no dem grids etcs. 
+            # sycn complete id list, dem info, no dem grids etcs.
             sync_log_files(process_node, r_log_dir, process_log_dir)
             # remove no need dem files
             remove_no_need_dem_files()
