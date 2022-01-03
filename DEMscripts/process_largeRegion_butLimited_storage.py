@@ -262,8 +262,8 @@ def get_complete_ignore_grid_ids():
         id_list.extend(nodem_id_list)
     # get ids that don't have DEM
     if os.path.isfile(grid_no_valid_dem_txt):
-        nodem_id_list = [int(item) for item in io_function.read_list_from_txt(grid_no_valid_dem_txt)]
-        id_list.extend(nodem_id_list)
+        no_valid_dem_id_list = [int(item) for item in io_function.read_list_from_txt(grid_no_valid_dem_txt)]
+        id_list.extend(no_valid_dem_id_list)
 
     return id_list
 
