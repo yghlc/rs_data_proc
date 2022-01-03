@@ -30,6 +30,25 @@ import operator
 import numpy as np
 
 from dem_common import arcticDEM_tile_reg_tif_dir, mask_water_dir
+from dem_common import grid_no_valid_dem_txt, process_log_dir
+
+def save_id_grid_no_valid_dem(grid_id):
+    # grid_no_valid_dem_ids.txt
+    if os.path.isdir(process_log_dir) is False:
+        io_function.mkdir(process_log_dir)
+    # update grid_dem_diff_less2dem_txt file
+    id_list = []
+    if os.path.isfile(grid_no_valid_dem_txt):
+        id_list = io_function.read_list_from_txt(grid_no_valid_dem_txt)    # no need covert to int
+    id_str = str(grid_id)
+    if id_str in id_list:
+        return True
+    else:
+        # save
+        id_list.append(str(grid_id))
+        io_function.save_list_to_txt(grid_no_valid_dem_txt,id_list)
+        basic.outputlogMessage('Save gird id (%d) to %s' % (grid_id,grid_no_valid_dem_txt))
+        return True
 
 def subset_image_by_polygon_box(in_img, out_img, polygon,resample_m='bilinear',o_format='GTiff', out_res=None,same_extent=False, thread_num=1):
     if same_extent:
@@ -586,6 +605,7 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
 
     if len(dem_tif_list) < 1:
         basic.outputlogMessage('No dem_stripID_mosaic with valid_percent greater than %s'%str(keep_dem_percent))
+        save_id_grid_no_valid_dem(extent_id)
         return []
 
 

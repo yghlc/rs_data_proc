@@ -78,7 +78,10 @@ grid_complete_list_txt = os.path.join(process_log_dir,'grid_complete_ids.txt')  
 grid_excluded_list_txt = os.path.join(process_log_dir,'grid_exclude_ids.txt')   # store ids of grids that manually exclude
 
 grid_dem_diff_less2dem_txt = os.path.join(process_log_dir,'grid_dem_diff_less2dem_ids.txt')  # store ids of grids that has less than 2 DEM (cannot calculate DEM differnce)
-grid_no_dem_txt = os.path.join(process_log_dir,'grid_no_dem_ids.txt')  # store ids of grids that don't have DEM (strip version) or the coverage is smaller than threshold
+grid_no_dem_txt = os.path.join(process_log_dir,'grid_no_dem_ids.txt')  # store ids of grids that don't have DEM (strip version) overlap
+
+# store ids of grids that have overlap of DEM  (strip version), but the coverage is too smaller or all overlap DEM are invalid. 
+grid_no_valid_dem_txt = os.path.join(process_log_dir,'grid_no_valid_dem_ids.txt')
 
 strip_dem_cover_grids_txt = os.path.join(process_log_dir,'strip_dem_cover_grids.txt') # each strip cover how many grids (ids), dict
 tile_dem_cover_grids_txt = os.path.join(process_log_dir,'tile_dem_cover_grids.txt') # each tile cover how many grids (ids), dict

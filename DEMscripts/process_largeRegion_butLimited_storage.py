@@ -40,7 +40,7 @@ from dem_common import grid_20_shp,grid_20_id_raster,dem_strip_shp,dem_tile_shp
 
 # log or txt files
 from dem_common import process_log_dir, grid_complete_list_txt, grid_excluded_list_txt,strip_dem_cover_grids_txt, tile_dem_cover_grids_txt
-from dem_common import grid_no_dem_txt
+from dem_common import grid_no_dem_txt,grid_no_valid_dem_txt
 if os.path.isdir(process_log_dir) is False:
     io_function.mkdir(process_log_dir)
 
@@ -259,6 +259,10 @@ def get_complete_ignore_grid_ids():
     # get ids that don't have DEM
     if os.path.isfile(grid_no_dem_txt):
         nodem_id_list = [int(item) for item in io_function.read_list_from_txt(grid_no_dem_txt)]
+        id_list.extend(nodem_id_list)
+    # get ids that don't have DEM
+    if os.path.isfile(grid_no_valid_dem_txt):
+        nodem_id_list = [int(item) for item in io_function.read_list_from_txt(grid_no_valid_dem_txt)]
         id_list.extend(nodem_id_list)
 
     return id_list
