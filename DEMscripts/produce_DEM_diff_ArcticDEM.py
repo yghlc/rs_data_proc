@@ -31,6 +31,7 @@ import basic_src.RSImageProcess as RSImageProcess
 from download_arcticDEM import download_dem_tarball
 from ArcticDEM_unpack_registration import process_dem_tarball
 from dem_mosaic_crop import mosaic_crop_dem
+from dem_mosaic_crop import save_id_grid_no_valid_dem
 from dem_mosaic_crop import get_dem_tif_ext_polygons
 from dem_mosaic_crop import subset_image_by_polygon_box
 from dem_difference import dem_diff_newest_oldest
@@ -210,6 +211,7 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
         dem_poly_index = vector_gpd.get_poly_index_within_extent(dem_ext_polys, grid_poly)
         if len(dem_poly_index) < 1:
             basic.outputlogMessage('warning, no dem tifs within %d grid, skip' % grid_id)
+            save_id_grid_no_valid_dem(grid_id)
             continue
         dem_list_sub = [reg_tifs[index] for index in dem_poly_index]
 
