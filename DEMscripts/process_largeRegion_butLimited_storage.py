@@ -40,7 +40,7 @@ from dem_common import grid_20_shp,grid_20_id_raster,dem_strip_shp,dem_tile_shp
 
 # log or txt files
 from dem_common import process_log_dir, grid_complete_list_txt, grid_excluded_list_txt,strip_dem_cover_grids_txt, tile_dem_cover_grids_txt
-from dem_common import grid_no_dem_txt,grid_no_valid_dem_txt
+from dem_common import grid_no_dem_txt,grid_no_valid_dem_txt,grid_dem_diff_less2dem_txt
 if os.path.isdir(process_log_dir) is False:
     io_function.mkdir(process_log_dir)
 
@@ -294,6 +294,12 @@ def b_exist_dem_hillshade_newest_HWLine_grid(id):
 
 def b_exist_gid_dem_diff(id):
     dem_diff_files = io_function.get_file_list_by_pattern(grid_dem_diffs_dir, '*_DEM_diff_grid%d.tif' % id)
+    # if an id don't have enough dem for dem diff, then we think it's cocmplete
+    if os.path.isfile(grid_dem_diff_less2dem_txt):
+        grid_ids_less_2dem = [int(item) for item in io_function.read_list_from_txt(grid_dem_diff_less2dem_txt)]
+        if id in grid_ids_less_2dem:
+            return True
+
     if len(dem_diff_files) == 1:
         return True
     elif len(dem_diff_files) > 1:
@@ -628,10 +634,10 @@ def main(options, args):
             # copy file from remote machine
             copy_results_from_remote_node()
 
+            sync_log_files(process_node, r_log_dir, process_log_dir)
+
             # update complete id list
             update_complete_grid_list(grid_ids, task_list)
-
-            sync_log_files(process_node,r_log_dir,process_log_dir)
 
 
         elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:  # curc
@@ -654,10 +660,10 @@ def main(options, args):
             time.sleep(600)
             # copy file from remote machine
             copy_results_from_remote_node()
+            # sync complete id list, dem info, no dem grids etcs.
+            sync_log_files(process_node, r_log_dir, process_log_dir)
             # update complete id list
             update_complete_grid_list(grid_ids, task_list)
-            # sycn complete id list, dem info, no dem grids etcs.
-            sync_log_files(process_node, r_log_dir, process_log_dir)
             # remove no need dem files
             remove_no_need_dem_files()
             remote_sub_txt = get_subset_info_txt_list('proc_status', ['notYet', 'working'], remote_node=process_node,
