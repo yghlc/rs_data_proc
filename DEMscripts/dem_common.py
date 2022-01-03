@@ -15,14 +15,18 @@ machine_name = os.uname()[1]
 # some folder paths
 if machine_name == 'uist-int-colorado-edu':
     ArcticDEM_tmp_dir = '/home/lhuang/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir'
+    data_dir = '/home/lhuang/Data'
 
 elif machine_name == 'ubuntu':  # tesia
     ArcticDEM_tmp_dir = '/home/lihu9680/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir'
+    data_dir = '/home/lihu9680/Data'
 
 elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:   # curc
     ArcticDEM_tmp_dir = '/scratch/summit/lihu9680/ArcticDEM_tmp_dir'
+    data_dir = '/projects/lihu9680/Data'
 else:
     ArcticDEM_tmp_dir = './'
+    data_dir = './'
 
 tarball_dir = os.path.join(ArcticDEM_tmp_dir,'tarballs')    # strip version of ArcticDEM
 
@@ -63,7 +67,7 @@ arcticDEM_tile_tpi_8bit_dir = os.path.join(ArcticDEM_tmp_dir, 'arcticdem_mosaic_
 
 
 # surface water mask
-mask_water_dir = os.path.join(os.path.dirname(ArcticDEM_tmp_dir), 'global_surface_water' , 'extent_epsg3413')
+mask_water_dir = os.path.join(data_dir, 'global_surface_water' , 'extent_epsg3413')
 
 grid_20_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp/ArcticDEM_grid_20km.shp')
 grid_20_id_raster = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp/ArcticDEM_grid_20km_id.tif')
@@ -80,7 +84,7 @@ grid_excluded_list_txt = os.path.join(process_log_dir,'grid_exclude_ids.txt')   
 grid_dem_diff_less2dem_txt = os.path.join(process_log_dir,'grid_dem_diff_less2dem_ids.txt')  # store ids of grids that has less than 2 DEM (cannot calculate DEM differnce)
 grid_no_dem_txt = os.path.join(process_log_dir,'grid_no_dem_ids.txt')  # store ids of grids that don't have DEM (strip version) overlap
 
-# store ids of grids that have overlap of DEM  (strip version), but the coverage is too smaller or all overlap DEM are invalid. 
+# store ids of grids that have overlap of DEM  (strip version), but the coverage is too smaller or all overlap DEM are invalid.
 grid_no_valid_dem_txt = os.path.join(process_log_dir,'grid_no_valid_dem_ids.txt')
 
 strip_dem_cover_grids_txt = os.path.join(process_log_dir,'strip_dem_cover_grids.txt') # each strip cover how many grids (ids), dict
