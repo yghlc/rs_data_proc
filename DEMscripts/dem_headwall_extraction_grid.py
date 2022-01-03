@@ -52,6 +52,7 @@ max_hole_count = 10    # increase to 10, for some big rts also
 from produce_DEM_diff_ArcticDEM import get_grid_20
 from dem_mosaic_crop import get_dem_tif_ext_polygons
 from dem_mosaic_crop import mosaic_crop_dem
+from dem_mosaic_crop import save_id_grid_no_valid_dem
 from dem_to_hillshade_slope_8bit import dem_to_slope
 from dem_headwall_extraction import extract_headwall_from_slope
 from dem_headwall_medial_axis import extract_headwall_based_medial_axis_from_slope
@@ -179,6 +180,7 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
         dem_poly_index = vector_gpd.get_poly_index_within_extent(dem_ext_polys, grid_poly)
         if len(dem_poly_index) < 1:
             basic.outputlogMessage('warning, no dem tifs within %d grid, skip' % grid_id)
+            save_id_grid_no_valid_dem(grid_id)
             continue
         dem_list_sub = [reg_tifs[index] for index in dem_poly_index]
 
