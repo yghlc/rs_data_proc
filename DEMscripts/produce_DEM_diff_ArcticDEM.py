@@ -173,9 +173,12 @@ def save_id_grid_dem_less_2(grid_id):
     if id_str in id_list:
         return True
     else:
-        # save
-        id_list.append(str(grid_id))
-        io_function.save_list_to_txt(grid_dem_diff_less2dem_txt,id_list)
+        # save by adding one line
+        with open(grid_dem_diff_less2dem_txt,'a') as f_obj:
+            f_obj.writelines(str(grid_id) + '\n')
+        # # save
+        # id_list.append(str(grid_id))
+        # io_function.save_list_to_txt(grid_dem_diff_less2dem_txt,id_list)
         return True
 
 

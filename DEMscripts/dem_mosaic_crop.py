@@ -44,10 +44,12 @@ def save_id_grid_no_valid_dem(grid_id):
     if id_str in id_list:
         return True
     else:
-        # save
-        id_list.append(str(grid_id))
-        io_function.save_list_to_txt(grid_no_valid_dem_txt,id_list)
-        basic.outputlogMessage('Save gird id (%d) to %s' % (grid_id,grid_no_valid_dem_txt))
+        # save by adding one line
+        with open(grid_no_valid_dem_txt,'a') as f_obj:
+            f_obj.writelines(str(grid_id) + '\n')
+        # id_list.append(str(grid_id))
+        # io_function.save_list_to_txt(grid_no_valid_dem_txt,id_list)
+        # basic.outputlogMessage('Save gird id (%d) to %s' % (grid_id,grid_no_valid_dem_txt))
         return True
 
 def subset_image_by_polygon_box(in_img, out_img, polygon,resample_m='bilinear',o_format='GTiff', out_res=None,same_extent=False, thread_num=1):
