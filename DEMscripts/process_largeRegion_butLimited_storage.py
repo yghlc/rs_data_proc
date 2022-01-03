@@ -537,6 +537,16 @@ def produce_dem_products(tasks):
     pass
 
 
+def sync_log_files(process_node,r_log_dir,process_log_dir):
+    # copy complete id list, dem info, grid_no_dem_ids.txt to remote machine
+    files_to_processNode = ['strip_dem_cover_grids.txt','tile_dem_cover_grids.txt','grid_complete_ids.txt','grid_no_dem_ids.txt']
+    for file in files_to_processNode:
+        scp_communicate.copy_file_folder_to_remote_machine(process_node, os.path.join(r_log_dir,file),os.path.join(process_log_dir, file))
+
+    files_from_processNode = ['grid_dem_diff_less2dem_ids.txt','grid_no_valid_dem_ids.txt']
+    for file in files_from_processNode:
+        scp_communicate.copy_file_folder_from_remote_machine(process_node, os.path.join(r_log_dir,file),os.path.join(process_log_dir, file))
+
 def main(options, args):
     extent_shp = args[0]
     task_list = [args[item] for item in range(1, len(args)) ]
@@ -621,8 +631,8 @@ def main(options, args):
             # update complete id list
             update_complete_grid_list(grid_ids, task_list)
 
-            # copy complete id list, dem info to remote machine
-            scp_communicate.copy_file_folder_to_remote_machine(process_node, r_log_dir, process_log_dir)
+            sync_log_files(process_node,r_log_dir,process_log_dir)
+
 
         elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:  # curc
             # process ArcticDEM using the computing resource on CURC
@@ -646,8 +656,8 @@ def main(options, args):
             copy_results_from_remote_node()
             # update complete id list
             update_complete_grid_list(grid_ids, task_list)
-            # copy complete id list, dem info to remote machine
-            scp_communicate.copy_file_folder_to_remote_machine(process_node, r_log_dir, process_log_dir)
+            # sycn complete id list, dem info, no dem grids etcs. 
+            sync_log_files(process_node, r_log_dir, process_log_dir)
             # remove no need dem files
             remove_no_need_dem_files()
             remote_sub_txt = get_subset_info_txt_list('proc_status', ['notYet', 'working'], remote_node=process_node,
