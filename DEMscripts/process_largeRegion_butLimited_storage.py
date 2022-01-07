@@ -267,8 +267,11 @@ def get_complete_ignore_grid_ids():
 
     return id_list
 
-def save_grid_ids_need_to_process(grid_ids,save_path='grid_ids_to_process.txt'):
-    id_list = get_complete_ignore_grid_ids()
+def save_grid_ids_need_to_process(grid_ids,ignore_ids=None, save_path='grid_ids_to_process.txt'):
+    if ignore_ids is None:
+        id_list = get_complete_ignore_grid_ids()
+    else:
+        id_list = ignore_ids
     ids_need_to_proc = [id  for id in grid_ids if id not in id_list]
     io_function.save_list_to_txt(save_path,ids_need_to_proc)
 
@@ -617,6 +620,7 @@ def main(options, args):
 
             # remove grids that has been complete or ignored
             ignore_ids = get_complete_ignore_grid_ids()
+            save_grid_ids_need_to_process(grid_ids,ignore_ids=ignore_ids)
 
             select_grids_shp = os.path.join(subset_shp_dir,io_function.get_name_by_adding_tail(os.path.basename(grid_20_shp),'sub%d' % subset_id))
 
