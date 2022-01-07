@@ -607,7 +607,7 @@ def main(options, args):
     while True:
         subset_id += 1
         # on tesia, uist, vpn-connected laptop
-        if machine_name == 'ubuntu' or machine_name == 'uist' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
+        if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
 
             # remove grids that has been complete or ignored
             ignore_ids = get_complete_ignore_grid_ids()
