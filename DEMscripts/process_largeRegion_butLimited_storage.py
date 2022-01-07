@@ -272,7 +272,7 @@ def save_grid_ids_need_to_process(grid_ids,ignore_ids=None, save_path='grid_ids_
         id_list = get_complete_ignore_grid_ids()
     else:
         id_list = ignore_ids
-    ids_need_to_proc = [id  for id in grid_ids if id not in id_list]
+    ids_need_to_proc = [str(id) for id in grid_ids if id not in id_list]
     io_function.save_list_to_txt(save_path,ids_need_to_proc)
 
 
