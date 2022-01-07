@@ -619,7 +619,14 @@ def main(options, args):
             ignore_ids = get_complete_ignore_grid_ids()
 
             select_grids_shp = os.path.join(subset_shp_dir,io_function.get_name_by_adding_tail(os.path.basename(grid_20_shp),'sub%d' % subset_id))
-            select_grid_polys, selected_gird_ids = get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_count,
+
+            # if the input is not a shapefile, then don't divide it to many subsets
+            if extent_shp.endswith('.txt'):
+                select_grid_polys, selected_gird_ids = grid_polys, grid_ids
+                if len(selected_gird_ids) > 2000:
+                    raise ValueError('There are too many grid to process once')
+            else:
+                select_grid_polys, selected_gird_ids = get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_count,
                                                                                   grid_ids_2d, visit_np,
                                                                                   select_grids_shp, proj=gird_prj)
             if selected_gird_ids is None:
