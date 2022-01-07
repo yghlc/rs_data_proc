@@ -267,6 +267,12 @@ def get_complete_ignore_grid_ids():
 
     return id_list
 
+def save_grid_ids_need_to_process(grid_ids,save_path='grid_ids_to_process.txt'):
+    id_list = get_complete_ignore_grid_ids()
+    ids_need_to_proc = [id  for id in grid_ids if id not in id_list]
+    io_function.save_list_to_txt(save_path,ids_need_to_proc)
+
+
 def b_exist_grid_headwall_shp(id):
 
     headwall_shps_dir = io_function.get_file_list_by_pattern(grid_dem_headwall_shp_dir, '*_grid%d' % id)
@@ -638,6 +644,10 @@ def main(options, args):
 
             # update complete id list
             update_complete_grid_list(grid_ids, task_list)
+
+            # save this to disk, to check progress, if there are not too many grids (<100),
+            # we can use this one to process withtou divide grids to many subsets
+            save_grid_ids_need_to_process(grid_ids)
 
 
         elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:  # curc
