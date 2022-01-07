@@ -29,7 +29,7 @@ def main(options, args):
     save_path = args[1]
     io_function.is_file_exist(img_path)
     if os.path.isfile(save_path):
-        print('%s exists, remove it if want to re-generated it'%save_path)
+        print('%s exists, remove it if want to re-generate it'%save_path)
         return
 
     img_np_allbands, src_nodata = raster_io.read_raster_all_bands_np(img_path)
