@@ -26,7 +26,11 @@ import basic_src.io_function as io_function
 
 def main(options, args):
     img_path = args[0]
+    save_path = args[1]
     io_function.is_file_exist(img_path)
+    if os.path.isfile(save_path):
+        print('%s exists, remove it if want to re-generated it'%save_path)
+        return
 
     img_np_allbands, src_nodata = raster_io.read_raster_all_bands_np(img_path)
     if options.src_nodata is not None:
@@ -45,7 +49,6 @@ def main(options, args):
                                                                      dst_nodata=options.dst_nodata)
 
     # save to file
-    save_path = args[1]
     if options.dst_nodata is None:
         nodata = src_nodata
     else:
