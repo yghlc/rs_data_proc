@@ -431,6 +431,13 @@ def get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_cou
 
     select_grid_polys = [ grid_polys[grid_ids.index(item) ] for item in selected_gird_id_list ]
 
+    save_selected_girds_and_ids(selected_gird_id_list,select_grid_polys,proj,save_path)
+
+
+    return select_grid_polys, selected_gird_id_list
+
+
+def save_selected_girds_and_ids(selected_gird_id_list,select_grid_polys,proj,save_path):
     # save to shapefile to download and processing
     save_pd = pd.DataFrame({'grid_id':selected_gird_id_list, 'Polygon':select_grid_polys})
     vector_gpd.save_polygons_to_files(save_pd,'Polygon',proj,save_path)
@@ -439,9 +446,6 @@ def get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_cou
     save_id_txt = os.path.splitext(save_path)[0] + '_grid_ids.txt'
     selected_grid_ids_str = [str(item) for item in selected_gird_id_list]
     io_function.save_list_to_txt(save_id_txt, selected_grid_ids_str)
-
-
-    return select_grid_polys, selected_gird_id_list
 
 
 def remove_no_need_dem_files():
@@ -629,6 +633,7 @@ def main(options, args):
                 select_grid_polys, selected_gird_ids = grid_polys, grid_ids
                 if len(selected_gird_ids) > 2000:
                     raise ValueError('There are too many grid to process once')
+                save_selected_girds_and_ids(selected_gird_ids,select_grid_polys,gird_prj,select_grids_shp)
             else:
                 select_grid_polys, selected_gird_ids = get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_count,
                                                                                   grid_ids_2d, visit_np,
