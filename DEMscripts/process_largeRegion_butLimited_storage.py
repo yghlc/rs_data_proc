@@ -655,7 +655,7 @@ def main(options, args):
     check_time = 200
     while check_time > 0:
         # on tesia, uist, vpn-connected laptop
-        if machine_name == 'ubuntu' or machine_name == 'uist' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
+        if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
             print(datetime.now(),'wait 10 min')
             time.sleep(600)
             # copy file from remote machine
