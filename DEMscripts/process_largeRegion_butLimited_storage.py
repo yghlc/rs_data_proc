@@ -579,6 +579,7 @@ def main(options, args):
     download_node = '$curc_host' if options.download_node is None else options.download_node
 
     max_grid_count = options.max_grids
+    b_divide_to_subsets = True
 
 
     # build map dem cover grid (take time, but only need to run once at the beginning)
@@ -634,6 +635,7 @@ def main(options, args):
                 if len(selected_gird_ids) > 2000:
                     raise ValueError('There are too many grid to process once')
                 save_selected_girds_and_ids(selected_gird_ids,select_grid_polys,gird_prj,select_grids_shp)
+                b_divide_to_subsets = False
             else:
                 select_grid_polys, selected_gird_ids = get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_count,
                                                                                   grid_ids_2d, visit_np,
@@ -665,6 +667,8 @@ def main(options, args):
             # we can use this one to process withtou divide grids to many subsets
             save_grid_ids_need_to_process(grid_ids)
 
+            if b_divide_to_subsets is False:
+                break
 
         elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:  # curc
             # process ArcticDEM using the computing resource on CURC
