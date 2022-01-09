@@ -497,7 +497,7 @@ def remove_no_need_dem_files():
                 io_function.delete_file_or_dir(path)
 
 
-def produce_dem_products(tasks):
+def produce_dem_products(tasks,b_remove_job_folder=True):
     # this function run on process node, such as curc
 
     subset_txt_list = get_subset_info_txt_list('proc_status',['notYet', 'working'])
@@ -541,13 +541,15 @@ def produce_dem_products(tasks):
                 print(machine_name, datetime.now(),'wait 300 seconds until all submitted jobs are completed ')
                 time.sleep(300)
                 continue
-            # remove temporal folders
-            if 'dem_diff' in tasks:
-                os.system('rm -r dem_diff_*')
-            if 'dem_headwall_grid' in tasks:
-                os.system('rm -r extract_headwall_grid_*')
-            if 'hillshade_headwall_line' in tasks:
-                os.system('rm -r hillshade_newest_headwall_line_*')
+
+            if b_remove_job_folder:
+                # remove temporal folders
+                if 'dem_diff' in tasks:
+                    os.system('rm -r dem_diff_*')
+                if 'dem_headwall_grid' in tasks:
+                    os.system('rm -r extract_headwall_grid_*')
+                if 'hillshade_headwall_line' in tasks:
+                    os.system('rm -r hillshade_newest_headwall_line_*')
             break
 
         # if allow grid has been submit, then marked as done, we don't check results for each grids here
@@ -579,6 +581,7 @@ def main(options, args):
     download_node = '$curc_host' if options.download_node is None else options.download_node
 
     max_grid_count = options.max_grids
+    b_remove_tmp_folders = options.b_remove_tmp_folders
     b_divide_to_subsets = True
 
 
@@ -672,7 +675,7 @@ def main(options, args):
 
         elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:  # curc
             # process ArcticDEM using the computing resource on CURC
-            produce_dem_products(task_list)
+            produce_dem_products(task_list,b_remove_job_folder=b_remove_tmp_folders)
         else:
             print('unknown machine : %s '%machine_name)
             break
@@ -733,6 +736,10 @@ if __name__ == '__main__':
     parser.add_option("-d", "--download_node",
                       action="store", dest="download_node",
                       help="the username and machine for download ")
+
+    parser.add_option("", "--b_dont_remove_tmp_folders",
+                      action="store_false", dest="b_remove_tmp_folders",default=True,
+                      help="if set, then dont remove processing folders of each job")
 
 
     (options, args) = parser.parse_args()
