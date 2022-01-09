@@ -53,6 +53,11 @@ def save_id_grid_no_dem(grid_id):
         basic.outputlogMessage('Save gird id (%d) to %s' % (grid_id,grid_no_dem_txt))
         return True
 
+def wget_file_url(url):
+    cmd_str = 'wget --no-check-certificate %s' % url
+    status, result = basic.exec_command_string(cmd_str)
+    return status, result
+
 def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg_tif_dir=None, poly_ids=None):
     # read dem polygons and url
     dem_polygons, dem_urls = vector_gpd.read_polygons_attributes_list(dem_index_shp, 'fileurl',b_fix_invalid_polygon=False)
@@ -109,8 +114,15 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                     # download the dem
                     basic.outputlogMessage('starting downloading %d th DEM (%d in total)'%((ii+1),len(urls)))
                     os.chdir(save_folder)
-                    cmd_str = 'wget --no-check-certificate %s' % url
-                    status, result = basic.exec_command_string(cmd_str)
+                    status, result = wget_file_url(url)
+                    # try new url if it exists
+                    if status != 0 and "302 Moved Temporarily" in result:
+                        str_list = result.split()
+                        loc_idx = str_list.index('Location:')
+                        new_url = str_list[loc_idx + 1]  # find the new URL
+                        print('try to download the file using new url: %s'%new_url)
+                        status, result = wget_file_url(new_url)
+
                     if status != 0:
                         print(result)
                         # sys.exit(status)
