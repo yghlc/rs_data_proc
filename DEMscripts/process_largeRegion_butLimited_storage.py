@@ -40,7 +40,7 @@ from dem_common import grid_20_shp,grid_20_id_raster,dem_strip_shp,dem_tile_shp
 
 # log or txt files
 from dem_common import process_log_dir, grid_complete_list_txt, grid_excluded_list_txt,strip_dem_cover_grids_txt, tile_dem_cover_grids_txt
-from dem_common import grid_no_dem_txt,grid_no_valid_dem_txt,grid_dem_diff_less2dem_txt
+from dem_common import grid_no_dem_txt,grid_no_valid_dem_txt,grid_dem_diff_less2dem_txt,grid_no_headwall_txt
 if os.path.isdir(process_log_dir) is False:
     io_function.mkdir(process_log_dir)
 
@@ -278,6 +278,12 @@ def save_grid_ids_need_to_process(grid_ids,ignore_ids=None, save_path='grid_ids_
 
 def b_exist_grid_headwall_shp(id):
 
+    # if a grid don't have headwall (due to really flat or other reasons), then we think it's complete
+    if os.path.isfile(grid_no_headwall_txt):
+        grid_ids_no_headwall = [int(item) for item in io_function.read_list_from_txt(grid_no_headwall_txt)]
+        if id in grid_ids_no_headwall:
+            return True
+
     headwall_shps_dir = io_function.get_file_list_by_pattern(grid_dem_headwall_shp_dir, '*_grid%d' % id)
     if len(headwall_shps_dir) == 1:
         return True
@@ -290,6 +296,13 @@ def b_exist_grid_headwall_shp(id):
         return False
 
 def b_exist_dem_hillshade_newest_HWLine_grid(id):
+
+    # if a grid don't have headwall (due to really flat or other reasons), then we think it's complete
+    if os.path.isfile(grid_no_headwall_txt):
+        grid_ids_no_headwall = [int(item) for item in io_function.read_list_from_txt(grid_no_headwall_txt)]
+        if id in grid_ids_no_headwall:
+            return True
+
     hillshade_newest_HDLine_tifs = io_function.get_file_list_by_pattern(grid_hillshade_newest_HDLine_dir, '*_grid%d.tif' % id)
     if len(hillshade_newest_HDLine_tifs) == 1:
         return True
@@ -303,7 +316,7 @@ def b_exist_dem_hillshade_newest_HWLine_grid(id):
 
 def b_exist_gid_dem_diff(id):
     dem_diff_files = io_function.get_file_list_by_pattern(grid_dem_diffs_dir, '*_DEM_diff_grid%d.tif' % id)
-    # if an id don't have enough dem for dem diff, then we think it's cocmplete
+    # if an id don't have enough dem for dem diff, then we think it's complete
     if os.path.isfile(grid_dem_diff_less2dem_txt):
         grid_ids_less_2dem = [int(item) for item in io_function.read_list_from_txt(grid_dem_diff_less2dem_txt)]
         if id in grid_ids_less_2dem:

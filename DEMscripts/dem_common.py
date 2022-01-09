@@ -87,6 +87,9 @@ grid_no_dem_txt = os.path.join(process_log_dir,'grid_no_dem_ids.txt')  # store i
 # store ids of grids that have overlap of DEM  (strip version), but the coverage is too smaller or all overlap DEM are invalid.
 grid_no_valid_dem_txt = os.path.join(process_log_dir,'grid_no_valid_dem_ids.txt')
 
+# some place that is really flat, cannot detect headwall based on slope from it
+grid_no_headwall_txt = os.path.join(process_log_dir,'grid_no_headwall_ids.txt')
+
 strip_dem_cover_grids_txt = os.path.join(process_log_dir,'strip_dem_cover_grids.txt') # each strip cover how many grids (ids), dict
 tile_dem_cover_grids_txt = os.path.join(process_log_dir,'tile_dem_cover_grids.txt') # each tile cover how many grids (ids), dict
 

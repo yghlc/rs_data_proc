@@ -58,6 +58,7 @@ from dem_headwall_extraction import extract_headwall_from_slope
 from dem_headwall_medial_axis import extract_headwall_based_medial_axis_from_slope
 
 from dem_common import grid_20_shp, arcticDEM_reg_tif_dir, grid_dem_headwall_shp_dir
+from dem_common import process_log_dir,grid_no_headwall_txt
 
 def get_existing_grid_headwall_shp(headwall_shp_dir, grid_base_name, grid_ids):
 
@@ -83,6 +84,24 @@ def get_existing_grid_headwall_shp(headwall_shp_dir, grid_base_name, grid_ids):
     else:
         basic.outputlogMessage('no existing grid headwall shps')
     return existing_grid_headwall_shp, grid_id_no_headwall_shp
+
+
+def save_id_grid_no_headwall(grid_id):
+    # grid_no_headwall_txt
+    if os.path.isdir(process_log_dir) is False:
+        io_function.mkdir(process_log_dir)
+
+    id_list = []
+    if os.path.isfile(grid_no_headwall_txt):
+        id_list = io_function.read_list_from_txt(grid_no_headwall_txt)    # no need covert to int
+    id_str = str(grid_id)
+    if id_str in id_list:
+        return True
+    else:
+        # save by adding one line
+        with open(grid_no_headwall_txt,'a') as f_obj:
+            f_obj.writelines(str(grid_id) + '\n')
+        return True
 
 def one_dem_to_slope(tif, slope_tif_dir):
     output = os.path.join(slope_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(tif, 'slope')))
@@ -219,6 +238,7 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
         headwall_shp_list = io_function.get_file_list_by_ext('.shp', multi_headwall_shp_dir, bsub_folder=False)
         if len(headwall_shp_list) < 1:
             basic.outputlogMessage('Warning, no headwall shapefile in %s' % multi_headwall_shp_dir)
+            save_id_grid_no_headwall(grid_id)
             continue
 
         # merge headwall detected on different dates.
