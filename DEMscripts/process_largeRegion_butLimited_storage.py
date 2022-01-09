@@ -632,7 +632,7 @@ def main(options, args):
 
     subset_id = -1
     io_function.mkdir(subset_shp_dir)
-
+    sync_log_files(process_node, r_log_dir, process_log_dir)
 
     while True:
         subset_id += 1
