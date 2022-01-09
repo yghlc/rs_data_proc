@@ -577,7 +577,7 @@ def sync_log_files(process_node,r_log_dir,process_log_dir):
     for file in files_to_processNode:
         scp_communicate.copy_file_folder_to_remote_machine(process_node, os.path.join(r_log_dir,file),os.path.join(process_log_dir, file))
 
-    files_from_processNode = ['grid_dem_diff_less2dem_ids.txt','grid_no_valid_dem_ids.txt']
+    files_from_processNode = ['grid_dem_diff_less2dem_ids.txt','grid_no_valid_dem_ids.txt','grid_no_headwall_ids.txt']
     for file in files_from_processNode:
         scp_communicate.copy_file_folder_from_remote_machine(process_node, os.path.join(r_log_dir,file),os.path.join(process_log_dir, file))
 
