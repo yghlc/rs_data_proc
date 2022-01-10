@@ -461,7 +461,20 @@ def save_selected_girds_and_ids(selected_gird_id_list,select_grid_polys,proj,sav
     io_function.save_list_to_txt(save_id_txt, selected_grid_ids_str)
 
 
-def remove_no_need_dem_files():
+def save_list_no_need_dem_files(file_name,file_list):
+    if len(file_list) < 1:
+        return True
+    # update the file list
+    save_list = []
+    if os.path.isfile(file_name):
+        save_list = io_function.read_list_from_txt(file_name)
+    for item in file_list:
+        if item in save_list:
+            continue
+        save_list.append(item)
+    return io_function.save_list_to_txt(file_name,save_list)
+
+def remove_no_need_dem_files(b_remove=True):
     if os.path.isfile(grid_complete_list_txt):
         completed_id_list =  [int(item) for item in io_function.read_list_from_txt(grid_complete_list_txt)]
     else:
@@ -487,27 +500,31 @@ def remove_no_need_dem_files():
     tile_no_need_list = [tile for tile in tile_dem_cover_grids.keys() if
                          set(tile_dem_cover_grids[tile]).issubset(completed_id_set)]
 
-    # remove
-    basic.outputlogMessage('there are %d no need strip DEM, downloaded files will be or have been removed'%len(strip_no_need_list))
-    for strip in strip_no_need_list:
-        file_list = io_function.get_file_list_by_pattern(tarball_dir,strip+'*')
-        file_list_2 = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir,strip+'*')
-        file_list.extend(file_list_2)
-        if len(file_list) > 0:
-            for path in file_list:
-                basic.outputlogMessage('removing %s' % path)
-                io_function.delete_file_or_dir(path)
+    if b_remove is False:
+        save_list_no_need_dem_files('no_need_ArcticDEM_strip_names.txt',strip_no_need_list)
+        save_list_no_need_dem_files('no_need_ArcticDEM_mosaic_names.txt',tile_no_need_list)
+    else:
+        # remove
+        basic.outputlogMessage('there are %d no need strip DEM, downloaded files will be or have been removed'%len(strip_no_need_list))
+        for strip in strip_no_need_list:
+            file_list = io_function.get_file_list_by_pattern(tarball_dir,strip+'*')
+            file_list_2 = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir,strip+'*')
+            file_list.extend(file_list_2)
+            if len(file_list) > 0:
+                for path in file_list:
+                    basic.outputlogMessage('removing %s' % path)
+                    io_function.delete_file_or_dir(path)
 
 
-    basic.outputlogMessage('there are %d no need tile DEM, downloaded files will be or have been removed'%len(tile_no_need_list))
-    for tile in tile_no_need_list:
-        file_list = io_function.get_file_list_by_pattern(arcticDEM_tile_tarball_dir,tile+'*')
-        file_list_2 = io_function.get_file_list_by_pattern(arcticDEM_tile_reg_tif_dir,tile+'*')
-        file_list.extend(file_list_2)
-        if len(file_list) > 0:
-            for path in file_list:
-                basic.outputlogMessage('removing %s' % path)
-                io_function.delete_file_or_dir(path)
+        basic.outputlogMessage('there are %d no need tile DEM, downloaded files will be or have been removed'%len(tile_no_need_list))
+        for tile in tile_no_need_list:
+            file_list = io_function.get_file_list_by_pattern(arcticDEM_tile_tarball_dir,tile+'*')
+            file_list_2 = io_function.get_file_list_by_pattern(arcticDEM_tile_reg_tif_dir,tile+'*')
+            file_list.extend(file_list_2)
+            if len(file_list) > 0:
+                for path in file_list:
+                    basic.outputlogMessage('removing %s' % path)
+                    io_function.delete_file_or_dir(path)
 
 
 def produce_dem_products(tasks,b_remove_job_folder=True):
@@ -595,6 +612,7 @@ def main(options, args):
 
     max_grid_count = options.max_grids
     b_remove_tmp_folders = options.b_remove_tmp_folders
+    b_dont_remove_DEM_files = options.b_dont_remove_DEM_files
     b_divide_to_subsets = True
 
 
@@ -696,7 +714,7 @@ def main(options, args):
 
 
         # remove no need dem files
-        remove_no_need_dem_files()
+        remove_no_need_dem_files(b_remove=b_dont_remove_DEM_files)
 
     # monitor results in remote computer
     check_time = 200
@@ -712,7 +730,7 @@ def main(options, args):
             # update complete id list
             update_complete_grid_list(grid_ids, task_list)
             # remove no need dem files
-            remove_no_need_dem_files()
+            remove_no_need_dem_files(b_remove=b_dont_remove_DEM_files)
             remote_sub_txt = get_subset_info_txt_list('proc_status', ['notYet', 'working'], remote_node=process_node,
                                                       remote_folder=r_working_dir)
             if len(remote_sub_txt) < 1 and check_time != 1:
@@ -754,6 +772,11 @@ if __name__ == '__main__':
     parser.add_option("", "--b_dont_remove_tmp_folders",
                       action="store_false", dest="b_remove_tmp_folders",default=True,
                       help="if set, then dont remove processing folders of each job")
+
+    parser.add_option("", "--b_dont_remove_DEM_files",
+                      action="store_false", dest="b_dont_remove_DEM_files",default=True,
+                      help="if set, then dont ArcticDEM (strip and mosaic) that have been processed")
+
 
 
     (options, args) = parser.parse_args()
