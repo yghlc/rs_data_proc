@@ -55,6 +55,15 @@ def test_dem_tif_to_8bit():
         output = os.path.join(grid_dem_diffs_8bit_dir, os.path.basename(tif_8bit))
         dem_tif_to_8bit(tif,output)
 
+def one_dem_diff_to_8bit(demDiff_tif):
+    if os.path.isdir(grid_dem_diffs_8bit_dir) is False:
+        io_function.mkdir(grid_dem_diffs_8bit_dir)
+    tif_8bit = io_function.get_name_by_adding_tail(demDiff_tif, '8bit')
+    output = os.path.join(grid_dem_diffs_8bit_dir, os.path.basename(tif_8bit))
+    if dem_tif_to_8bit(demDiff_tif, output) is False:
+        basic.outputlogMessage('failed to generate 8bit grey image from DEM differnce')
+        return False
+    return True
 
 def main():
     basic.setlogfile('log_convert_dem_diff_to8bit.txt')
