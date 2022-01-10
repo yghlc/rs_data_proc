@@ -22,7 +22,7 @@ from urllib.parse import urlparse
 
 import time
 
-from dem_common import tarball_dir,arcticDEM_reg_tif_dir,arcticDEM_tile_tarball_dir
+from dem_common import tarball_dir,arcticDEM_reg_tif_dir,arcticDEM_tile_tarball_dir,arcticDEM_tile_reg_tif_dir
 
 from dem_common import grid_no_dem_txt, process_log_dir
 
@@ -58,7 +58,7 @@ def wget_file_url(url):
     status, result = basic.exec_command_string(cmd_str)
     return status, result
 
-def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg_tif_dir=None, poly_ids=None):
+def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg_tif_dir=None, poly_ids=None,b_arcticDEM_tile=False):
     # read dem polygons and url
     dem_polygons, dem_urls = vector_gpd.read_polygons_attributes_list(dem_index_shp, 'fileurl',b_fix_invalid_polygon=False)
 
@@ -102,7 +102,11 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                 save_dem_path = os.path.join(save_folder,filename)
                 if reg_tif_dir is not None:
                     tar_base = os.path.basename(filename)[:-7]
-                    reg_tifs = io_function.get_file_list_by_pattern(reg_tif_dir,tar_base+'*dem_reg.tif')
+                    # file_pattern = ['*dem_reg.tif', '*reg_dem.tif'] # Arctic strip and tile (mosaic) version
+                    if b_arcticDEM_tile:
+                        reg_tifs = io_function.get_file_list_by_pattern(reg_tif_dir, tar_base + '*reg_dem.tif')
+                    else:
+                        reg_tifs = io_function.get_file_list_by_pattern(reg_tif_dir,tar_base+'*dem_reg.tif')
                     if len(reg_tifs) > 0:
                         basic.outputlogMessage('warning, unpack and registrated tif for %s already exists, skip downloading' % filename)
                         reg_tifs_list.append(reg_tifs[0])
@@ -143,11 +147,15 @@ def main(options, args):
     extent_shp = args[0]
     dem_index_shp = args[1]
     save_folder = options.save_dir
+    b_arcticDEM_tile = False
     if save_folder is None:
         if 'Tile' in os.path.basename(dem_index_shp):
             save_folder =arcticDEM_tile_tarball_dir
+            reg_tif_dir = arcticDEM_tile_reg_tif_dir
+            b_arcticDEM_tile = True
         else:
             save_folder = tarball_dir
+            reg_tif_dir = arcticDEM_reg_tif_dir
 
     pre_name = os.path.splitext(os.path.basename(extent_shp))[0]
     pre_name += '_Tile' if 'Tile' in os.path.basename(dem_index_shp) else '_Strip'
@@ -174,8 +182,8 @@ def main(options, args):
     else:
         basic.outputlogMessage('%d extent polygons in %s'%(len(extent_polys),extent_shp))
 
-    download_dem_tarball(dem_index_shp,extent_polys,save_folder,pre_name,reg_tif_dir=arcticDEM_reg_tif_dir,
-                         poly_ids=grid_id_list)
+    download_dem_tarball(dem_index_shp,extent_polys,save_folder,pre_name,reg_tif_dir=reg_tif_dir,
+                         poly_ids=grid_id_list,b_arcticDEM_tile=b_arcticDEM_tile)
 
 
 if __name__ == "__main__":
