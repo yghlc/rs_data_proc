@@ -49,7 +49,7 @@ from dem_common import arcticDEM_tile_tarball_dir,arcticDEM_tile_reg_tif_dir,tar
 # results dir
 from dem_common import grid_hillshade_newest_HDLine_dir, grid_dem_diffs_dir,grid_dem_headwall_shp_dir
 
-from dem_common import grid_dem_diffs_segment_dir, grid_no_subscidence_poly_txt
+from dem_common import grid_dem_diffs_segment_dir, grid_no_subscidence_poly_txt, arcticDEM_tile_slope_dir
 
 from produce_DEM_diff_ArcticDEM import get_grid_20
 
@@ -101,7 +101,7 @@ def get_subset_info_txt_list(key,values,remote_node=None, remote_folder=None, lo
     return select_txt_list
 
 
-def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node):
+def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node,task_list):
     # this function run on tesia
 
     subset_info = get_subset_info(subset_info_txt)
@@ -145,6 +145,11 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
     if res != 0:
         sys.exit(1)
 
+    # ArcticDEM (mosaic) to slope, needed for segmentation of dem diff
+    if 'segment' in task_list:
+        res = os.system('./dem_to_slope.sh')
+        if res != 0:
+            sys.exit(1)
 
     # send to remote machine
     rsync_sh = os.path.join(ArcticDEM_tmp_dir,'rsync_to_curc.sh')
@@ -545,6 +550,9 @@ def remove_no_need_dem_files(b_remove=True):
             file_list = io_function.get_file_list_by_pattern(arcticDEM_tile_tarball_dir,tile+'*')
             file_list_2 = io_function.get_file_list_by_pattern(arcticDEM_tile_reg_tif_dir,tile+'*')
             file_list.extend(file_list_2)
+            # remove slope file derived ArcticDEM (mosaic)
+            file_list_3 = io_function.get_file_list_by_pattern(arcticDEM_tile_slope_dir, tile + '*')
+            file_list.extend(file_list_3)
             if len(file_list) > 0:
                 for path in file_list:
                     basic.outputlogMessage('removing %s' % path)
@@ -618,7 +626,8 @@ def sync_log_files(process_node,r_log_dir,process_log_dir):
     for file in files_to_processNode:
         scp_communicate.copy_file_folder_to_remote_machine(process_node, os.path.join(r_log_dir,file),os.path.join(process_log_dir, file))
 
-    files_from_processNode = ['grid_dem_diff_less2dem_ids.txt','grid_no_valid_dem_ids.txt','grid_no_headwall_ids.txt']
+    files_from_processNode = ['grid_dem_diff_less2dem_ids.txt','grid_no_valid_dem_ids.txt','grid_no_headwall_ids.txt',
+                              'grid_no_subscidence_poly_ids.txt']
     for file in files_from_processNode:
         scp_communicate.copy_file_folder_from_remote_machine(process_node, os.path.join(r_log_dir,file),os.path.join(process_log_dir, file))
 
@@ -711,7 +720,7 @@ def main(options, args):
                                    info_list=[subset_id, select_grids_shp, 'notYet', 'notYet'])
 
             # download and unpack ArcticDEM, do registration, send to curc
-            if download_process_send_arctic_dem(subset_info_txt, r_working_dir,process_node) is True:
+            if download_process_send_arctic_dem(subset_info_txt, r_working_dir,process_node,task_list) is True:
                 continue
 
             # copy file from remote machine
