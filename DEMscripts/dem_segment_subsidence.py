@@ -29,12 +29,33 @@ import geopandas as gpd
 import re
 
 import dem_common
+from dem_common import process_log_dir,grid_no_subscidence_poly_txt
+from dem_diff_to_8bit import one_dem_diff_to_8bit
 
 code_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.insert(0,code_dir)
 sys.path.insert(0,os.path.join(code_dir,'tools'))   # for some modules in this folder
 from tools.grey_image_segment import segment_a_grey_image
 from tools.seg_polygonize_cal_attributes import polygonize_label_images
+
+
+def save_id_grid_no_subsidence(grid_id):
+    # grid_no_headwall_txt
+    if os.path.isdir(process_log_dir) is False:
+        io_function.mkdir(process_log_dir)
+
+    id_list = []
+    if os.path.isfile(grid_no_subscidence_poly_txt):
+        id_list = io_function.read_list_from_txt(grid_no_subscidence_poly_txt)    # no need covert to int
+    id_str = str(grid_id)
+    if id_str in id_list:
+        return True
+    else:
+        # save by adding one line
+        with open(grid_no_subscidence_poly_txt,'a') as f_obj:
+            f_obj.writelines(str(grid_id) + '\n')
+        return True
+
 
 def post_processing_subsidence(in_shp):
     polygons = vector_gpd.read_polygons_gpd(in_shp)
@@ -103,9 +124,11 @@ def get_dem_diff_8bit(dem_diff_path):
     # find 8bit one
     tif_8bit = io_function.get_name_by_adding_tail(dem_diff_path, '8bit')
     demD_8bit= os.path.join(dem_common.grid_dem_diffs_8bit_dir, os.path.basename(tif_8bit))
+    # if not exist, try to generate it
     if os.path.isfile(demD_8bit) is False:
-        basic.outputlogMessage('error, 8bit DEM diff not exists: %s '%demD_8bit)
-        return None
+        if  one_dem_diff_to_8bit(dem_diff_path) is False:
+            basic.outputlogMessage('error, 8bit DEM diff not exists: %s '%demD_8bit)
+            return None
     return demD_8bit
 
 def get_save_dir(dem_diff_path):
@@ -397,7 +420,8 @@ def remove_based_slope(in_shp, output_shp,slope_files, max_slope,process_num):
     vector_gpd.remove_polygons(in_shp,'slope_mean',max_slope,bsmaller,output_shp)
     return output_shp
 
-def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, min_area=40, max_area=100000000, process_num=1):
+def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, min_area=40, max_area=100000000, process_num=1,
+                                 b_rm_files=False):
 
     save_shp = io_function.get_name_by_adding_tail(in_shp, 'post')
     if os.path.isfile(save_shp):
@@ -472,7 +496,8 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
 
 
 
-def segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff, save_dir,process_num, subsidence_thr_m=-0.5, min_area=40, max_area=100000000):
+def segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff, save_dir,process_num, subsidence_thr_m=-0.5, min_area=40, max_area=100000000,
+                                  b_rm_files=False):
     '''
     segment subsidence areas based on 8bit dem difference
     :param dem_diff_grey_8bit:
@@ -489,6 +514,13 @@ def segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff, save_dir,process
 
     out_pre = os.path.splitext(os.path.basename(dem_diff_grey_8bit))[0]
     segment_shp_path = os.path.join(save_dir, out_pre + '.shp')
+
+    # check if the final result exist
+    final_shp_path = io_function.get_name_by_adding_tail(segment_shp_path, 'post')
+    if os.path.isfile(final_shp_path):
+        basic.outputlogMessage('Warning, Final results (%s) of subsidence shapefile exists, skip'%final_shp_path)
+        return True
+
 
     # get initial polygons
     # because the label from segmentation for superpixels are not unique, so we may need to get mean dem diff based on polygons, set org_raster=None
@@ -517,9 +549,27 @@ def segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff, save_dir,process
 
     # get DEM diff information for each polygon.
     dem_diff_shp = get_dem_subscidence_polygons(segment_shp_path, dem_diff, dem_diff_thread_m=subsidence_thr_m,
-                                 min_area=min_area, max_area=max_area, process_num=process_num)
+                                 min_area=min_area, max_area=max_area, process_num=process_num,b_rm_files=b_rm_files)
 
-    basic.outputlogMessage('obtain elevation reduction polygons: %s'%dem_diff_shp)
+    if dem_diff_shp is None:
+        id_str = re.findall('grid\d+', os.path.basename(dem_diff))[0][4:]
+        if len(id_str) > 1:
+            grid_id = int(id_str)
+            save_id_grid_no_subsidence(grid_id)
+    else:
+        basic.outputlogMessage('obtain elevation reduction polygons: %s'%dem_diff_shp)
+
+    ## remove files, only keep the final results.
+    if b_rm_files:
+        io_function.delete_file_or_dir(label_path)
+        io_function.delete_shape_file(segment_shp_path)
+
+        # other intermediate files
+        other_shp_names = ['merged','surrounding','rmreldemD','rmshapeinfo','rmslope']
+        for name in other_shp_names:
+            rm_shp = io_function.get_name_by_adding_tail(segment_shp_path, name)
+            io_function.delete_shape_file(rm_shp)
+
     return True
 
 def segment_subsidence_grey_image_v2(dem_diff_grey_8bit, dem_diff, save_dir,process_num, subsidence_thr_m=-0.5, min_area=40, max_area=100000000):
@@ -631,6 +681,7 @@ def main(options, args):
     save_dir = options.save_dir
     process_num = options.process_num
     # segment_subsidence_on_dem_diff(dem_diff_path,save_dir)
+    b_rm_tmp_files = options.b_remove_tmp_files
 
     dem_diff_grey_8bit = options.dem_diff_8bit
     if dem_diff_grey_8bit is None:
@@ -644,7 +695,7 @@ def main(options, args):
     max_area = options.max_area
 
     segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff_path, save_dir, process_num, subsidence_thr_m=ele_diff_thr,
-                                  min_area=min_area, max_area=max_area)
+                                  min_area=min_area, max_area=max_area,b_rm_files=b_rm_tmp_files)
 
     # the resut is a litte worse
     # segment_subsidence_grey_image_v2(dem_diff_grey_8bit, dem_diff_path, save_dir, process_num, subsidence_thr_m=ele_diff_thr,
@@ -681,6 +732,10 @@ if __name__ == "__main__":
     parser.add_option("-u", "--max_area",
                       action="store", dest="max_area", type=float, default=100000000,  # 10 km by 10 km
                       help="the maximum area for each elevation reduction polygon")
+
+    parser.add_option("", "--b_remove_tmp_files",
+                      action="store_true", dest="b_remove_tmp_files",default=False,
+                      help="if set, will remove intermediate files")
 
 
     (options, args) = parser.parse_args()
