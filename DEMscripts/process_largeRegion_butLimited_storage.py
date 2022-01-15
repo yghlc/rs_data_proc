@@ -49,6 +49,8 @@ from dem_common import arcticDEM_tile_tarball_dir,arcticDEM_tile_reg_tif_dir,tar
 # results dir
 from dem_common import grid_hillshade_newest_HDLine_dir, grid_dem_diffs_dir,grid_dem_headwall_shp_dir
 
+from dem_common import grid_dem_diffs_segment_dir, grid_no_subscidence_poly_txt
+
 from produce_DEM_diff_ArcticDEM import get_grid_20
 
 from parallel_processing_curc import curc_username
@@ -325,12 +327,32 @@ def b_exist_gid_dem_diff(id):
     if len(dem_diff_files) == 1:
         return True
     elif len(dem_diff_files) > 1:
-        basic.outputlogMessage('warning, There are multiple hillshade (newest) HDLine tif for grid: %d' % id)
+        basic.outputlogMessage('warning, There are multiple DEM difference for grid: %d' % id)
         for item in dem_diff_files:
             basic.outputlogMessage(item)
             return True
     else:
         return False
+
+def b_exist_grid_dem_subsidence(id):
+    dem_subsidence_shps = io_function.get_file_list_by_pattern(grid_dem_diffs_segment_dir, '*_grid%d/*_grid%d_8bit_post.shp' % (id,id))
+
+    # if an grid don't have dem subsidence, then we think it's complete
+    if os.path.isfile(grid_no_subscidence_poly_txt):
+        grid_ids_no_subsidence = [int(item) for item in io_function.read_list_from_txt(grid_no_subscidence_poly_txt)]
+        if id in grid_ids_no_subsidence:
+            return True
+
+    if len(dem_subsidence_shps) == 1:
+        return True
+    elif len(dem_subsidence_shps) > 1:
+        basic.outputlogMessage('warning, There are multiple DEM subsidence for grid: %d' % id)
+        for item in dem_subsidence_shps:
+            basic.outputlogMessage(item)
+            return True
+    else:
+        return False
+
 
 def update_complete_grid_list(grid_ids, task_list):
     # based on some criteria, to check if results exist, then update grid_complete_list_txt
@@ -352,7 +374,9 @@ def update_complete_grid_list(grid_ids, task_list):
             complete_count += 1
         if 'dem_headwall_grid' in task_list and b_exist_grid_headwall_shp(g_id):
             complete_count += 1
-        # we may check more task results: segment, dem_headwall_grid, dem_headwall
+        if 'segment' in task_list and b_exist_grid_dem_subsidence(g_id):
+            complete_count += 1
+        # we may check more task results: segment, dem_headwall
 
         if complete_count == n_task:
             completed_id_list.append(g_id)
