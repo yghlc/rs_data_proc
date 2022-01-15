@@ -38,6 +38,7 @@ sys.path.insert(0,os.path.join(code_dir,'tools'))   # for some modules in this f
 from tools.grey_image_segment import segment_a_grey_image
 from tools.seg_polygonize_cal_attributes import polygonize_label_images
 
+tile_min_overlap = 1
 
 def save_id_grid_no_subsidence(grid_id):
     # grid_no_headwall_txt
@@ -287,8 +288,8 @@ def filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,
     vector_gpd.save_polygons_to_files(merged_pd, 'Polygon', wkt, merged_shp)
 
     # based on the merged polygons, calculate the mean dem diff
-    raster_statistic.zonal_stats_multiRasters(merged_shp, dem_diff_tif, stats=['mean', 'std', 'count'], prefix='demD',
-                                              process_num=process_num)
+    raster_statistic.zonal_stats_multiRasters(merged_shp, dem_diff_tif, tile_min_overlap=tile_min_overlap,
+                                              stats=['mean', 'std', 'count'], prefix='demD',process_num=process_num)
 
     return merged_shp
 
@@ -301,8 +302,8 @@ def get_surrounding_polygons(remain_polyons,surrounding_shp,wkt, dem_diff_tif,bu
     surrounding_polygons = vector_gpd.get_surrounding_polygons(remain_polyons, buffer_surrounding)
     surr_pd = pd.DataFrame({'Polygon': surrounding_polygons})
     vector_gpd.save_polygons_to_files(surr_pd, 'Polygon', wkt, surrounding_shp)
-    raster_statistic.zonal_stats_multiRasters(surrounding_shp, dem_diff_tif, stats=['mean', 'std', 'count'],
-                                              prefix='demD', process_num=process_num)
+    raster_statistic.zonal_stats_multiRasters(surrounding_shp, dem_diff_tif, tile_min_overlap=tile_min_overlap,
+                                              stats=['mean', 'std', 'count'],prefix='demD', process_num=process_num)
     return surrounding_shp
 
 def remove_polygons_based_relative_dem_diff(remain_polyons,merged_shp,surrounding_shp,wkt, save_shp, min_area, dem_diff_thread_m):
@@ -412,8 +413,8 @@ def remove_based_slope(in_shp, output_shp,slope_files, max_slope,process_num):
         return output_shp
 
     # calcuate slope info
-    raster_statistic.zonal_stats_multiRasters(in_shp, slope_files, stats=['mean', 'std', 'count'], prefix='slope',
-                                              process_num=process_num)
+    raster_statistic.zonal_stats_multiRasters(in_shp, slope_files, tile_min_overlap=tile_min_overlap,
+                                              stats=['mean', 'std', 'count'], prefix='slope',process_num=process_num)
 
     # remove sloep greater than max_slope
     bsmaller = False
@@ -489,8 +490,8 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
     date_diff_base = os.path.basename(dem_diff_tif).replace('DEM_diff','date_diff')
     date_diff_tif = os.path.join(os.path.dirname(dem_diff_tif) , date_diff_base)
     if os.path.isfile(date_diff_tif):
-        raster_statistic.zonal_stats_multiRasters(save_shp, date_diff_tif, stats=['mean', 'std'], prefix='dateD',
-                                              process_num=process_num)
+        raster_statistic.zonal_stats_multiRasters(save_shp, date_diff_tif,tile_min_overlap=tile_min_overlap,
+                                                  stats=['mean', 'std'], prefix='dateD',process_num=process_num)
 
     return save_shp
 
@@ -545,7 +546,8 @@ def segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff, save_dir,process
             sys.exit(1)
 
         # get dem elevation information for each polygon
-        raster_statistic.zonal_stats_multiRasters(segment_shp_path, dem_diff, stats=['mean', 'std','count'], prefix='demD',process_num=process_num)
+        raster_statistic.zonal_stats_multiRasters(segment_shp_path, dem_diff, tile_min_overlap=tile_min_overlap,
+                                                  stats=['mean', 'std','count'], prefix='demD',process_num=process_num)
 
     # get DEM diff information for each polygon.
     dem_diff_shp = get_dem_subscidence_polygons(segment_shp_path, dem_diff, dem_diff_thread_m=subsidence_thr_m,
