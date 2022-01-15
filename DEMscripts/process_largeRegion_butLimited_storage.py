@@ -608,6 +608,8 @@ def produce_dem_products(tasks,b_remove_job_folder=True):
                 # remove temporal folders
                 if 'dem_diff' in tasks:
                     os.system('rm -r dem_diff_*')
+                if 'segment' in tasks:
+                    os.system('rm -r seg_dem_diff_*')
                 if 'dem_headwall_grid' in tasks:
                     os.system('rm -r extract_headwall_grid_*')
                 if 'hillshade_headwall_line' in tasks:
