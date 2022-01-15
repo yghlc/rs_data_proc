@@ -117,10 +117,25 @@ def submit_segment_dem_diff_job(dem_diff_list, idx,max_job_count):
 def run_segment_jobs(max_job_count,n_tif_per_jobs):
 
     dem_diff_list = io_function.get_file_list_by_pattern(dem_common.grid_dem_diffs_dir, '*DEM_diff_grid*.tif')
+    dem_diff_list_copy = dem_diff_list.copy()
     if len(dem_diff_list) < 1:
         raise ValueError('No *DEM_diff*.tif in %s'%dem_common.grid_dem_diffs_dir)
 
-    print('total %d DEM differnce tifs'%len(dem_diff_list))
+    dem_diff_ids = [int(re.findall('grid\d+', os.path.basename(item))[0][4:]) for item in dem_diff_list]
+
+    dem_subsidence_shps = io_function.get_file_list_by_pattern(dem_common.grid_dem_diffs_segment_dir,'segment_result*/*_post.shp')
+    subsidence_ids = [int(re.findall('grid\d+', os.path.basename(item))[0][4:]) for item in dem_subsidence_shps]
+    no_subsidence_ids = []
+    if os.path.isfile(dem_common.grid_no_subscidence_poly_txt):
+        no_subsidence_ids = [int(item) for item in io_function.read_list_from_txt(dem_common.grid_no_subscidence_poly_txt) ]
+    subsidence_ids.extend(no_subsidence_ids)
+
+    # remove dem diff already been segmented or no subsidence
+    for id, dem_diff in zip(dem_diff_ids,dem_diff_list_copy):
+        if id in subsidence_ids:
+            dem_diff_list.remove(dem_diff)
+
+    print('total %d DEM differnce tifs, %d of them need to segment'%(len(dem_diff_list_copy), len(dem_diff_list)))
 
 
     total_tif_count = len(dem_diff_list)
