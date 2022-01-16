@@ -322,12 +322,13 @@ def b_exist_dem_hillshade_newest_HWLine_grid(id):
         return False
 
 def b_exist_gid_dem_diff(id):
-    dem_diff_files = io_function.get_file_list_by_pattern(grid_dem_diffs_dir, '*_DEM_diff_grid%d.tif' % id)
     # if an id don't have enough dem for dem diff, then we think it's complete
     if os.path.isfile(grid_dem_diff_less2dem_txt):
         grid_ids_less_2dem = [int(item) for item in io_function.read_list_from_txt(grid_dem_diff_less2dem_txt)]
         if id in grid_ids_less_2dem:
             return True
+
+    dem_diff_files = io_function.get_file_list_by_pattern(grid_dem_diffs_dir, '*_DEM_diff_grid%d.tif' % id)
 
     if len(dem_diff_files) == 1:
         return True
@@ -340,13 +341,19 @@ def b_exist_gid_dem_diff(id):
         return False
 
 def b_exist_grid_dem_subsidence(id):
-    dem_subsidence_shps = io_function.get_file_list_by_pattern(grid_dem_diffs_segment_dir, '*_grid%d/*_grid%d_8bit_post.shp' % (id,id))
-
     # if an grid don't have dem subsidence, then we think it's complete
     if os.path.isfile(grid_no_subscidence_poly_txt):
         grid_ids_no_subsidence = [int(item) for item in io_function.read_list_from_txt(grid_no_subscidence_poly_txt)]
         if id in grid_ids_no_subsidence:
             return True
+
+    # if an id don't have enough dem for dem diff, then we think it's complete
+    if os.path.isfile(grid_dem_diff_less2dem_txt):
+        grid_ids_less_2dem = [int(item) for item in io_function.read_list_from_txt(grid_dem_diff_less2dem_txt)]
+        if id in grid_ids_less_2dem:
+            return True
+
+    dem_subsidence_shps = io_function.get_file_list_by_pattern(grid_dem_diffs_segment_dir, '*_grid%d/*_grid%d_8bit_post.shp' % (id,id))
 
     if len(dem_subsidence_shps) == 1:
         return True
