@@ -210,6 +210,9 @@ def filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,
     if demD_mean_list is None:
         raise ValueError('demD_mean not in %s, need to remove it and then re-create'%in_shp)
 
+    # replace None (if exists) as nan
+    demD_mean_list = np.array(demD_mean_list, dtype=float)
+
     # replace nan values as 0
     demD_mean_list = np.nan_to_num(demD_mean_list)
 
@@ -314,6 +317,10 @@ def remove_polygons_based_relative_dem_diff(remain_polyons,merged_shp,surroundin
     # calculate the relative dem diff
     surr_dem_diff_list = vector_gpd.read_attribute_values_list(surrounding_shp,'demD_mean')
     merge_poly_dem_diff_list = vector_gpd.read_attribute_values_list(merged_shp,'demD_mean')
+    # convert to float type (can change None to nan)
+    surr_dem_diff_list = np.array(surr_dem_diff_list, dtype=float)
+    merge_poly_dem_diff_list = np.array(merge_poly_dem_diff_list, dtype=float)
+
     if len(surr_dem_diff_list) != len(merge_poly_dem_diff_list):
         raise ValueError('The number of surr_dem_diff_list and merge_poly_dem_diff_list is different')
     relative_dem_diff_list = [  mer - sur for sur, mer in zip(surr_dem_diff_list, merge_poly_dem_diff_list) ]
