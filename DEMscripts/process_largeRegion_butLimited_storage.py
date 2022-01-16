@@ -568,34 +568,49 @@ def produce_dem_products(tasks,b_remove_job_folder=True):
         time.sleep(300)
         return True
 
+
+    # task_job_names are from parallel_processing_curc.py
+    task_job_name = {'dem_diff':'demD',
+                   'dem_headwall_grid':'gHW',
+                   'hillshade_headwall_line':'dLi',
+                   'segment':'seg'}
+    task_depend = {'dem_diff':[],
+                   'dem_headwall_grid':[],
+                   'hillshade_headwall_line':['dem_headwall_grid'],
+                   'segment':['dem_diff']}
+
+
     subset_txt_list = sorted(subset_txt_list)
     for sub_txt in subset_txt_list:
         update_subset_info(sub_txt,key_list=['proc_status'],info_list=['working'])
         subset_info = io_function.read_dict_from_txt_json(sub_txt)
         ext_shp = subset_info['shp']
-        # tasks: dem_diff dem_headwall_grid  hillshade_headwall_line
-        b_handle_specifi_task = False
-        tasks_copy = tasks.copy()
-        if 'hillshade_headwall_line' in tasks:
-            tasks_copy.remove('hillshade_headwall_line')
-            b_handle_specifi_task = True
 
-        for task in tasks_copy:
+        # submit tasks with dependencies
+        tasks_no_depend = [item for item in tasks if len(task_depend[item]) < 1 ]
+        for task in tasks_no_depend:
             res = os.system('./run.sh %s %s'%(ext_shp,task))
             if res !=0:
                 sys.exit(1)
-        if b_handle_specifi_task:
-            # wait until all "dem_headwall_grid" jobs have completed
-            while True:
-                job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr='gHW')
-                if job_count > 0:
-                    print(machine_name, datetime.now(),'wait 300 seconds until all dem_headwall_grid task complete ')
-                    time.sleep(300) #
-                    continue
-                break
-            res = os.system('./run.sh %s %s' % (ext_shp, 'hillshade_headwall_line'))
-            if res != 0:
-                sys.exit(1)
+        time.sleep(5)   # wait
+
+        # submit tasks with dependencies
+        tasks_with_depend = [item for item in tasks if len(task_depend[item]) > 0 ]
+        while len(tasks_with_depend) > 0:
+            for task in tasks_with_depend:
+                depend_tasks = task_depend[task]
+                job_count_list = [ slurm_utility.get_submit_job_count(curc_username, job_name_substr=task_job_name[item])
+                                   for item in depend_tasks ]
+                if sum(job_count_list) > 0:
+                    print(machine_name, datetime.now(),
+                          'task: %s need results of task:%s whose their jobs are not completed, need to wait'%(task,str(depend_tasks)))
+                else:
+                    res = os.system('./run.sh %s %s' % (ext_shp, task))
+                    if res != 0:
+                        sys.exit(1)
+                    tasks_with_depend.remove(task)  # if submit, remove it
+
+            time.sleep(300)
 
         # wait until all jobs finished
         while True:
