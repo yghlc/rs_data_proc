@@ -564,6 +564,8 @@ def segment_subsidence_grey_image(dem_diff_grey_8bit, dem_diff, save_dir,process
     ## remove files, only keep the final results.
     if b_rm_files:
         io_function.delete_file_or_dir(label_path)
+        IDrange_txt = os.path.splitext(label_path)[0] + '_IDrange.txt'
+        io_function.delete_file_or_dir(IDrange_txt)
         io_function.delete_shape_file(segment_shp_path)
 
         # other intermediate files
