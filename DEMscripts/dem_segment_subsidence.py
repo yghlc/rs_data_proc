@@ -425,7 +425,8 @@ def remove_based_slope(in_shp, output_shp,slope_files, max_slope,process_num):
 
     # remove sloep greater than max_slope
     bsmaller = False
-    vector_gpd.remove_polygons(in_shp,'slope_mean',max_slope,bsmaller,output_shp)
+    if vector_gpd.remove_polygons(in_shp,'slope_mean',max_slope,bsmaller,output_shp) is False:
+        return False
     return output_shp
 
 def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, min_area=40, max_area=100000000, process_num=1,
@@ -488,7 +489,8 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
     basic.outputlogMessage('Find %d slope files in %s'%(len(slope_tif_list), dem_common.arcticDEM_tile_slope_dir))
     rm_slope_shp = io_function.get_name_by_adding_tail(in_shp, 'rmslope')
     max_slope = 20
-    remove_based_slope(rm_shapeinfo_shp, rm_slope_shp,slope_tif_list, max_slope,process_num)
+    if remove_based_slope(rm_shapeinfo_shp, rm_slope_shp,slope_tif_list, max_slope,process_num) is False:
+        return None
 
     # copy
     io_function.copy_shape_file(rm_slope_shp,save_shp)
