@@ -26,6 +26,14 @@ from dem_common import tarball_dir,arcticDEM_reg_tif_dir,arcticDEM_tile_tarball_
 
 from dem_common import grid_no_dem_txt, process_log_dir
 
+from datetime import datetime
+from multiprocessing import Process
+
+machine_name = os.uname()[1]
+# the maximum number of processes for downloading in parallel
+max_task_count = 2
+download_tasks = []
+
 def get_total_size(url_list):
     total_size = 0
     for url in url_list:
@@ -57,6 +65,23 @@ def wget_file_url(url):
     cmd_str = 'wget --no-check-certificate %s' % url
     status, result = basic.exec_command_string(cmd_str)
     return status, result
+
+def run_a_process_download(url):
+    status, result = wget_file_url(url)
+    # try new url if it exists
+    if status != 0 and "302 Moved Temporarily" in result:
+        str_list = result.split()
+        loc_idx = str_list.index('Location:')
+        new_url = str_list[loc_idx + 1]  # find the new URL
+        print('try to download the file using new url: %s' % new_url)
+        status, result = wget_file_url(new_url)
+
+    if status != 0:
+        print(result)
+        basic.outputlogMessage('failed to download DEM: %s' % url)
+        sys.exit(status)
+
+
 
 def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg_tif_dir=None, poly_ids=None,b_arcticDEM_tile=False):
     # read dem polygons and url
@@ -118,19 +143,29 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                     # download the dem
                     basic.outputlogMessage('starting downloading %d th DEM (%d in total)'%((ii+1),len(urls)))
                     os.chdir(save_folder)
-                    status, result = wget_file_url(url)
-                    # try new url if it exists
-                    if status != 0 and "302 Moved Temporarily" in result:
-                        str_list = result.split()
-                        loc_idx = str_list.index('Location:')
-                        new_url = str_list[loc_idx + 1]  # find the new URL
-                        print('try to download the file using new url: %s'%new_url)
-                        status, result = wget_file_url(new_url)
 
-                    if status != 0:
-                        print(result)
-                        # sys.exit(status)
-                        basic.outputlogMessage('failed to download DEM: %s'%url)
+                    # run_a_process_download(url)  # download
+
+                    ##################################################
+                    # download in parallel
+                    basic.check_exitcode_of_process(download_tasks)  # if there is one former job failed, then quit
+
+                    while True:
+                        job_count = basic.alive_process_count(download_tasks)
+                        if job_count >= max_task_count:
+                            print(machine_name, datetime.now(),'You are running %d or more tasks in parallel, wait ' % max_task_count)
+                            time.sleep(60)  #
+                            continue
+                        break
+
+                    # start the processing
+                    sub_process = Process(target=run_a_process_download, args=(url))  # start a process, don't wait
+                    sub_process.start()
+                    download_tasks.append(sub_process)
+
+                    basic.close_remove_completed_process(download_tasks)
+
+
                     os.chdir(curr_dir)
 
                 dem_tar_ball_list.append(save_dem_path)
@@ -148,6 +183,10 @@ def main(options, args):
     dem_index_shp = args[1]
     save_folder = options.save_dir
     b_arcticDEM_tile = False
+
+    global max_task_count
+    max_task_count = options.max_process_num
+
     if save_folder is None:
         if 'Tile' in os.path.basename(dem_index_shp):
             save_folder =arcticDEM_tile_tarball_dir
@@ -198,6 +237,11 @@ if __name__ == "__main__":
     parser.add_option("-d", "--save_dir",
                       action="store", dest="save_dir",
                       help="the folder to save DEMs")
+
+    parser.add_option("-m", "--max_process_num",
+                      action="store", dest="max_process_num", type=int,default=5,
+                      help="the maximum number of processes for downloading in parallel")
+
 
     (options, args) = parser.parse_args()
     if len(sys.argv) < 2 or len(args) < 1:
