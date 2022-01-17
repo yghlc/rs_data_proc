@@ -23,6 +23,8 @@ import time
 # some path
 import dem_common
 from dem_segment_subsidence import segment_subsidence_grey_image
+from multiprocessing import Process
+local_tasks = []
 
 root_dir = os.path.expanduser('/scratch/summit/lihu9680/Arctic/dem_processing')    # run in this folder
 jobsh_dir = os.path.expanduser('/projects/lihu9680/Data/Arctic/dem_proc_jobs')
@@ -35,13 +37,55 @@ def check_length_jobname(job_name):
         raise ValueError('the length job name exceed 8 letters, will be cut off to 8, leading to troubles')
 
 def wait_if_reach_max_jobs(max_job_count,job_name_substr):
-    while True:
-        job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr=job_name_substr)
-        if job_count >= max_job_count:
-            print(machine_name, datetime.now(),'You have submitted %d or more jobs, wait '%max_job_count)
-            time.sleep(60) #
-            continue
-        break
+    if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
+        # in the local machine
+
+        basic.check_exitcode_of_process(local_tasks) # if there is one former job failed, then quit
+
+        while True:
+            job_count = basic.alive_process_count(local_tasks)
+            if job_count >= max_job_count:
+                print(machine_name, datetime.now(),'You are running %d or more tasks in parallel, wait '%max_job_count)
+                time.sleep(60) #
+                continue
+            break
+        basic.close_remove_completed_process(local_tasks)
+
+    else:
+        while True:
+            job_count = slurm_utility.get_submit_job_count(curc_username, job_name_substr=job_name_substr)
+            if job_count >= max_job_count:
+                print(machine_name, datetime.now(),'You have submitted %d or more jobs, wait '%max_job_count)
+                time.sleep(60) #
+                continue
+            break
+
+def run_a_script(proc_sh):
+    res = os.system('./%s'%proc_sh)
+    if res != 0:
+        sys.exit(1)
+
+def submit_job_curc_or_run_script_local(job_sh, proc_sh):
+    """
+    submit a job to curc or start running the script locally
+    :param job_sh: job to submit
+    :param proc_sh:  processing script.
+    :return:
+    """
+    if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
+        # run the job in local computer
+        # command_str = './%s'%proc_sh
+        # res = os.system(command_str) # this will wait until the job exist
+
+        sub_process = Process(target=run_a_script, args=(proc_sh)) # start a process, don't wait
+        sub_process.start()
+        local_tasks.append(sub_process)
+    else:
+        # submit the job
+        res = os.system('sbatch %s'%job_sh)
+        if res != 0:
+            sys.exit(1)
+
 
 def segment_a_dem_diff(dem_diff_path, process_num, ele_diff_thr, min_area, max_area, job_id=0):
 
@@ -106,9 +150,7 @@ def submit_segment_dem_diff_job(dem_diff_list, idx,max_job_count):
 
     # submit the job
     # sometime, when submit a job, end with: singularity: command not found,and exist, wired, then try run submit a job in scomplie note
-    res = os.system('sbatch job_segment.sh' )
-    if res != 0:
-        sys.exit(1)
+    submit_job_curc_or_run_script_local('job_segment.sh','seg_dem_diff.sh')
 
     os.chdir(curr_dir_before_start)
 
@@ -182,9 +224,7 @@ def submit_produce_dem_diff_job(ids_list, idx,grid_base_name,max_job_count):
 
     # submit the job
     # sometime, when submit a job, end with: singularity: command not found,and exist, wired, then try run submit a job in scomplie note
-    res = os.system('sbatch job_dem_diff.sh' )
-    if res != 0:
-        sys.exit(1)
+    submit_job_curc_or_run_script_local('job_dem_diff.sh','produce_dem_diff.sh')
 
     os.chdir(curr_dir_before_start)
 
@@ -222,9 +262,7 @@ def submit_hillshade_newest_headwall_line_grid_job(ids_list, idx, grid_base_name
 
     # submit the job
     # sometime, when submit a job, end with: singularity: command not found,and exist, wired, then try run submit a job in scomplie note
-    res = os.system('sbatch job_hillshade_headwall_line_grid.sh' )
-    if res != 0:
-        sys.exit(1)
+    submit_job_curc_or_run_script_local('job_hillshade_headwall_line_grid.sh','hillshade_headwall_line_grid.sh')
 
     os.chdir(curr_dir_before_start)
 
@@ -305,9 +343,7 @@ def submit_extract_headwall_grid_job(ids_list, idx, grid_base_name,max_job_count
 
     # submit the job
     # sometime, when submit a job, end with: singularity: command not found,and exist, wired, then try run submit a job in scomplie note
-    res = os.system('sbatch job_healwall_grid.sh' )
-    if res != 0:
-        sys.exit(1)
+    submit_job_curc_or_run_script_local('job_healwall_grid.sh','extract_headwall_from_slope_grid.sh')
 
     os.chdir(curr_dir_before_start)
 
@@ -345,9 +381,7 @@ def submit_extract_headwall_job(slope_tifs, idx, max_job_count):
 
     # submit the job
     # sometime, when submit a job, end with: singularity: command not found,and exist, wired, then try run submit a job in scomplie note
-    res = os.system('sbatch job_healwall.sh' )
-    if res != 0:
-        sys.exit(1)
+    submit_job_curc_or_run_script_local('job_healwall.sh','extract_headwall_from_slope.sh')
 
     os.chdir(curr_dir_before_start)
 
