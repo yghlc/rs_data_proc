@@ -61,6 +61,8 @@ def wait_if_reach_max_jobs(max_job_count,job_name_substr):
             break
 
 def run_a_script(proc_sh, place_holder=None):
+    # simulate a SLURM_JOB_ID, which will be used in script for log
+    os.environ['SLURM_JOB_ID'] = str(os.getpid()) + '-' + str(int(time.time()))
     res = os.system('./%s'%proc_sh)
     if res != 0:
         sys.exit(1)
