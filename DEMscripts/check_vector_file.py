@@ -48,7 +48,12 @@ def check_one_vector_file(idx,total,file_path, good_file_list):
 def main(options, args):
     # process_num = multiprocessing.cpu_count()
     process_num = options.process_num
-    data_folder = grid_dem_headwall_shp_dir
+    if len(args) > 0:
+        data_folder = args[0]
+    else:
+        data_folder = grid_dem_headwall_shp_dir
+
+    basic.outputlogMessage('check shapefiles in %s, with %d processes'%(data_folder,process_num))
 
 
     vector_files = io_function.get_file_list_by_ext('.shp',data_folder ,bsub_folder=True)
@@ -94,23 +99,23 @@ def main(options, args):
     # io_function.delete_file_or_dir(tif)
 
 
+
 if __name__ == '__main__':
-    if __name__ == '__main__':
-        usage = "usage: %prog [options]  "
-        parser = OptionParser(usage=usage, version="1.0 2021-9-9")
-        parser.description = 'Introduction: find out incomplete vector files  '
+    usage = "usage: %prog [options]  "
+    parser = OptionParser(usage=usage, version="1.0 2021-9-9")
+    parser.description = 'Introduction: find out incomplete vector files  '
 
-        parser.add_option("-p", "--process_num",
-                          action="store", dest="process_num", type=int, default=8,
-                          help="number of processes to checking vector files")
+    parser.add_option("-p", "--process_num",
+                      action="store", dest="process_num", type=int, default=8,
+                      help="number of processes to checking vector files")
 
-        (options, args) = parser.parse_args()
-        # print(options.create_mosaic)
+    (options, args) = parser.parse_args()
+    # print(options.create_mosaic)
 
-        # if len(sys.argv) < 2 or len(args) < 1:
-        #     parser.print_help()
-        #     sys.exit(2)
+    # if len(sys.argv) < 2 or len(args) < 1:
+    #     parser.print_help()
+    #     sys.exit(2)
 
-        main(options, args)
-        pass
+    main(options, args)
+    pass
 
