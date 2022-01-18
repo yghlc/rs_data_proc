@@ -60,7 +60,7 @@ def wait_if_reach_max_jobs(max_job_count,job_name_substr):
                 continue
             break
 
-def run_a_script(proc_sh):
+def run_a_script(proc_sh, place_holder=None):
     res = os.system('./%s'%proc_sh)
     if res != 0:
         sys.exit(1)
@@ -77,7 +77,7 @@ def submit_job_curc_or_run_script_local(job_sh, proc_sh):
         # command_str = './%s'%proc_sh
         # res = os.system(command_str) # this will wait until the job exist
 
-        sub_process = Process(target=run_a_script, args=(proc_sh)) # start a process, don't wait
+        sub_process = Process(target=run_a_script, args=(proc_sh,None)) # start a process, don't wait
         sub_process.start()
         local_tasks.append(sub_process)
     else:
