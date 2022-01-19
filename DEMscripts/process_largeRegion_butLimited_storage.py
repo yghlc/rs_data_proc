@@ -284,7 +284,7 @@ def save_grid_ids_need_to_process(grid_ids,ignore_ids=None, save_path='grid_ids_
         id_list = ignore_ids
     ids_need_to_proc = [str(id) for id in grid_ids if id not in id_list]
     io_function.save_list_to_txt(save_path,ids_need_to_proc)
-    return ids_need_to_proc
+    return len(ids_need_to_proc)
 
 
 def b_exist_grid_headwall_shp(id):
