@@ -53,6 +53,7 @@ from dem_common import grid_dem_diff_less2dem_txt, process_log_dir
 # some folder paths
 from dem_common import arcticDEM_reg_tif_dir,grid_dem_diffs_dir
 
+from dem_common import get_corresponding_grid_ids_txt
 
 def get_grid_20(extent_shp_or_id_txt, grid_polys, ids):
     '''
@@ -65,13 +66,12 @@ def get_grid_20(extent_shp_or_id_txt, grid_polys, ids):
     '''
 
     io_function.is_file_exist(extent_shp_or_id_txt)
-    file_name_base = os.path.splitext(os.path.basename(extent_shp_or_id_txt))[0]
 
     if extent_shp_or_id_txt.endswith('.txt'):
         grid_ids = io_function.read_list_from_txt(extent_shp_or_id_txt)
         grid_ids = [int(item) for item in grid_ids ]
     else:
-        shp_corresponding_grid_ids_txt = file_name_base+'_grid_ids.txt'
+        shp_corresponding_grid_ids_txt = get_corresponding_grid_ids_txt(extent_shp_or_id_txt)
         if os.path.isfile(shp_corresponding_grid_ids_txt):
             print('corresponding grid ids txt file for %s exists, read grid id from txt'%extent_shp_or_id_txt)
             grid_ids = [ int(item) for item in io_function.read_list_from_txt(shp_corresponding_grid_ids_txt)]

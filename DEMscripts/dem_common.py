@@ -96,9 +96,25 @@ grid_no_subscidence_poly_txt = os.path.join(process_log_dir,'grid_no_subscidence
 strip_dem_cover_grids_txt = os.path.join(process_log_dir,'strip_dem_cover_grids.txt') # each strip cover how many grids (ids), dict
 tile_dem_cover_grids_txt = os.path.join(process_log_dir,'tile_dem_cover_grids.txt') # each tile cover how many grids (ids), dict
 
+# store grid id txt files for each extent, and indicator of them have been completed.
+grid_ids_txt_dir = os.path.join(ArcticDEM_tmp_dir, 'grid_ids_txt')
+
 # rts results
 grid_rts_shp_dir = os.path.join(ArcticDEM_tmp_dir, 'grid_rts_shp')
 
+
+
+#########################
+## some common function
+def get_corresponding_grid_ids_txt(extent_shp):
+    file_name_base = os.path.splitext(os.path.basename(extent_shp))[0]
+    return file_name_base+'_grid_ids.txt'
+
+def get_extent_grid_id_txt_done_files(extent_shp):
+    grid_ids_txt = get_corresponding_grid_ids_txt(extent_shp)
+    log_grid_ids_txt = os.path.join(grid_ids_txt_dir,os.path.basename(grid_ids_txt))
+    log_grid_ids_txt_done = log_grid_ids_txt + '_done'
+    return grid_ids_txt, log_grid_ids_txt, log_grid_ids_txt_done
 
 if __name__ == '__main__':
     pass

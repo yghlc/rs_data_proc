@@ -51,6 +51,8 @@ from dem_common import grid_hillshade_newest_HDLine_dir, grid_dem_diffs_dir,grid
 
 from dem_common import grid_dem_diffs_segment_dir, grid_no_subscidence_poly_txt, arcticDEM_tile_slope_dir
 
+from dem_common import get_corresponding_grid_ids_txt,grid_ids_txt_dir,get_extent_grid_id_txt_done_files
+
 from produce_DEM_diff_ArcticDEM import get_grid_20
 
 from parallel_processing_curc import curc_username
@@ -275,12 +277,14 @@ def get_complete_ignore_grid_ids():
     return id_list
 
 def save_grid_ids_need_to_process(grid_ids,ignore_ids=None, save_path='grid_ids_to_process.txt'):
+    ''' save a list to txt, contain grid ids need to process, return the number of grids to process'''
     if ignore_ids is None:
         id_list = get_complete_ignore_grid_ids()
     else:
         id_list = ignore_ids
     ids_need_to_proc = [str(id) for id in grid_ids if id not in id_list]
     io_function.save_list_to_txt(save_path,ids_need_to_proc)
+    return ids_need_to_proc
 
 
 def b_exist_grid_headwall_shp(id):
@@ -655,6 +659,19 @@ def sync_log_files(process_node,r_log_dir,process_log_dir):
     for file in files_from_processNode:
         scp_communicate.copy_file_folder_from_remote_machine(process_node, os.path.join(r_log_dir,file),os.path.join(process_log_dir, file))
 
+def make_note_all_task_done(extent_shp):
+    if os.path.isdir(grid_ids_txt_dir) is False:
+        io_function.mkdir(grid_ids_txt_dir)
+
+    shp_grid_id_txt, log_grid_ids_txt, log_grid_ids_txt_done= get_extent_grid_id_txt_done_files(extent_shp)
+
+     # shp_grid_id_txt should be in the current folder
+    if os.path.isfile(log_grid_ids_txt) is False:
+        io_function.copy_file_to_dst(shp_grid_id_txt,log_grid_ids_txt)
+
+    if os.path.isfile(log_grid_ids_txt_done) is False:
+        io_function.save_list_to_txt(log_grid_ids_txt_done,['Done'])
+
 def main(options, args):
     extent_shp = args[0]
     task_list = [args[item] for item in range(1, len(args)) ]
@@ -717,7 +734,10 @@ def main(options, args):
 
             # remove grids that has been complete or ignored
             ignore_ids = get_complete_ignore_grid_ids()
-            save_grid_ids_need_to_process(grid_ids,ignore_ids=ignore_ids)
+            num_grid_ids = save_grid_ids_need_to_process(grid_ids,ignore_ids=ignore_ids)
+            if num_grid_ids < 1:
+                make_note_all_task_done(extent_shp)
+
 
             select_grids_shp = os.path.join(subset_shp_dir,io_function.get_name_by_adding_tail(os.path.basename(grid_20_shp),'sub%d' % subset_id))
 
@@ -757,7 +777,9 @@ def main(options, args):
 
             # save this to disk, to check progress, if there are not too many grids (<100),
             # we can use this one to process withtou divide grids to many subsets
-            save_grid_ids_need_to_process(grid_ids)
+            num_grid_ids = save_grid_ids_need_to_process(grid_ids)
+            if num_grid_ids < 1:
+                make_note_all_task_done(extent_shp)
 
             if b_divide_to_subsets is False:
                 break
