@@ -61,7 +61,7 @@ from parallel_processing_curc import curc_username
 dem_download_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMscripts/download_arcticDEM.py')
 dem_unpack_reg_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMscripts/ArcticDEM_unpack_registration.py')
 subset_shp_dir = 'subset_grids_shp'
-
+msg_file_pre = 'subset'     # prename of the message file
 
 
 def update_subset_info(txt_path, key_list=None, info_list=None):
@@ -91,11 +91,11 @@ def get_subset_info_txt_list(key,values,remote_node=None, remote_folder=None, lo
     # sync 'subset%d.txt' files from remote node
     if remote_node is not None:
         # this will overwrite 'subset%d.txt' in local
-        scp_communicate.copy_file_folder_from_remote_machine(remote_node,os.path.join(remote_folder,'subset*.txt'),
+        scp_communicate.copy_file_folder_from_remote_machine(remote_node,os.path.join(remote_folder,msg_file_pre+'*.txt'),
                                                              os.path.join(local_folder,'.'))
 
     select_txt_list = []
-    subinfo_txt_list = io_function.get_file_list_by_pattern(local_folder,'subset*.txt')
+    subinfo_txt_list = io_function.get_file_list_by_pattern(local_folder,msg_file_pre+'*.txt')
     for txt in subinfo_txt_list:
         info_dict = get_subset_info(txt)
         if info_dict[key] in values:
@@ -700,6 +700,8 @@ def main(options, args):
     # modify the folder name of subsets
     global subset_shp_dir
     subset_shp_dir = subset_shp_dir + '_' +io_function.get_name_no_ext(extent_shp)
+    global msg_file_pre
+    msg_file_pre = io_function.get_name_no_ext(extent_shp) + '_' + msg_file_pre
 
     # build map dem cover grid (take time, but only need to run once at the beginning)
     build_dict_of_dem_cover_grid_ids(dem_strip_shp, grid_20_shp, strip_dem_cover_grids_txt)
@@ -770,7 +772,7 @@ def main(options, args):
             if len(selected_gird_ids) < 1:
                 continue
 
-            subset_info_txt = 'subset%d.txt'%subset_id
+            subset_info_txt = msg_file_pre+'%d.txt'%subset_id
             if os.path.isfile(subset_info_txt) is False:
                 # init the file
                 update_subset_info(subset_info_txt, key_list=['id', 'shp', 'pre_status', 'proc_status'],
