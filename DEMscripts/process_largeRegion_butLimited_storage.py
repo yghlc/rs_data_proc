@@ -689,6 +689,9 @@ def main(options, args):
     b_dont_remove_DEM_files = options.b_dont_remove_DEM_files
     b_divide_to_subsets = True
 
+    # modify the folder name of subsets
+    global subset_shp_dir
+    subset_shp_dir = subset_shp_dir + '_' +io_function.get_name_no_ext(extent_shp)
 
     # build map dem cover grid (take time, but only need to run once at the beginning)
     build_dict_of_dem_cover_grid_ids(dem_strip_shp, grid_20_shp, strip_dem_cover_grids_txt)
