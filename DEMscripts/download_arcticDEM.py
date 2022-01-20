@@ -66,7 +66,7 @@ def wget_file_url(url):
     status, result = basic.exec_command_string(cmd_str)
     return status, result
 
-def run_a_process_download(url):
+def run_a_process_download(url, placeholder=None):
     status, result = wget_file_url(url)
     # try new url if it exists
     if status != 0 and "302 Moved Temporarily" in result:
@@ -159,7 +159,7 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                         break
 
                     # start the processing
-                    sub_process = Process(target=run_a_process_download, args=(url))  # start a process, don't wait
+                    sub_process = Process(target=run_a_process_download, args=(url, None))  # start a process, don't wait
                     sub_process.start()
                     download_tasks.append(sub_process)
 
@@ -239,7 +239,7 @@ if __name__ == "__main__":
                       help="the folder to save DEMs")
 
     parser.add_option("-m", "--max_process_num",
-                      action="store", dest="max_process_num", type=int,default=5,
+                      action="store", dest="max_process_num", type=int,default=10,
                       help="the maximum number of processes for downloading in parallel")
 
 
