@@ -67,6 +67,7 @@ def produce_corresponding_grid_ids_txt(extent_shp,local_grid_id_txt, log_grid_id
 
 
 def process_one_extent(extent_shp):
+    print('start to process %s'%extent_shp)
 
     # local_grid_id_txt is in the current dir
     # log_grid_ids_txt, log_grid_ids_txt_done is in grid_ids_txt_dir
