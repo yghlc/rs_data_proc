@@ -26,7 +26,11 @@ if os.path.isdir(grid_ids_txt_dir) is False:
 
 def read_grid_ids_from_other_extent():
     grid_txt_list = io_function.get_file_list_by_ext('.txt', grid_ids_txt_dir, bsub_folder=False)
-    other_grid_ids = [ io_function.read_list_from_txt(txt) for txt in grid_txt_list ]
+    other_grid_ids = []
+    for txt in grid_txt_list:
+        id_list = io_function.read_list_from_txt(txt)
+        other_grid_ids.extend(id_list)
+
     other_grid_ids = [ int(item) for item in other_grid_ids ]
     return other_grid_ids
 
