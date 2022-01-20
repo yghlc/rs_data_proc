@@ -79,7 +79,7 @@ def process_one_extent(extent_shp):
 
     produce_corresponding_grid_ids_txt(extent_shp,local_grid_id_txt, log_grid_ids_txt)
 
-    res = os.system('./process_largeRegion.sh %s')
+    res = os.system('./process_largeRegion.sh %s'%extent_shp)
     if res != 0:
         sys.exit(res)
 
