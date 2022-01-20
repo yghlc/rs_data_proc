@@ -726,9 +726,11 @@ def main(options, args):
     visit_np[np.where(grid_ids_2d == grid_nodata)] = 1    # 1 indicate already visited
 
     subset_id = -1
-    io_function.mkdir(subset_shp_dir)
-    sync_log_files(process_node, r_log_dir, process_log_dir)
-    update_complete_grid_list(grid_ids, task_list)
+    # on tesia, uist, vpn-connected laptop
+    if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
+        io_function.mkdir(subset_shp_dir)
+        sync_log_files(process_node, r_log_dir, process_log_dir)
+        update_complete_grid_list(grid_ids, task_list)
 
     while True:
         subset_id += 1
