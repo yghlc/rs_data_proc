@@ -84,11 +84,20 @@ def process_one_extent(extent_shp):
     if res != 0:
         sys.exit(res)
 
+def get_ext_shps():
+    # make sure in different machine, the extent file are in the same order, we create a list: ArcticDEM_subsets_list.txt
+    shps_list_txt = os.path.join(ext_shp_dir,'ArcticDEM_subsets_list.txt')
+    shps_list = io_function.read_list_from_txt(shps_list_txt)
+    ext_shps = [ os.path.join(ext_shp_dir,item)  for item in shps_list]
+    # check existence
+    for ext in ext_shps:
+        io_function.is_file_exist(ext)
+    return ext_shps
 
 def main():
 
-    ext_shps = io_function.get_file_list_by_ext('.shp',ext_shp_dir,bsub_folder=False)
-    sorted(ext_shps)    # make sure in different have the same order in different machine
+    ext_shps = get_ext_shps()
+
     basic.outputlogMessage('%d extent shapefiles in %s'%(len(ext_shps), ext_shp_dir))
     for shp in ext_shps:
         process_one_extent(shp)
