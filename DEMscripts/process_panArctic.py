@@ -88,6 +88,7 @@ def process_one_extent(extent_shp):
 def main():
 
     ext_shps = io_function.get_file_list_by_ext('.shp',ext_shp_dir,bsub_folder=False)
+    sorted(ext_shps)    # make sure in different have the same order in different machine
     basic.outputlogMessage('%d extent shapefiles in %s'%(len(ext_shps), ext_shp_dir))
     for shp in ext_shps:
         process_one_extent(shp)
