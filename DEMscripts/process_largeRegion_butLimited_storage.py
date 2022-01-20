@@ -679,6 +679,14 @@ def main(options, args):
     if len(task_list) < 1:
         raise ValueError('There is no task: %s'%str(task_list))
 
+    # local_grid_id_txt is in the current dir
+    # log_grid_ids_txt, log_grid_ids_txt_done is in grid_ids_txt_dir
+    local_grid_id_txt, log_grid_ids_txt, log_grid_ids_txt_done = get_extent_grid_id_txt_done_files(extent_shp)
+    # check if it has been complete
+    if os.path.isfile(log_grid_ids_txt_done):
+        basic.outputlogMessage('Tasks for extent %s have been completed'%extent_shp)
+        return True
+
     r_working_dir = '/scratch/summit/lihu9680/Arctic/dem_processing' if options.remote_working_dir is None else options.remote_working_dir
     r_log_dir = '/scratch/summit/lihu9680/ArcticDEM_tmp_dir/log_dir' if options.remote_log_dir is None else options.remote_log_dir
     process_node = '$curc_host' if options.process_node is None else options.process_node
