@@ -703,6 +703,8 @@ def main(options, args):
     global msg_file_pre
     msg_file_pre = io_function.get_name_no_ext(extent_shp) + '_' + msg_file_pre
 
+    grid_ids_to_process_txt = io_function.get_name_no_ext(extent_shp) +'_' + 'grid_ids_to_process.txt'
+
     # build map dem cover grid (take time, but only need to run once at the beginning)
     build_dict_of_dem_cover_grid_ids(dem_strip_shp, grid_20_shp, strip_dem_cover_grids_txt)
     build_dict_of_dem_cover_grid_ids(dem_tile_shp, grid_20_shp, tile_dem_cover_grids_txt)
@@ -749,7 +751,7 @@ def main(options, args):
 
             # remove grids that has been complete or ignored
             ignore_ids = get_complete_ignore_grid_ids()
-            num_grid_ids = save_grid_ids_need_to_process(grid_ids,ignore_ids=ignore_ids)
+            num_grid_ids = save_grid_ids_need_to_process(grid_ids,ignore_ids=ignore_ids,save_path=grid_ids_to_process_txt)
             if num_grid_ids < 1:
                 make_note_all_task_done(extent_shp)
 
@@ -792,7 +794,7 @@ def main(options, args):
 
             # save this to disk, to check progress, if there are not too many grids (<100),
             # we can use this one to process withtou divide grids to many subsets
-            num_grid_ids = save_grid_ids_need_to_process(grid_ids)
+            num_grid_ids = save_grid_ids_need_to_process(grid_ids,save_path=grid_ids_to_process_txt)
             if num_grid_ids < 1:
                 make_note_all_task_done(extent_shp)
 
