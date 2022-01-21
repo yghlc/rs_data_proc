@@ -66,7 +66,7 @@ def wget_file_url(url):
     status, result = basic.exec_command_string(cmd_str)
     return status, result
 
-def run_a_process_download(url, placeholder=None):
+def run_a_process_download(url, process_num=1):
     status, result = wget_file_url(url)
     # try new url if it exists
     if status != 0 and "302 Moved Temporarily" in result:
@@ -77,8 +77,14 @@ def run_a_process_download(url, placeholder=None):
         status, result = wget_file_url(new_url)
 
     if status != 0:
-        print(result)
-        basic.outputlogMessage('failed to download DEM: %s' % url)
+        if process_num == 1:
+            print(result)
+            basic.outputlogMessage('failed to download DEM: %s' % url)
+        else:
+            # when run in paralle, we may not able to save the log to disk
+            print('\n failed info\n',result)
+            print('failed to download DEM: %s' % url)
+            print('\n\n')
         sys.exit(status)
 
 
@@ -159,7 +165,7 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                         break
 
                     # start the processing
-                    sub_process = Process(target=run_a_process_download, args=(url, None))  # start a process, don't wait
+                    sub_process = Process(target=run_a_process_download, args=(url, max_task_count))  # start a process, don't wait
                     sub_process.start()
                     download_tasks.append(sub_process)
 
