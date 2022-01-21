@@ -129,6 +129,13 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
             # download them using wget one by one
             for ii, url in enumerate(urls):
                 tmp = urlparse(url)
+
+                # in the Strip DEM, there are around 700 url are point to tif files, failed to download them
+                # e.g. /mnt/pgc/data/elev/dem/setsm/ArcticDEM/geocell/v3.0/2m_temp/n59w137/SETSM_WV03_20150518_104001000B703200_104001000C715B00_seg8_2m_v3.0_dem.tif
+                if url.startswith('/mnt') and url.endswith('.tif'):
+                    basic.outputlogMessage("error: not a valid url: %s"%url)
+                    continue
+
                 filename = os.path.basename(tmp.path)
                 save_dem_path = os.path.join(save_folder,filename)
                 if reg_tif_dir is not None:
