@@ -289,7 +289,7 @@ def run_grid_jobs(max_job_count,n_tif_per_jobs,task_name,extent_shp):
     else:
         # read grids and ids
         time0 = time.time()
-        all_grid_polys, all_ids = vector_gpd.read_polygons_attributes_list(grid_20_shp, 'grid_id')
+        all_grid_polys, all_ids = vector_gpd.read_polygons_attributes_list(grid_20_shp, 'id')   # in this file, it's "id", not "grid_id"
         print('time cost of read polygons and attributes', time.time() - time0)
         grid_polys, grid_ids = get_grid_20(extent_shp,all_grid_polys, all_ids)
 
