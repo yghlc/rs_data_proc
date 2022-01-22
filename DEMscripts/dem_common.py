@@ -107,8 +107,15 @@ grid_rts_shp_dir = os.path.join(ArcticDEM_tmp_dir, 'grid_rts_shp')
 #########################
 ## some common function
 def get_corresponding_grid_ids_txt(extent_shp):
-    file_name_base = os.path.splitext(os.path.basename(extent_shp))[0]
-    return file_name_base+'_grid_ids.txt'
+    # if it's in the same folder of the extent_shp
+    grid_ids_txt = os.path.splitext(extent_shp)[0] + '_grid_ids.txt'
+    if os.path.isfile(grid_ids_txt):
+        print('grid_ids.txt for %s is in the same directory'%extent_shp)
+        return grid_ids_txt
+
+    # otherwise, just return a file name in current folder (don't have to be existed)
+    grid_ids_txt = os.path.splitext(os.path.basename(extent_shp))[0] +'_grid_ids.txt'
+    return grid_ids_txt
 
 def get_extent_grid_id_txt_done_files(extent_shp):
     grid_ids_txt = get_corresponding_grid_ids_txt(extent_shp)
