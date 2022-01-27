@@ -18,6 +18,10 @@ if machine_name == 'uist-int-colorado-edu':
     ArcticDEM_tmp_dir = '/home/lhuang/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir'
     data_dir = '/home/lhuang/Data'
 
+elif machine_name == 'donostia.int.colorado.edu':  # donostia
+    ArcticDEM_tmp_dir = '/home/lhuang/Bhaltos2/ArcticDEM_tmp_dir'
+    data_dir = '/home/lhuang/Data'
+
 elif machine_name == 'ubuntu':  # tesia
     ArcticDEM_tmp_dir = '/home/lihu9680/Bhaltos2/lingcaoHuang/ArcticDEM_tmp_dir'
     data_dir = '/home/lihu9680/Data'
