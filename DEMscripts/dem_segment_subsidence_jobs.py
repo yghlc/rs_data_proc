@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS'))
 import basic_src.io_function as io_function
 
 import dem_common
+from dem_common import get_grid_id_from_path
 
 machine_name = os.uname()[1]
 
@@ -74,14 +75,14 @@ def produce_products_dem_subsidence(b_remove_job_folder=True):
 
     while True:
         dem_diff_list = get_dem_diff_list_to_seg()
-        dem_diff_name_list = [os.path.basename(item) for item in dem_diff_list]
+        dem_diff_ids = [get_grid_id_from_path(item) for item in dem_diff_list]
 
         # remove dem_diff already assigined for other machine
         dem_diff_assigned = read_dem_diff_assigned_to_other_machine(job_list_pre)
-        dem_diff_assigned = [os.path.basename(item) for item in dem_diff_assigned]
-        for name, full_name in zip(dem_diff_name_list,dem_diff_list):
-            if name in dem_diff_assigned:
-                dem_diff_list.remove(full_name)
+        assigned_ids = [get_grid_id_from_path(item) for item in dem_diff_assigned]
+        rm_idx = [dem_diff_ids.index(id) for id in assigned_ids if id in dem_diff_ids ]
+        for idx in rm_idx:
+           del dem_diff_list[idx]
 
         if len(dem_diff_list) < 1:
             print(datetime.now(), 'there is no DEM_diff for %s to seg, wait 10 minutes'%machine_name)

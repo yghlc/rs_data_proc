@@ -9,6 +9,7 @@ add time: 26 March, 2021
 """
 
 import os,sys
+import re
 
 machine_name = os.uname()[1]
 
@@ -122,6 +123,9 @@ def get_extent_grid_id_txt_done_files(extent_shp):
     log_grid_ids_txt = os.path.join(grid_ids_txt_dir,os.path.basename(grid_ids_txt))
     log_grid_ids_txt_done = log_grid_ids_txt + '_done'
     return grid_ids_txt, log_grid_ids_txt, log_grid_ids_txt_done
+
+def get_grid_id_from_path(item):
+    return int(re.findall('grid\d+', os.path.basename(item))[0][4:])
 
 if __name__ == '__main__':
     pass
