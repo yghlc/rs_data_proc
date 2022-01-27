@@ -861,7 +861,7 @@ if __name__ == '__main__':
     parser.description = 'Introduction: process ArcticDEM with limited storage  '
 
     parser.add_option("-n", "--max_grids",
-                      action="store", dest="max_grids", type=int, default=100,
+                      action="store", dest="max_grids", type=int, default=200,
                       help="the maximum number of grids for process in parallel, large storage allows large number")
 
     parser.add_option("-w", "--remote_working_dir",
