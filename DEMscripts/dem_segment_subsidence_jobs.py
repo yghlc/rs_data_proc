@@ -82,7 +82,7 @@ def produce_products_dem_subsidence(b_remove_job_folder=True):
         assigned_ids = [get_grid_id_from_path(item) for item in dem_diff_assigned]
         rm_idx = [dem_diff_ids.index(id) for id in assigned_ids if id in dem_diff_ids ]
         for idx in rm_idx:
-           del dem_diff_list[idx]
+            del dem_diff_list[idx]
 
         if len(dem_diff_list) < 1:
             print(datetime.now(), 'there is no DEM_diff for %s to seg, wait 10 minutes'%machine_name)
