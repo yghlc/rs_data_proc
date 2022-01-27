@@ -80,6 +80,8 @@ def produce_products_dem_subsidence(b_remove_job_folder=True):
         print(dem_diff_ids)
 
         # remove dem_diff already assigined for other machine
+        if os.path.isfile(dem_list_txt):
+            io_function.delete_file_or_dir(dem_list_txt)
         dem_diff_assigned = read_dem_diff_assigned_to_other_machine(job_list_pre)
         assigned_ids = [get_grid_id_from_path(item) for item in dem_diff_assigned]
         print('assigned_ids')
