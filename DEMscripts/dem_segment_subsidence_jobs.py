@@ -74,12 +74,14 @@ def produce_products_dem_subsidence(b_remove_job_folder=True):
 
     while True:
         dem_diff_list = get_dem_diff_list_to_seg()
+        dem_diff_name_list = [os.path.basename(item) for item in dem_diff_list]
 
         # remove dem_diff already assigined for other machine
         dem_diff_assigned = read_dem_diff_assigned_to_other_machine(job_list_pre)
-        for diff in dem_diff_assigned:
-            if diff in dem_diff_list:
-                dem_diff_list.remove(diff)
+        dem_diff_assigned = [os.path.basename(item) for item in dem_diff_assigned]
+        for name, full_name in zip(dem_diff_name_list,dem_diff_list):
+            if name in dem_diff_assigned:
+                dem_diff_list.remove(full_name)
 
         if len(dem_diff_list) < 1:
             print(datetime.now(), 'there is no DEM_diff for %s to seg, wait 10 minutes'%machine_name)
