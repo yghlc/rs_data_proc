@@ -49,7 +49,7 @@ def get_dem_diff_list_to_seg():
 
 def read_dem_diff_assigned_to_other_machine(job_list_pre):
 
-    dem_list_txts = io_function.get_file_list_by_pattern(dem_common.grid_dem_diffs_dir, job_list_pre + '*.txt')
+    dem_list_txts = io_function.get_file_list_by_pattern(dem_common.process_log_dir, job_list_pre + '*.txt')
     assign_dem_diff = []
     for txt in dem_list_txts:
         assign_dem_diff.extend(io_function.read_list_from_txt(txt))
