@@ -90,6 +90,7 @@ def produce_products_dem_subsidence(b_remove_job_folder=True):
         if len(dem_diff_list) < 1:
             print(datetime.now(), 'there is no DEM_diff for %s to seg, wait 10 minutes'%machine_name)
             time.sleep(600)     # wait 10 min
+            continue
 
         # save some of them to txt, for "parallel_processing_curc.py"
         dem_diff_list = dem_diff_list[:max_list_count]
