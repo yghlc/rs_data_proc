@@ -80,9 +80,8 @@ def produce_products_dem_subsidence(b_remove_job_folder=True):
         # remove dem_diff already assigined for other machine
         dem_diff_assigned = read_dem_diff_assigned_to_other_machine(job_list_pre)
         assigned_ids = [get_grid_id_from_path(item) for item in dem_diff_assigned]
-        rm_idx = [dem_diff_ids.index(id) for id in assigned_ids if id in dem_diff_ids ]
-        for idx in rm_idx:
-            del dem_diff_list[idx]
+        keep_idx = [idx for idx,id in enumerate(dem_diff_ids) if id not in assigned_ids ]
+        dem_diff_list = [ dem_diff_list[item] for item in keep_idx]
 
         if len(dem_diff_list) < 1:
             print(datetime.now(), 'there is no DEM_diff for %s to seg, wait 10 minutes'%machine_name)
