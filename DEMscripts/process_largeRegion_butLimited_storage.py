@@ -656,8 +656,23 @@ def sync_log_files(process_node,r_log_dir,process_log_dir):
 
     files_from_processNode = ['grid_dem_diff_less2dem_ids.txt','grid_no_valid_dem_ids.txt','grid_no_headwall_ids.txt',
                               'grid_no_subscidence_poly_ids.txt']
+
+    remote_name = process_node[1:].replace('_host', '')  # change $curc_host to curc
     for file in files_from_processNode:
-        scp_communicate.copy_file_folder_from_remote_machine(process_node, os.path.join(r_log_dir,file),os.path.join(process_log_dir, file))
+        # copy the file, do not overwrite the local file
+        remote_file = os.path.join(process_log_dir, io_function.get_name_by_adding_tail(file,remote_name))
+        scp_communicate.copy_file_folder_from_remote_machine(process_node, os.path.join(r_log_dir,file),remote_file)
+        # if they are new ids, then merged to "file"
+        local_file = os.path.join(process_log_dir, file)
+        remote_ids = io_function.read_list_from_txt(remote_file)    # no need, to int
+        local_ids = io_function.read_list_from_txt(local_file)
+        new_ids = [id for id in remote_ids if id not in local_ids ]
+        if len(new_ids) < 1:
+            continue
+        else:
+            local_ids.extend(new_ids)
+            io_function.save_list_to_txt(local_file,local_ids)
+
 
 def make_note_all_task_done(extent_shp):
     if os.path.isdir(grid_ids_txt_dir) is False:
