@@ -63,6 +63,8 @@ def produce_products_dem_subsidence(b_remove_job_folder=True):
 
     task = 'segment'
     max_list_count = 20
+    if 'donostia' in machine_name:
+        max_list_count = 8      # donostia is really slow, assigined less task to it
     job_list_pre = 'job_seg_dem_diff_list_'
 
     if os.path.isdir(dem_common.process_log_dir) is False:
