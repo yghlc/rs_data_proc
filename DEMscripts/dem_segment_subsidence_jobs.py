@@ -76,10 +76,14 @@ def produce_products_dem_subsidence(b_remove_job_folder=True):
     while True:
         dem_diff_list = get_dem_diff_list_to_seg()
         dem_diff_ids = [get_grid_id_from_path(item) for item in dem_diff_list]
+        print('dem_diff_ids')
+        print(dem_diff_ids)
 
         # remove dem_diff already assigined for other machine
         dem_diff_assigned = read_dem_diff_assigned_to_other_machine(job_list_pre)
         assigned_ids = [get_grid_id_from_path(item) for item in dem_diff_assigned]
+        print('assigned_ids')
+        print(assigned_ids)
         keep_idx = [idx for idx,id in enumerate(dem_diff_ids) if id not in assigned_ids ]
         dem_diff_list = [ dem_diff_list[item] for item in keep_idx]
 
@@ -89,6 +93,10 @@ def produce_products_dem_subsidence(b_remove_job_folder=True):
 
         # save some of them to txt, for "parallel_processing_curc.py"
         dem_diff_list = dem_diff_list[:max_list_count]
+        save_ids = [get_grid_id_from_path(item) for item in dem_diff_list]
+        print('save_ids')
+        print(save_ids)
+
         io_function.save_list_to_txt(dem_list_txt,dem_diff_list)
 
         res = os.system('./run.sh %s %s' % (ext_shp, task))
