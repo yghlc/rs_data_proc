@@ -19,6 +19,7 @@ from process_panArctic import get_ext_shps, ext_shp_dir
 from dem_common import get_extent_grid_id_txt_done_files
 from process_largeRegion_butLimited_storage import get_complete_ignore_grid_ids,save_grid_ids_need_to_process, make_note_all_task_done
 
+from process_largeRegion_butLimited_storage import update_complete_grid_list
 
 def check_one_extent(extent_shp):
     print('start to check %s' % extent_shp)
@@ -40,6 +41,8 @@ def check_one_extent(extent_shp):
     # read from txt file directly
     grid_ids = [int(item) for item in io_function.read_list_from_txt(local_grid_id_txt)]
 
+    update_complete_grid_list(grid_ids, task_list)
+
     # check complete files, to see if it's done
     # remove grids that has been complete or ignored
     ignore_ids = get_complete_ignore_grid_ids()
@@ -60,4 +63,5 @@ def main():
         check_one_extent(shp)
 
 if __name__ == '__main__':
+    task_list = ['dem_diff','dem_headwall_grid', 'hillshade_headwall_line' 'segment']
     main()
