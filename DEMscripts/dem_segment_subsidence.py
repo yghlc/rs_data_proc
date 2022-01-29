@@ -321,8 +321,13 @@ def get_surrounding_polygons(remain_polyons,surrounding_shp,wkt, dem_diff_tif,bu
 
 def remove_polygons_based_relative_dem_diff(remain_polyons,merged_shp,surrounding_shp,wkt, save_shp, min_area, dem_diff_thread_m):
     if os.path.isfile(save_shp):
-        basic.outputlogMessage('%s exists, skip'%save_shp)
-        return save_shp
+        # also check the file is complete
+        polys, demD_values = vector_gpd.read_polygons_attributes_list(save_shp, 'demD_mean')
+        if len(polys) < 1 or demD_values is None or len(demD_values) < 1:
+            basic.outputlogMessage('%s already exists, but not complete, will be overwritten' % save_shp)
+        else:
+            basic.outputlogMessage('%s exists, skip'%save_shp)
+            return save_shp
 
     # calculate the relative dem diff
     surr_dem_diff_list = vector_gpd.read_attribute_values_list(surrounding_shp,'demD_mean')
