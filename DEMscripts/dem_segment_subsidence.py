@@ -237,13 +237,13 @@ def filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,
 
     # we should only merge polygon with similar reduction, but we already remove polygons with mean reduction > threshhold
     # merge touch polygons
-    print(timeTools.get_now_time_str(), 'start building adjacent_matrix')
-    # adjacent_matrix = vector_features.build_adjacent_map_of_polygons(remain_polyons)
-    machine_name = os.uname()[1]
-    if 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:
-        print('Warning, some problem of parallel running in build_adjacent_map_of_polygons on curc, '
-              'but ok in my laptop and uist, change process_num = 1')
-        process_num = 1
+    # print(timeTools.get_now_time_str(), 'start building adjacent_matrix')
+    # # adjacent_matrix = vector_features.build_adjacent_map_of_polygons(remain_polyons)
+    # machine_name = os.uname()[1]
+    # if 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:
+    #     print('Warning, some problem of parallel running in build_adjacent_map_of_polygons on curc, '
+    #           'but ok in my laptop and uist, change process_num = 1')
+    #     process_num = 1
     ############################################################
     ## build adjacent_matrix then merge for entire raster
     # adjacent_matrix = vector_gpd.build_adjacent_map_of_polygons(remain_polyons, process_num=process_num)
