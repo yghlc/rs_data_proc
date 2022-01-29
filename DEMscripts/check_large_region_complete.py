@@ -48,7 +48,7 @@ def check_one_extent(extent_shp):
         print(datetime.now(),' %s is marked as completed'%extent_shp)
         make_note_all_task_done(extent_shp)
     else:
-        print(datetime.now(), ' %s has not completed, % grids to process' % (extent_shp, len(num_grid_ids)))
+        print(datetime.now(), ' %s has not completed, % grids to process' % (extent_shp, num_grid_ids))
 
     return True
 
