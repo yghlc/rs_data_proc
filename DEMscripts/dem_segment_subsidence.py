@@ -301,7 +301,7 @@ def get_surrounding_polygons(remain_polyons,surrounding_shp,wkt, dem_diff_tif,bu
         # also check the file is complete
         surr_polys, surr_demD = vector_gpd.read_polygons_attributes_list(surrounding_shp,'demD_mean')
         if len(surr_polys) < len(remain_polyons) or len(surr_demD) < len(remain_polyons):
-            pass
+            basic.outputlogMessage('%s already exists, but not complete, will be overwritten'%surrounding_shp)
         else:
             basic.outputlogMessage('%s already exists, skip'%surrounding_shp)
             return surrounding_shp
