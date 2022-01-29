@@ -298,8 +298,13 @@ def filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,
 
 def get_surrounding_polygons(remain_polyons,surrounding_shp,wkt, dem_diff_tif,buffer_surrounding,process_num):
     if os.path.isfile(surrounding_shp):
-        basic.outputlogMessage('%s already exists, skip'%surrounding_shp)
-        return surrounding_shp
+        # also check the file is complete
+        surr_polys, surr_demD = vector_gpd.read_polygons_attributes_list(surrounding_shp,'demD_mean')
+        if len(surr_polys) < len(remain_polyons) or len(surr_demD) < len(remain_polyons):
+            pass
+        else:
+            basic.outputlogMessage('%s already exists, skip'%surrounding_shp)
+            return surrounding_shp
 
     # based on the merged polygons, calculate the relative dem_diff
     surrounding_polygons = vector_gpd.get_surrounding_polygons(remain_polyons, buffer_surrounding)
