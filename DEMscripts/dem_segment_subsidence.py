@@ -281,7 +281,7 @@ def filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,
     for polys in polyons_noMulti:
         polys = [poly for poly in polys if poly.area > min_area]  # remove tiny polygon before buffer
         remain_polyons.extend(polys)
-    print('convert MultiPolygon to polygons and remove small ones, remain %d' % (len(remain_polyons)))
+    print('convert MultiPolygon (filter_merge_polygons) to polygons and remove small ones, remain %d' % (len(remain_polyons)))
 
     if len(remain_polyons) < 1:
         return None
