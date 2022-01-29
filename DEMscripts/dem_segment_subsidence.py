@@ -425,9 +425,10 @@ def remove_polygons_based_shapeinfo(in_shp, output_shp,area_limit,circularit_lim
     return output_shp
 
 def remove_based_slope(in_shp, output_shp,slope_files, max_slope,process_num):
-    if os.path.isfile(output_shp):
-        basic.outputlogMessage('%s exists, skip'%output_shp)
-        return output_shp
+    # not too many polygons, not sure if slope info has been calculate, so just let it calculate agian.
+    # if os.path.isfile(output_shp):
+    #     basic.outputlogMessage('%s exists, skip'%output_shp)
+    #     return output_shp
 
     # calcuate slope info
     raster_statistic.zonal_stats_multiRasters(in_shp, slope_files, tile_min_overlap=tile_min_overlap,
