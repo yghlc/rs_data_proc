@@ -198,8 +198,13 @@ def merge_polygon_rasterize(ref_raster, in_polygons):
 def filter_merge_polygons(in_shp,merged_shp,wkt, min_area,max_area,dem_diff_tif,dem_diff_thread_m,process_num):
 
     if os.path.isfile(merged_shp):
-        basic.outputlogMessage('%s exists, skip'%merged_shp)
-        return merged_shp
+        # also check the file is complete
+        polys, demD_values = vector_gpd.read_polygons_attributes_list(merged_shp,'demD_mean')
+        if len(polys) < 1 or demD_values is None or len(demD_values) < 1:
+            basic.outputlogMessage('%s already exists, but not complete, will be overwritten'%merged_shp)
+        else:
+            basic.outputlogMessage('%s exists, skip'%merged_shp)
+            return merged_shp
 
     # read polygons and label from segment algorithm, note: some polygons may have the same label
     # polygons, demD_mean_list = vector_gpd.read_polygons_attributes_list(in_shp,'demD_mean')
