@@ -26,6 +26,10 @@ r_seg_res_dir = '/scratch/summit/lihu9680/ArcticDEM_tmp_dir/grid_dem_diffs_segme
 
 machine_name = os.uname()[1]
 
+code_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+sys.path.insert(0, code_dir)
+from tools.move_old_files_folders import check_file_or_dir_is_old
+
 def get_dem_diff_list_to_seg():
 
     dem_diff_list = io_function.get_file_list_by_pattern(dem_common.grid_dem_diffs_dir, '*DEM_diff_grid*.tif')
@@ -52,7 +56,6 @@ def get_dem_diff_list_to_seg():
 
     return dem_diff_list
 
-from tools.move_old_files_folders import check_file_or_dir_is_old
 def get_dem_diff_old_enough(dem_diff_list):
     dem_diff_old = []
     # if a dem diff is 24 hours old,
