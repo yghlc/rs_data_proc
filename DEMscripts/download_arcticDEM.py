@@ -103,6 +103,12 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
         poly_ids = [idx for idx in range(len(extent_polys)) ]
         b_save_grid_id_noDEM = False    # if poly_ids is not the global unique id, then don't save it.
 
+    if os.path.isfile('no_registration_strips.txt'):
+        no_registration_strips = io_function.read_list_from_txt('no_registration_strips.txt')
+    else:
+        no_registration_strips = []
+
+
     for count, (idx, ext_poly) in enumerate(zip(poly_ids, extent_polys)):
         basic.outputlogMessage('get data for the %d th extent (%d/%d)' % (idx, count, len(extent_polys)))
 
@@ -148,6 +154,11 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                     if len(reg_tifs) > 0:
                         basic.outputlogMessage('warning, unpack and registrated tif for %s already exists, skip downloading' % filename)
                         reg_tifs_list.append(reg_tifs[0])
+                        continue
+
+                    if './'+tar_base in no_registration_strips:
+                        basic.outputlogMessage(
+                            'warning, %s is in no_registration_strips list, skip downloading' % filename)
                         continue
 
                 if os.path.isfile(save_dem_path):
