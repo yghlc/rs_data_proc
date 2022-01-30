@@ -63,5 +63,5 @@ def main():
         check_one_extent(shp)
 
 if __name__ == '__main__':
-    task_list = ['dem_diff','dem_headwall_grid', 'hillshade_headwall_line' 'segment']
+    task_list = ['dem_diff','dem_headwall_grid', 'hillshade_headwall_line','segment']
     main()
