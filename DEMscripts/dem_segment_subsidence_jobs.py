@@ -15,9 +15,14 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS'))
 import basic_src.io_function as io_function
+import scp_communicate
 
 import dem_common
 from dem_common import get_grid_id_from_path
+
+from dem_common import grid_dem_diffs_segment_dir
+curc_node = '$curc_host'
+r_seg_res_dir = '/scratch/summit/lihu9680/ArcticDEM_tmp_dir/grid_dem_diffs_segment_results'
 
 machine_name = os.uname()[1]
 
@@ -57,6 +62,12 @@ def read_dem_diff_assigned_to_other_machine(job_list_pre):
 
     return assign_dem_diff
 
+def copy_segment_result_to_curc(grid_ids):
+    '''after complete, copy the results to curc, avoid submit a new jobs again'''
+    for idx, g_id in enumerate(grid_ids):
+        print('(%d / %d) Transfer DEM diff segment results to CURC '%(idx + 1,len(grid_ids)))
+        dem_diff_seg_res_folder = os.path.join(grid_dem_diffs_segment_dir,'segment_result_grid%d'%g_id)
+        scp_communicate.copy_file_folder_to_remote_machine(curc_node,r_seg_res_dir,dem_diff_seg_res_folder)
 
 def produce_products_dem_subsidence(b_remove_job_folder=True):
     # run segment jobs in local workstations.
@@ -107,6 +118,8 @@ def produce_products_dem_subsidence(b_remove_job_folder=True):
         res = os.system('./run.sh %s %s' % (ext_shp, task))
         if res != 0:
             sys.exit(1)
+
+        copy_segment_result_to_curc(save_ids)
 
         if b_remove_job_folder:
             os.system('rm -r seg_dem_diff_*')
