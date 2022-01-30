@@ -52,6 +52,15 @@ def get_dem_diff_list_to_seg():
 
     return dem_diff_list
 
+from tools.move_old_files_folders import check_file_or_dir_is_old
+def get_dem_diff_old_enough(dem_diff_list):
+    dem_diff_old = []
+    # if a dem diff is 24 hours old,
+    for demdiff in dem_diff_list:
+        if check_file_or_dir_is_old(demdiff,24):
+            dem_diff_old.append(demdiff)
+
+    return dem_diff_old
 
 def read_dem_diff_assigned_to_other_machine(job_list_pre):
 
@@ -88,6 +97,10 @@ def produce_products_dem_subsidence(b_remove_job_folder=True):
 
     while True:
         dem_diff_list = get_dem_diff_list_to_seg()
+
+        # only handle file are old enough
+        dem_diff_list = get_dem_diff_old_enough(dem_diff_list)
+
         dem_diff_ids = [get_grid_id_from_path(item) for item in dem_diff_list]
         print('dem_diff_ids')
         print(dem_diff_ids)
