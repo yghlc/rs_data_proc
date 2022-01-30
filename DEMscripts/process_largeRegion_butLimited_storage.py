@@ -674,7 +674,7 @@ def sync_log_files(process_node,r_log_dir,process_log_dir):
             io_function.save_list_to_txt(local_file,local_ids)
 
 
-def make_note_all_task_done(extent_shp):
+def make_note_all_task_done(extent_shp, reomte_node):
     if os.path.isdir(grid_ids_txt_dir) is False:
         io_function.mkdir(grid_ids_txt_dir)
 
@@ -686,6 +686,9 @@ def make_note_all_task_done(extent_shp):
 
     if os.path.isfile(log_grid_ids_txt_done) is False:
         io_function.save_list_to_txt(log_grid_ids_txt_done,['Done'])
+        # copy the curc
+        r_grid_ids_txt_dir = '/scratch/summit/lihu9680/ArcticDEM_tmp_dir/grid_ids_txt'
+        scp_communicate.copy_file_folder_to_remote_machine(reomte_node,r_grid_ids_txt_dir,log_grid_ids_txt_done)
 
 def main(options, args):
     extent_shp = args[0]
@@ -768,7 +771,7 @@ def main(options, args):
             ignore_ids = get_complete_ignore_grid_ids()
             num_grid_ids = save_grid_ids_need_to_process(grid_ids,ignore_ids=ignore_ids,save_path=grid_ids_to_process_txt)
             if num_grid_ids < 1:
-                make_note_all_task_done(extent_shp)
+                make_note_all_task_done(extent_shp,process_node)
 
 
             select_grids_shp = os.path.join(subset_shp_dir,io_function.get_name_by_adding_tail(os.path.basename(extent_shp),'sub%d' % subset_id))
@@ -811,7 +814,7 @@ def main(options, args):
             # we can use this one to process withtou divide grids to many subsets
             num_grid_ids = save_grid_ids_need_to_process(grid_ids,save_path=grid_ids_to_process_txt)
             if num_grid_ids < 1:
-                make_note_all_task_done(extent_shp)
+                make_note_all_task_done(extent_shp,process_node)
 
             if b_divide_to_subsets is False:
                 break

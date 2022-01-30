@@ -21,6 +21,8 @@ from process_largeRegion_butLimited_storage import get_complete_ignore_grid_ids,
 
 from process_largeRegion_butLimited_storage import update_complete_grid_list
 
+from dem_segment_subsidence_jobs import curc_node
+
 def check_one_extent(extent_shp):
     print('start to check %s' % extent_shp)
 
@@ -49,7 +51,7 @@ def check_one_extent(extent_shp):
     num_grid_ids = save_grid_ids_need_to_process(grid_ids, ignore_ids=ignore_ids, save_path=grid_ids_to_process_txt)
     if num_grid_ids < 1:
         print(datetime.now(),' %s is marked as completed'%extent_shp)
-        make_note_all_task_done(extent_shp)
+        make_note_all_task_done(extent_shp,curc_node)
     else:
         print(datetime.now(), ' %s has not completed, %d grids to process, total: %d' % (extent_shp, num_grid_ids, len(grid_ids)))
 
