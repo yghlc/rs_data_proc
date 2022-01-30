@@ -515,15 +515,20 @@ def save_list_no_need_dem_files(file_name,file_list):
     return io_function.save_list_to_txt(file_name,save_list)
 
 def remove_no_need_dem_files(b_remove=True):
-    if os.path.isfile(grid_complete_list_txt):
-        completed_id_list =  [int(item) for item in io_function.read_list_from_txt(grid_complete_list_txt)]
-    else:
+    # if os.path.isfile(grid_complete_list_txt):
+    #     completed_id_list =  [int(item) for item in io_function.read_list_from_txt(grid_complete_list_txt)]
+    # else:
+    #     print(datetime.now(), 'no complete grids')
+    #     return True
+    #
+    # if os.path.isfile(grid_excluded_list_txt):
+    #     exclude_id_list = [int(item) for item in io_function.read_list_from_txt(grid_excluded_list_txt)]
+    #     completed_id_list.extend(exclude_id_list)
+
+    completed_id_list = get_complete_ignore_grid_ids()
+    if len(completed_id_list) < 1:
         print(datetime.now(), 'no complete grids')
         return True
-
-    if os.path.isfile(grid_excluded_list_txt):
-        exclude_id_list = [int(item) for item in io_function.read_list_from_txt(grid_excluded_list_txt)]
-        completed_id_list.extend(exclude_id_list)
 
     if len(completed_id_list) < 1:
         return True
