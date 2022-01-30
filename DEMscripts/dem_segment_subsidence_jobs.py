@@ -126,6 +126,9 @@ def produce_products_dem_subsidence(b_remove_job_folder=True):
             io_function.delete_file_or_dir(dem_list_txt)
 
 
+def test_copy_segment_result_to_curc():
+    ids = [5095,5275]
+    copy_segment_result_to_curc(ids)
 
 def main():
     tasks =  ['segment']
@@ -133,4 +136,5 @@ def main():
     pass
 
 if __name__ == '__main__':
+    # test_copy_segment_result_to_curc()
     main()
