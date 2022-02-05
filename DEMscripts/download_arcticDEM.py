@@ -108,6 +108,8 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
     else:
         no_registration_strips = []
 
+    # tarballs is being downloaded
+    downloading_tarballs = []
 
     for count, (idx, ext_poly) in enumerate(zip(poly_ids, extent_polys)):
         basic.outputlogMessage('get data for the %d th extent (%d/%d)' % (idx, count, len(extent_polys)))
@@ -161,11 +163,17 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                             'warning, %s is in no_registration_strips list, skip downloading' % filename)
                         continue
 
+                if filename in downloading_tarballs:
+                    basic.outputlogMessage('warning, %s is being downloaded by other processes'%filename)
+                    continue
+
                 if os.path.isfile(save_dem_path):
                     basic.outputlogMessage('warning, %s already exists, skip downloading'%filename)
                 else:
                     # download the dem
                     basic.outputlogMessage('starting downloading %d th DEM (%d in total)'%((ii+1),len(urls)))
+                    downloading_tarballs.append(filename)
+
                     os.chdir(save_folder)
 
                     # run_a_process_download(url)  # download
