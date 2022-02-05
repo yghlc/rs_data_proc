@@ -207,6 +207,16 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
             if b_save_grid_id_noDEM:
                 save_id_grid_no_dem(idx)
 
+    # wait until all task complete
+    while True:
+        job_count = basic.alive_process_count(download_tasks)
+        if job_count > 0:
+            print(machine_name, datetime.now(), 'wait until all task are completed, alive task account: %d ' % job_count)
+            time.sleep(60)  #
+        else:
+            break
+
+
     return dem_tar_ball_list, reg_tifs_list
 
 def main(options, args):
