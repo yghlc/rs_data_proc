@@ -29,9 +29,9 @@ def check_one_extent(extent_shp):
     # local_grid_id_txt is in the current dir
     # log_grid_ids_txt, log_grid_ids_txt_done is in grid_ids_txt_dir
     local_grid_id_txt, log_grid_ids_txt, log_grid_ids_txt_done = get_extent_grid_id_txt_done_files(extent_shp)
-    if os.path.isfile(local_grid_id_txt) is False:
-        print('the _grid_ids.txt for %s does not exist, maybe it has started'%extent_shp)
-        return False
+    # if os.path.isfile(local_grid_id_txt) is False:
+    #     print('the _grid_ids.txt for %s does not exist, maybe it has started'%extent_shp)
+    #     return False
 
     # check if it has been complete
     if os.path.isfile(log_grid_ids_txt_done):
