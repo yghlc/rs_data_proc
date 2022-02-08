@@ -574,14 +574,18 @@ def remove_no_need_dem_files(b_remove=True):
                     basic.outputlogMessage('removing %s' % path)
                     io_function.delete_file_or_dir(path)
 
-
+no_subset_to_proc = 0
 def produce_dem_products(tasks,b_remove_job_folder=True):
     # this function run on process node, such as curc
+    global no_subset_to_proc
 
     subset_txt_list = get_subset_info_txt_list('proc_status',['notYet', 'working'])
     if len(subset_txt_list) < 1:
         print(datetime.now(), 'No subset for processing, wait 300 seconds')
         time.sleep(300)
+        no_subset_to_proc += 1
+        if no_subset_to_proc > 60:   # if has wait from 6o times (10 hours), then return Flase, will exit the while loop
+            return False
         return True
 
 
@@ -650,7 +654,7 @@ def produce_dem_products(tasks,b_remove_job_folder=True):
         # if allow grid has been submit, then marked as done, we don't check results for each grids here
         update_subset_info(sub_txt, key_list=['proc_status'], info_list=['done'])
 
-    pass
+    return True
 
 
 def sync_log_files(process_node,r_log_dir,process_log_dir):
@@ -826,7 +830,8 @@ def main(options, args):
 
         elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:  # curc
             # process ArcticDEM using the computing resource on CURC
-            produce_dem_products(task_list,b_remove_job_folder=b_remove_tmp_folders)
+            if produce_dem_products(task_list,b_remove_job_folder=b_remove_tmp_folders) is False:
+                break
         else:
             print('unknown machine : %s '%machine_name)
             break
