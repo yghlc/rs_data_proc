@@ -581,14 +581,14 @@ def produce_dem_products(tasks,b_remove_job_folder=True):
 
     subset_txt_list = get_subset_info_txt_list('proc_status',['notYet', 'working'])
     if len(subset_txt_list) < 1:
-        print(datetime.now(), 'No subset for processing, wait 300 seconds')
+        print(datetime.now(), 'No subset (%s) for processing, wait 300 seconds'%(msg_file_pre+'*.txt'))
         time.sleep(300)
         no_subset_to_proc += 1
-        if no_subset_to_proc > 60:   # if has wait from 6o times (10 hours), then return Flase, will exit the while loop
+        if no_subset_to_proc > 60:   # if has continued waiting from 6o times (10 hours), then return Flase, will exit the while loop
             return False
         return True
 
-
+    no_subset_to_proc = 0  # reset the count if it found a job to process
     # task_job_names are from parallel_processing_curc.py
     task_job_name = {'dem_diff':'demD',
                    'dem_headwall_grid':'gHW',
