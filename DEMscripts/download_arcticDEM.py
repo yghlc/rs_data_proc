@@ -63,20 +63,20 @@ def save_id_grid_no_dem(grid_id):
         basic.outputlogMessage('Save gird id (%d) to %s' % (grid_id,grid_no_dem_txt))
         return True
 
-def wget_file_url(url):
-    cmd_str = 'wget --no-check-certificate %s' % url
+def wget_file_url(url,save_path):
+    cmd_str = 'wget --no-check-certificate --output-document=%s  %s' % (save_path,url)
     status, result = basic.exec_command_string(cmd_str)
     return status, result
 
 def run_a_process_download(url, tar_path, save_tif_dir, process_num=1, b_unpack=False):
-    status, result = wget_file_url(url)
+    status, result = wget_file_url(url,tar_path)
     # try new url if it exists
     if status != 0 and "302 Moved Temporarily" in result:
         str_list = result.split()
         loc_idx = str_list.index('Location:')
         new_url = str_list[loc_idx + 1]  # find the new URL
         print('try to download the file using new url: %s' % new_url)
-        status, result = wget_file_url(new_url)
+        status, result = wget_file_url(new_url,tar_path)
 
     if status != 0:
         if process_num == 1:
@@ -187,7 +187,7 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                     basic.outputlogMessage('starting downloading %d th DEM (%d in total)'%((ii+1),len(urls)))
                     downloading_tarballs.append(filename)
 
-                    os.chdir(save_folder)
+                    # os.chdir(save_folder)
 
                     # run_a_process_download(url)  # download
 
@@ -211,7 +211,7 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                     basic.close_remove_completed_process(download_tasks)
 
 
-                    os.chdir(curr_dir)
+                    # os.chdir(curr_dir)
 
                 dem_tar_ball_list.append(save_dem_path)
 
@@ -254,7 +254,7 @@ def main(options, args):
         save_folder = options.save_dir
     if os.path.isdir(save_folder) is False:
         io_function.mkdir(save_folder)
-    save_folder = os.path.abspath(save_folder)  # change to absolute path, because later code will os.chdir()
+    save_folder = os.path.abspath(save_folder)  # change to absolute path
 
     pre_name = os.path.splitext(os.path.basename(extent_shp))[0]
     pre_name += '_Tile' if 'Tile' in os.path.basename(dem_index_shp) else '_Strip'
