@@ -425,6 +425,9 @@ def remove_polygons_based_shapeinfo(in_shp, output_shp,area_limit,circularit_lim
 
     basic.outputlogMessage('remove %d polygons based on shapeinfo, remain %d ones saving to %s' %
                            (remove_count, len(shapefile.geometry.values), output_shp))
+    if len(shapefile.geometry.values) < 1:
+        basic.outputlogMessage('After removing based on shapeinfo, no polygon to save')
+        return None
     # save results
     shapefile.to_file(output_shp, driver='ESRI Shapefile')
     return output_shp
@@ -497,7 +500,8 @@ def get_dem_subscidence_polygons(in_shp, dem_diff_tif, dem_diff_thread_m=-0.5, m
     area_limit = 10000
     circularit_limit = 0.1
     holes_count = 20
-    remove_polygons_based_shapeinfo(rm_reldemD_shp, rm_shapeinfo_shp, area_limit, circularit_limit, holes_count)
+    if remove_polygons_based_shapeinfo(rm_reldemD_shp, rm_shapeinfo_shp, area_limit, circularit_limit, holes_count) is None:
+        return None
 
     # remove based on slope
     # use the slope derived from ArcitcDEM mosaic
