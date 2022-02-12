@@ -254,6 +254,7 @@ def main(options, args):
         save_folder = options.save_dir
     if os.path.isdir(save_folder) is False:
         io_function.mkdir(save_folder)
+    save_folder = os.path.abspath(save_folder)  # change to absolute path, because later code will os.chdir()
 
     pre_name = os.path.splitext(os.path.basename(extent_shp))[0]
     pre_name += '_Tile' if 'Tile' in os.path.basename(dem_index_shp) else '_Strip'
