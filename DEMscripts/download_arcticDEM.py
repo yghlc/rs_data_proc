@@ -250,7 +250,7 @@ def main(options, args):
         reg_tif_dir = arcticDEM_reg_tif_dir
 
     # use the user specific save_dir for saving downloaded tarballs
-    if options.save_dir is None:
+    if options.save_dir is not None:
         save_folder = options.save_dir
 
     pre_name = os.path.splitext(os.path.basename(extent_shp))[0]
