@@ -25,6 +25,7 @@ import time
 from dem_common import tarball_dir,arcticDEM_reg_tif_dir,arcticDEM_tile_tarball_dir,arcticDEM_tile_reg_tif_dir
 
 from dem_common import grid_no_dem_txt, process_log_dir
+from ArcticDEM_unpack_registration import process_dem_tarball, is_ArcticDEM_tiles
 
 from datetime import datetime
 from multiprocessing import Process
@@ -33,6 +34,7 @@ machine_name = os.uname()[1]
 # the maximum number of processes for downloading in parallel
 max_task_count = 2
 download_tasks = []
+b_unpack_after_downloading = True
 
 def get_total_size(url_list):
     total_size = 0
@@ -66,7 +68,7 @@ def wget_file_url(url):
     status, result = basic.exec_command_string(cmd_str)
     return status, result
 
-def run_a_process_download(url, process_num=1):
+def run_a_process_download(url, tar_path, save_tif_dir, process_num=1, b_unpack=False):
     status, result = wget_file_url(url)
     # try new url if it exists
     if status != 0 and "302 Moved Temporarily" in result:
@@ -87,6 +89,17 @@ def run_a_process_download(url, process_num=1):
             print('\n\n')
         sys.exit(status)
 
+    # unpack after downloading
+    if b_unpack:
+        tar_list = [tar_path]
+        work_dir = './'
+        b_rm_inter = True
+        b_rm_tarball = True
+        if is_ArcticDEM_tiles(tar_list):
+            apply_registration = False
+        else:
+            apply_registration = True
+        process_dem_tarball(tar_list, work_dir, save_tif_dir, remove_inter_data=b_rm_inter, rm_tarball=b_rm_tarball, apply_registration=apply_registration)
 
 
 def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg_tif_dir=None, poly_ids=None,b_arcticDEM_tile=False):
@@ -191,7 +204,7 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                         break
 
                     # start the processing
-                    sub_process = Process(target=run_a_process_download, args=(url, max_task_count))  # start a process, don't wait
+                    sub_process = Process(target=run_a_process_download, args=(url, save_dem_path, reg_tif_dir, max_task_count,b_unpack_after_downloading))  # start a process, don't wait
                     sub_process.start()
                     download_tasks.append(sub_process)
 
@@ -223,20 +236,22 @@ def main(options, args):
 
     extent_shp = args[0]
     dem_index_shp = args[1]
-    save_folder = options.save_dir
     b_arcticDEM_tile = False
 
     global max_task_count
     max_task_count = options.max_process_num
 
-    if save_folder is None:
-        if 'Tile' in os.path.basename(dem_index_shp):
-            save_folder =arcticDEM_tile_tarball_dir
-            reg_tif_dir = arcticDEM_tile_reg_tif_dir
-            b_arcticDEM_tile = True
-        else:
-            save_folder = tarball_dir
-            reg_tif_dir = arcticDEM_reg_tif_dir
+    if 'Tile' in os.path.basename(dem_index_shp):
+        save_folder =arcticDEM_tile_tarball_dir
+        reg_tif_dir = arcticDEM_tile_reg_tif_dir
+        b_arcticDEM_tile = True
+    else:
+        save_folder = tarball_dir
+        reg_tif_dir = arcticDEM_reg_tif_dir
+
+    # use the user specific save_dir for saving downloaded tarballs
+    if options.save_dir is None:
+        save_folder = options.save_dir
 
     pre_name = os.path.splitext(os.path.basename(extent_shp))[0]
     pre_name += '_Tile' if 'Tile' in os.path.basename(dem_index_shp) else '_Strip'
