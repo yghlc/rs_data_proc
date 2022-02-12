@@ -252,6 +252,8 @@ def main(options, args):
     # use the user specific save_dir for saving downloaded tarballs
     if options.save_dir is not None:
         save_folder = options.save_dir
+    if os.path.isdir(save_folder) is False:
+        io_function.mkdir(save_folder)
 
     pre_name = os.path.splitext(os.path.basename(extent_shp))[0]
     pre_name += '_Tile' if 'Tile' in os.path.basename(dem_index_shp) else '_Strip'
