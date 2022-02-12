@@ -125,7 +125,7 @@ def process_dem_one_tarball(targz,work_dir,apply_registration):
     return out_tif, out_dir
 
 
-def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, apply_registration=False):
+def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, rm_tarball=False, apply_registration=False):
     '''
     process dem tarball, unpack, apply registration
     :param tar_list:
@@ -186,7 +186,8 @@ def process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=False, a
         # remove folder
         if remove_inter_data:
             io_function.delete_file_or_dir(out_dir)
-
+        if rm_tarball:
+            io_function.delete_file_or_dir(targz)
 
     # remove folder (in case failed in the previous step)
     if remove_inter_data:
@@ -200,6 +201,7 @@ def main(options, args):
 
     save_dir = options.save_dir
     b_rm_inter = options.remove_inter_data
+    b_rm_tarball = options.remove_tarball
 
     tar_dir = args[0]
     if os.path.isfile(tar_dir):
@@ -216,7 +218,7 @@ def main(options, args):
         apply_registration = True
 
     work_dir = './'
-    process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=b_rm_inter, apply_registration=apply_registration)
+    process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=b_rm_inter, rm_tarball=b_rm_tarball, apply_registration=apply_registration)
 
 
 
@@ -231,9 +233,16 @@ if __name__ == '__main__':
 
     parser.add_option("-r", "--remove_inter_data",
                       action="store_true", dest="remove_inter_data",default=False,
-                      help="True to keep intermediate data")
+                      help="True to remove intermediate data")
+
+    parser.add_option("-t", "--remove_tarball",
+                      action="store_true", dest="remove_tarball",default=False,
+                      help="if true, to remove tarball after unpacking")
 
     (options, args) = parser.parse_args()
+
+    # print('remove_inter_data',options.remove_inter_data)
+    # print('remove_tarball',options.remove_tarball)
 
     if len(sys.argv) < 2 or len(args) < 1:
         parser.print_help()
