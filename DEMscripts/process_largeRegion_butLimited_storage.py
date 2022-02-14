@@ -804,8 +804,8 @@ def main(options, args):
             subset_info_txt = msg_file_pre+'%d.txt'%subset_id
             if os.path.isfile(subset_info_txt) is False:
                 # init the file
-                update_subset_info(subset_info_txt, key_list=['id', 'shp', 'pre_status', 'proc_status'],
-                                   info_list=[subset_id, select_grids_shp, 'notYet', 'notYet'])
+                update_subset_info(subset_info_txt, key_list=['id','createTime', 'shp', 'pre_status', 'proc_status'],
+                                   info_list=[subset_id, datetime.now() ,select_grids_shp, 'notYet', 'notYet'])
 
             # download and unpack ArcticDEM, do registration, send to curc
             if download_process_send_arctic_dem(subset_info_txt, r_working_dir,process_node,task_list) is True:
