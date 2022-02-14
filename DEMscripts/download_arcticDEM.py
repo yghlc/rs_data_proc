@@ -299,7 +299,7 @@ if __name__ == "__main__":
                       help="the folder to save DEMs")
 
     parser.add_option("-m", "--max_process_num",
-                      action="store", dest="max_process_num", type=int,default=10,
+                      action="store", dest="max_process_num", type=int,default=16,
                       help="the maximum number of processes for downloading in parallel")
 
 
