@@ -43,7 +43,7 @@ def get_failed_grid_ids(task):
 
     # check they are old enough (24 hours)
     for txt in fail_id_txt_list:
-        if check_file_or_dir_is_old(txt,24,print_time=False):
+        if check_file_or_dir_is_old(txt,24,print_time=True):
             old_id_txts.append(txt)
     return old_id_txts
 
