@@ -70,7 +70,7 @@ def monitor_process_failed_grids():
 
         for task in tasks:
             fail_id_txt_list = get_failed_grid_ids(task)
-            if len(fail_id_txt_list):
+            if len(fail_id_txt_list) < 1:
                 continue
             print('\n',task,'fail_id_txt_list:',fail_id_txt_list,'\n')
 
