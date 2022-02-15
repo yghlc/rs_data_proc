@@ -31,26 +31,31 @@ import numpy as np
 
 from dem_common import arcticDEM_tile_reg_tif_dir, mask_water_dir
 from dem_common import grid_no_valid_dem_txt, process_log_dir
+from dem_common import grid_no_water_mask_txt
 
-def save_id_grid_no_valid_dem(grid_id):
+def add_id_grid_to_txt(grid_id, txt_path):
     # grid_no_valid_dem_ids.txt
     if os.path.isdir(process_log_dir) is False:
         io_function.mkdir(process_log_dir)
-    # update grid_dem_diff_less2dem_txt file
+    # update txt file
     id_list = []
-    if os.path.isfile(grid_no_valid_dem_txt):
-        id_list = io_function.read_list_from_txt(grid_no_valid_dem_txt)    # no need covert to int
+    if os.path.isfile(txt_path):
+        id_list = io_function.read_list_from_txt(txt_path)    # no need covert to int
     id_str = str(grid_id)
     if id_str in id_list:
         return True
     else:
         # save by adding one line
-        with open(grid_no_valid_dem_txt,'a') as f_obj:
+        with open(txt_path,'a') as f_obj:
             f_obj.writelines(str(grid_id) + '\n')
-        # id_list.append(str(grid_id))
-        # io_function.save_list_to_txt(grid_no_valid_dem_txt,id_list)
-        # basic.outputlogMessage('Save gird id (%d) to %s' % (grid_id,grid_no_valid_dem_txt))
         return True
+
+def save_id_grid_no_watermask(grid_id):
+    return add_id_grid_to_txt(grid_id, grid_no_water_mask_txt)
+
+def save_id_grid_no_valid_dem(grid_id):
+    # grid_no_valid_dem_ids.txt
+    return add_id_grid_to_txt(grid_id,grid_no_valid_dem_txt)
 
 def subset_image_by_polygon_box(in_img, out_img, polygon,resample_m='bilinear',o_format='GTiff', out_res=None,same_extent=False, thread_num=1):
     if same_extent:
@@ -492,7 +497,8 @@ def mask_dem_by_surface_water(crop_dem_list, extent_poly, extent_id, crop_tif_di
             water_mask_crop_tif_list.append(crop_tif)
     if len(water_mask_crop_tif_list) < 1:
         basic.outputlogMessage('No water mask for %d grid'%extent_id)
-        return False
+        save_id_grid_no_watermask(extent_id)
+        return None
 
     # create mosaic, can handle only input one file, but is slow
     save_water_mask_mosaic = os.path.join(crop_tif_dir, 'global_surface_water_grid%d.tif'%extent_id)
@@ -573,7 +579,10 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
         mask_water_tifs = mask_dem_by_surface_water(dem_tif_list, extent_poly, extent_id, crop_tif_dir, 30, process_num)
         if mask_water_tifs is False:
             raise ValueError('masking by surface water failed')
-        dem_tif_list = mask_water_tifs
+        if mask_water_tifs is None:
+            basic.outputlogMessage('No water masks, skip masking')
+        else:
+            dem_tif_list = mask_water_tifs
 
 
     # area pixel count
