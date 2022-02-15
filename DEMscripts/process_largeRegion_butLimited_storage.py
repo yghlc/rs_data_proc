@@ -623,7 +623,7 @@ def produce_dem_products(tasks,b_remove_job_folder=True):
                                    for item in depend_tasks ]
                 if sum(job_count_list) > 0:
                     print(machine_name, datetime.now(),
-                          'task: %s need results of task:%s whose their jobs are not completed, need to wait'%(task,str(depend_tasks)))
+                          'task: %s need results of task:%s whose jobs are not completed, need to wait'%(task,str(depend_tasks)))
                 else:
                     res = os.system('./run.sh %s %s' % (ext_shp, task))
                     if res != 0:

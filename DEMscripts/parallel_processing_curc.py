@@ -423,7 +423,7 @@ def main(options, args):
     max_job_count = options.max_job_count
     print('max_job_count', max_job_count)
     n_tif_per_jobs = options.n_tif_per_job  # each job, have how many tif to segment
-    extent_shp = options.extent_shp
+    extent_shp_or_id_txt = options.extent_shp
 
     if options.user_name is not None:
         global curc_username
@@ -438,11 +438,11 @@ def main(options, args):
     if task_name == 'segment':
         run_segment_jobs(max_job_count, n_tif_per_jobs)
     elif task_name == 'dem_diff':
-        run_grid_jobs(max_job_count, n_tif_per_jobs,'dem_diff',extent_shp)
+        run_grid_jobs(max_job_count, n_tif_per_jobs,'dem_diff',extent_shp_or_id_txt)
     elif task_name == 'hillshade_headwall_line':
-        run_grid_jobs(max_job_count, n_tif_per_jobs, 'hillshade_headwall_line', extent_shp)
+        run_grid_jobs(max_job_count, n_tif_per_jobs, 'hillshade_headwall_line', extent_shp_or_id_txt)
     elif task_name == 'dem_headwall_grid':
-        run_grid_jobs(max_job_count, n_tif_per_jobs, 'dem_headwall_grid',extent_shp)
+        run_grid_jobs(max_job_count, n_tif_per_jobs, 'dem_headwall_grid',extent_shp_or_id_txt)
     elif task_name == 'dem_headwall':
         run_extract_headwall_jobs(max_job_count, n_tif_per_jobs)
     else:
@@ -466,7 +466,7 @@ if __name__ == '__main__':
 
     parser.add_option("-e", "--extent_shp",
                       action="store", dest="extent_shp",
-                      help="the extent shapefile")
+                      help="the extent shapefile or grid_id_list in txt")
 
     parser.add_option("-u", "--user_name",
                       action="store", dest="user_name",
