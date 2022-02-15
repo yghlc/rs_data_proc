@@ -26,6 +26,9 @@ def main(options, args):
     if options.bak_dir is not None:
         bak_dir = options.bak_dir
 
+    print('org_dir:',org_dir)
+    print('bak_dir:',bak_dir)
+
     # get bash file (*.sh) list
     print('find *.sh and *.ini files')
     sh_list = io_function.get_file_list_by_ext('.sh',org_dir,bsub_folder=True)
