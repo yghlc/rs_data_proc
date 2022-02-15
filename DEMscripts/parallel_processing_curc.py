@@ -74,7 +74,9 @@ def submit_job_curc_or_run_script_local(job_sh, proc_sh):
     :param proc_sh:  processing script.
     :return:
     """
-    if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
+    # 'shas0136' 'shas0137' are compile node on CURC
+    if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name \
+            or machine_name == 'shas0136' or machine_name == 'shas0137':
         # run the job in local computer
         # command_str = './%s'%proc_sh
         # res = os.system(command_str) # this will wait until the job exist
@@ -449,6 +451,10 @@ def main(options, args):
         print('unknow task name: %s'%task_name)
         pass
 
+    # wait all local task finished
+    while basic.b_all_process_finish(local_tasks) is False:
+        print(datetime.now(),'wait 5 minutes to let all local tasks to complete')
+        time.sleep(60*5)
 
 
 if __name__ == '__main__':
