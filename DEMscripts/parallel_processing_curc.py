@@ -25,6 +25,7 @@ import dem_common
 from dem_segment_subsidence import segment_subsidence_grey_image
 from multiprocessing import Process
 local_tasks = []
+b_run_job_local = False
 
 root_dir = os.path.expanduser('/scratch/summit/lihu9680/Arctic/dem_processing')    # run in this folder
 jobsh_dir = os.path.expanduser('/projects/lihu9680/Data/Arctic/dem_proc_jobs')
@@ -75,8 +76,12 @@ def submit_job_curc_or_run_script_local(job_sh, proc_sh):
     :return:
     """
     # 'shas0136' 'shas0137' are compile node on CURC
-    if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name \
-            or machine_name == 'shas0136' or machine_name == 'shas0137':
+    global b_run_job_local
+    if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
+        b_run_job_local = True
+
+    if b_run_job_local:
+        print(datetime.now(),'will run the job on local machine, not to submit a slurm job')
         # run the job in local computer
         # command_str = './%s'%proc_sh
         # res = os.system(command_str) # this will wait until the job exist
@@ -426,6 +431,9 @@ def main(options, args):
     print('max_job_count', max_job_count)
     n_tif_per_jobs = options.n_tif_per_job  # each job, have how many tif to segment
     extent_shp_or_id_txt = options.extent_shp
+    global b_run_job_local
+    if options.b_run_job_local:
+        b_run_job_local = True
 
     if options.user_name is not None:
         global curc_username
@@ -477,6 +485,10 @@ if __name__ == '__main__':
     parser.add_option("-u", "--user_name",
                       action="store", dest="user_name",
                       help="the username of the server")
+
+    parser.add_option("", "--b_run_job_local",
+                      action="store_true", dest="b_run_job_local",default=False,
+                      help="if set (True), will run the job on the machine instead of submitting a slurm job")
 
     parser.add_option("", "--working_dir",
                       action="store", dest="working_dir",
