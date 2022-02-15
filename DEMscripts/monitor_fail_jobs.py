@@ -30,6 +30,9 @@ from tools.move_old_files_folders import check_file_or_dir_is_old
 
 machine_name = os.uname()[1]
 
+task_2_job_folder={'dem_diff':'dem_diff',
+                   'dem_headwall_grid':'extract_headwall_grid'}
+
 def get_failed_grid_ids(task):
     if task== 'dem_diff':
         fail_log_dir = os.path.join(process_log_dir,'get_dem_diff')
@@ -75,20 +78,26 @@ def monitor_process_failed_grids():
             print('\n',task,'fail_id_txt_list:',fail_id_txt_list,'\n')
 
             fail_ids_txt = merge_grid_ids_txt(task,fail_id_txt_list)
-            # start processing
+            # start processing,
             res = os.system('./run.sh %s %s' % (fail_ids_txt, task))
             if res != 0:
                 sys.exit(1)
 
             # wait all job done? Yes, in "parallel_processing_curc.py"
 
-            # remove fail txt and working dir
+            # check 'done.txt' in each folder
+            fail_ids = [int(item) for item in  io_function.read_list_from_txt(fail_ids_txt)]
+            for idx, grid_id in enumerate(fail_ids):
+                job_folder = '%s_%s'%(task_2_job_folder[task],str(idx).zfill(5))
+                print('job_folder for grid_id: %d, is'%grid_id,job_folder)
+                if os.path.isfile(job_folder+'/done.txt'):
+                    os.system('rm -r %s'%job_folder)
+                else:
+                    sys.exit(1)
+
+            # remove fail txt anyway if all "done.txt" exists
             for txt in fail_id_txt_list:
                 io_function.delete_file_or_dir(txt)
-            if task == 'dem_diff':
-                os.system('rm -r dem_diff_*')
-            if task == 'dem_headwall_grid':
-                os.system('rm -r extract_headwall_grid_*')
 
 
 
