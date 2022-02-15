@@ -18,6 +18,7 @@ add time: 15 February, 2022
 
 import os,sys
 from datetime import datetime
+import time
 
 sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS'))
 import basic_src.io_function as io_function
@@ -64,6 +65,7 @@ def monitor_process_failed_grids():
             all_fail_list.extend(get_failed_grid_ids(task))
         if len(all_fail_list) < 1:
             print(datetime.now(), 'there is no failed jobs for %s to process, wait 10 minutes' % machine_name)
+            time.sleep(600)
             continue
 
         for task in tasks:
