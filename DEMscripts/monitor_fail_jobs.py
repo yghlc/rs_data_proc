@@ -22,6 +22,8 @@ from datetime import datetime
 sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS'))
 import basic_src.io_function as io_function
 
+code_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+sys.path.insert(0, code_dir)
 from dem_common import process_log_dir
 from tools.move_old_files_folders import check_file_or_dir_is_old
 
