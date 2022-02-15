@@ -38,7 +38,7 @@ def check_length_jobname(job_name):
         raise ValueError('the length job name exceed 8 letters, will be cut off to 8, leading to troubles')
 
 def wait_if_reach_max_jobs(max_job_count,job_name_substr):
-    if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
+    if b_run_job_local:
         # in the local machine
 
         basic.check_exitcode_of_process(local_tasks) # if there is one former job failed, then quit
@@ -76,9 +76,8 @@ def submit_job_curc_or_run_script_local(job_sh, proc_sh):
     :return:
     """
     # 'shas0136' 'shas0137' are compile node on CURC
-    global b_run_job_local
-    if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
-        b_run_job_local = True
+    # if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
+    #     b_run_job_local = True
 
     if b_run_job_local:
         print(datetime.now(),'will run the job on local machine, not to submit a slurm job')
