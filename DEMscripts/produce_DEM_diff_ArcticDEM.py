@@ -194,7 +194,7 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
     for grid_id, grid_poly in zip(grid_ids, grid_polys):
 
         if grid_id in grid_id_less2dem_list:
-            basic.outputlogMessage('skip, previous processing shows that, the count of DEM is smaller than 2')
+            basic.outputlogMessage('skip grid %d, previous processing shows that, the count of DEM is smaller than 2'%grid_id)
             continue
 
         save_dir = 'grid_%d_tmp_files'%grid_id
