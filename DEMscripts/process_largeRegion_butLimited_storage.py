@@ -673,7 +673,7 @@ def sync_log_files(process_node,r_log_dir,process_log_dir):
         scp_communicate.copy_file_folder_from_remote_machine(process_node, os.path.join(r_log_dir,file),remote_file)
         # if they are new ids, then merged to "file"
         local_file = os.path.join(process_log_dir, file)
-        remote_ids = io_function.read_list_from_txt(remote_file)    # no need, to int
+        remote_ids = io_function.read_list_from_txt(remote_file) if os.path.isfile(remote_file) else []    # no need, to int
         local_ids = io_function.read_list_from_txt(local_file) if os.path.isfile(local_file) else []
         new_ids = [id for id in remote_ids if id not in local_ids ]
         if len(new_ids) < 1:
