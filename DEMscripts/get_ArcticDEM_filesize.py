@@ -22,6 +22,7 @@ from urllib.parse import urlparse
 
 from datetime import datetime
 import time
+import math
 
 from dem_common import arcticDEM_reg_tif_dir,arcticDEM_tile_reg_tif_dir
 
@@ -33,8 +34,9 @@ import pandas as pd
 from download_arcticDEM import get_total_size
 
 
-def get_one_url_file_size(url):
+def get_one_url_file_size(url, ii, total):
     try:
+        print('%d/%d'%(ii,total))
         size = io_function.get_url_file_size(url)
         if size is not False:
             return size/(1024.0*1024.0*1024.0)    # GB
@@ -55,7 +57,7 @@ def get_file_size_dem_tarball(dem_index_shp, extent_polys, pre_name, xlsx_size_p
     else:
         save_idx_list = [item for item in range(len(dem_urls))]  # index list
         save_url_list = dem_urls
-        save_size_list = [None]*len(save_idx_list)
+        save_size_list = [float('nan')]*len(save_idx_list)
 
     basic.outputlogMessage('%d dem polygons in %s' % (len(dem_polygons), dem_index_shp))
 
@@ -77,19 +79,19 @@ def get_file_size_dem_tarball(dem_index_shp, extent_polys, pre_name, xlsx_size_p
         url_size_list = [ save_size_list[id] for id in dem_poly_idx_list ]
 
         if len(urls) > 0:
-
+            total_count = len(urls)
             for ii, (url, fileS,url_idx) in enumerate(zip(urls,url_size_list,dem_poly_idx_list)):
                 # remove url start with /mnt and end with .tif
                 if url.startswith('/mnt') and url.endswith('.tif'):
                     basic.outputlogMessage("error: not a valid url: %s"%url)
                     continue
-                if fileS is not None:
+                if math.isnan(fileS) is False:
                     continue
-                url_size_GB = get_one_url_file_size(url)
+                url_size_GB = get_one_url_file_size(url,ii,total_count)
                 url_size_list[ii] = url_size_GB
                 save_size_list[url_idx] = url_size_GB
 
-            url_size_list_noNone = [item for item in url_size_list if item is not None ]
+            url_size_list_noNone = [item for item in url_size_list if math.isnan(item) is False ]
 
             if len(url_size_list_noNone) != len(url_size_list):
                 basic.outputlogMessage('There are %d None value in url_size_list'%(len(url_size_list) - len(url_size_list_noNone)))
