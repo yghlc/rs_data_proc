@@ -109,7 +109,9 @@ def get_file_size_dem_tarball(dem_index_shp, extent_polys, pre_name, xlsx_size_p
     save_dict = {'index':save_idx_list, 'filesize':save_size_list, 'fileurl':save_url_list}
 
     save_dict_pd = pd.DataFrame(save_dict)
-    with pd.ExcelWriter(xlsx_size_path) as writer:
+    # set strings to url as  False: Number of URLS is over Excel's limit of 65,530 URLS per worksheet
+    # https://github.com/cxn03651/write_xlsx/issues/42
+    with pd.ExcelWriter(xlsx_size_path,options={'strings_to_urls': False}) as writer:
         save_dict_pd.to_excel(writer, sheet_name='url_file_size')
 
     return None
