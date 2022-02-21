@@ -42,7 +42,7 @@ def get_one_url_file_size(url, ii, total):
             return size/(1024.0*1024.0*1024.0)    # GB
     except:
         print(datetime.now(),'get file size of %s failed'%url)
-        return None
+        return float('nan')
 
 
 def get_file_size_dem_tarball(dem_index_shp, extent_polys, pre_name, xlsx_size_path,poly_ids=None):
