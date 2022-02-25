@@ -845,7 +845,7 @@ def main(options, args):
     while check_time > 0:
         # on tesia, uist, vpn-connected laptop
         if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
-            print(datetime.now(),'wait 10 min')
+            print(datetime.now(),'wait 10 min for results in computing nodes')
             time.sleep(600)
             # copy file from remote machine
             copy_results_from_remote_node()
