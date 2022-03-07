@@ -94,7 +94,7 @@ for tif in ${dir}/*v2.tif; do
           -s ${src_min_b3} ${src_max_b3} ${dst_min} ${dst_max} \
           -N ${src_nodata} -n ${nodata} ${prj_out} ${out_8bit}
 
-  rm ${mask_tif}
+#  rm ${mask_tif}
   rm ${prj_out}
 
 done
