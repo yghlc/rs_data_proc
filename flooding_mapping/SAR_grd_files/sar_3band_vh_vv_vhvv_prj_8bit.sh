@@ -25,8 +25,11 @@ src_max_b1=1.0
 src_min_b2=0.74
 src_max_b2=1.0
 
-src_min_b3=1.0
-src_max_b3=2.0
+#src_min_b3=1.0
+#src_max_b3=2.0
+# change the min and max after re-calculate b3 from b1/b2
+src_min_b3=0.7
+src_max_b3=1.3
 
 dst_min=1
 dst_max=255
