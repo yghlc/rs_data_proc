@@ -55,7 +55,7 @@ nodata=0
 
 tmp=/tmp
 
-for tif in ${dir}/*.tif; do
+for tif in ${dir}/*v2.tif; do
   echo $tif
   filename=$(basename $tif)
   filename_noext=${filename%.*}
