@@ -38,7 +38,7 @@ dst_max=255
 # trouble: all the values in 3rd is 1, nodata region (outside image) is also 1, so sad.
 # so we try to set pixel with band1+band2+band3 >=3 as 0, but may also mask some valid pixel.
 
-src_nodata=0
+src_nodata=-9999
 nodata=0
 
 # 98% cut histogram, min, max information
@@ -66,16 +66,17 @@ for tif in ${dir}/*v2.tif; do
     continue
   fi
 
-  # mask nodata pixel
-  mask_tif=${tmp}/${filename_noext}_mask.tif
-  if [ -f ${mask_tif} ]; then
-    echo ${mask_tif} exists, skip
-  else
-    # it's so weird that (A+B+C)<3 works for 20170829_RGB_composite.tif, but not for 20170829_RGB_composite_north.tif
-    # change 3 to 2.999, to see if it works.
-    gdal_calc.py -A $tif --A_band=1 -B $tif --B_band=2 -C $tif --C_band=3  -D $tif --allBands=D \
-        --outfile=${mask_tif} --NoDataValue=${src_nodata}  --calc="((A+B+C)<2.999)*D"
-  fi
+#  # mask nodata pixel
+#  mask_tif=${tmp}/${filename_noext}_mask.tif
+#  if [ -f ${mask_tif} ]; then
+#    echo ${mask_tif} exists, skip
+#  else
+#    # it's so weird that (A+B+C)<3 works for 20170829_RGB_composite.tif, but not for 20170829_RGB_composite_north.tif
+#    # change 3 to 2.999, to see if it works.
+#    gdal_calc.py -A $tif --A_band=1 -B $tif --B_band=2 -C $tif --C_band=3  -D $tif --allBands=D \
+#        --outfile=${mask_tif} --NoDataValue=${src_nodata}  --calc="((A+B+C)<2.999)*D"
+#  fi
+  mask_tif=$tif
 
   # reporject
   prj_out=${tmp}/${filename_noext}_prj.tif
