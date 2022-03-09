@@ -62,7 +62,7 @@ dem_download_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMsc
 dem_unpack_reg_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMscripts/ArcticDEM_unpack_registration.py')
 subset_shp_dir = 'subset_grids_shp'
 msg_file_pre = 'subset'     # prename of the message file
-download_ahead_proc = 3
+download_ahead_proc = 1
 
 def update_subset_info(txt_path, key_list=None, info_list=None):
     # maintain a info of subset for processing, dict
