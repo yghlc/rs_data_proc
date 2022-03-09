@@ -62,7 +62,7 @@ dem_download_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMsc
 dem_unpack_reg_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMscripts/ArcticDEM_unpack_registration.py')
 subset_shp_dir = 'subset_grids_shp'
 msg_file_pre = 'subset'     # prename of the message file
-
+download_ahead_proc = 3
 
 def update_subset_info(txt_path, key_list=None, info_list=None):
     # maintain a info of subset for processing, dict
@@ -118,7 +118,7 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
     # if subset_id for download is far more ahead than processing (curc), then wait, in case occupy too much storage
     while True:
         remote_sub_txt = get_subset_info_txt_list('proc_status',['notYet', 'working'],remote_node=remote_node,remote_folder=r_working_dir)
-        if len(remote_sub_txt) > 5:
+        if len(remote_sub_txt) > download_ahead_proc:
             print(datetime.now(),'there is %d subset have not complete,'
                                  ' wait 300 seconds, avoid downloading too many data'%len(remote_sub_txt))
             time.sleep(300)
