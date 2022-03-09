@@ -20,15 +20,19 @@ import pandas as pd
 
 def main(options, args):
     img_dir = args[0]
-    img_pattern = options.image_pattern
     output = options.output
-    if output is None:
-        output = os.path.basename(img_dir) + '_boxes.shp'
-
-
-    img_list = io_function.get_file_list_by_pattern(img_dir, img_pattern)
-    if len(img_list) < 1:
-        raise ValueError('No images in %s with pattern: %s'%(img_dir, img_pattern))
+    if os.path.isdir(img_dir):
+        img_pattern = options.image_pattern
+        if output is None:
+            output = os.path.basename(img_dir) + '_boxes.shp'
+        img_list = io_function.get_file_list_by_pattern(img_dir, img_pattern)
+        if len(img_list) < 1:
+            raise ValueError('No images in %s with pattern: %s'%(img_dir, img_pattern))
+    else:
+        # if it's a file
+        img_list = [img_dir]
+        if output is None:
+            output = os.path.basename(img_dir) + '_bound.shp'
 
     print('Find %d rasters in %s'%(len(img_list),img_dir))
 
@@ -54,7 +58,7 @@ def main(options, args):
 
 if __name__ == "__main__":
 
-    usage = "usage: %prog [options] image_dir "
+    usage = "usage: %prog [options] image_dir or image_path"
     parser = OptionParser(usage=usage, version="1.0 2021-04-24")
     parser.description = 'Introduction: get image list and their extent'
 
