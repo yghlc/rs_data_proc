@@ -180,7 +180,7 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                     basic.outputlogMessage('warning, %s is being downloaded by other processes'%filename)
                     continue
 
-                if os.path.isfile(save_dem_path):
+                if os.path.isfile(save_dem_path) and os.path.getsize(save_dem_path) > 1:
                     basic.outputlogMessage('warning, %s already exists, skip downloading'%filename)
                 else:
                     # download the dem
