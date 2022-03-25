@@ -492,6 +492,8 @@ def get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_cou
 
 def save_selected_girds_and_ids(selected_gird_id_list,select_grid_polys,proj,save_path):
     # save to shapefile to download and processing
+    # change numpy.uint16 to int, avoid become negative when saving to shapefile
+    selected_gird_id_list = [int(item) for item in selected_gird_id_list]
     save_pd = pd.DataFrame({'grid_id':selected_gird_id_list, 'Polygon':select_grid_polys})
     vector_gpd.save_polygons_to_files(save_pd,'Polygon',proj,save_path)
     basic.outputlogMessage('saved %d grids to %s'%(len(select_grid_polys), save_path))
