@@ -279,7 +279,7 @@ def main(options, args):
     if len(extent_polys) < 1:
         raise ValueError('No polygons in %s'%extent_shp)
     else:
-        basic.outputlogMessage('%d extent polygons in %s'%(len(extent_polys),extent_shp))
+        basic.outputlogMessage('read %d extent polygons in %s for downloading and proc'%(len(extent_polys),extent_shp))
 
     download_dem_tarball(dem_index_shp,extent_polys,save_folder,pre_name,reg_tif_dir=reg_tif_dir,
                          poly_ids=grid_id_list,b_arcticDEM_tile=b_arcticDEM_tile)
