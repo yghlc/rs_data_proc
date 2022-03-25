@@ -478,7 +478,9 @@ def get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_cou
             selected_gird_id_list.append( grid_ids_2d[row, col])
 
     # remove some ids
-    selected_gird_id_list = [id for id in selected_gird_id_list if id not in ignore_ids]
+    # selected_gird_id_list = [id for id in selected_gird_id_list if id not in ignore_ids]
+    ignore_ids_in_selected = list(set(ignore_ids).intersection(selected_gird_id_list))  # intersection is faster
+    _ = [selected_gird_id_list.remove(rm_id) for rm_id in ignore_ids_in_selected ]
     if len(selected_gird_id_list) < 1:
         return [], []
 
