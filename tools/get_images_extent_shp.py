@@ -24,7 +24,7 @@ def main(options, args):
     if os.path.isdir(img_dir):
         img_pattern = options.image_pattern
         if output is None:
-            output = os.path.basename(img_dir) + '_boxes.shp'
+            output = os.path.basename(img_dir) + '_boxes.gpkg'
         img_list = io_function.get_file_list_by_pattern(img_dir, img_pattern)
         if len(img_list) < 1:
             raise ValueError('No images in %s with pattern: %s'%(img_dir, img_pattern))
@@ -32,7 +32,7 @@ def main(options, args):
         # if it's a file
         img_list = [img_dir]
         if output is None:
-            output = os.path.basename(img_dir) + '_bound.shp'
+            output = os.path.basename(img_dir) + '_bound.gpkg'
 
     print('Find %d rasters in %s'%(len(img_list),img_dir))
 
@@ -51,7 +51,7 @@ def main(options, args):
     wkt = map_projection.get_raster_or_vector_srs_info_proj4(img_list[0])
 
     save_pd = pd.DataFrame({'raster':img_list, 'Polygon':img_box_polygons})
-    vector_gpd.save_polygons_to_files(save_pd,'Polygon',wkt,output)
+    vector_gpd.save_polygons_to_files(save_pd,'Polygon',wkt,output,format='GPKG')
     print('save raster extents to %s'%output)
 
     return
