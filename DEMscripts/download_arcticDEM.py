@@ -64,7 +64,8 @@ def save_id_grid_no_dem(grid_id):
         return True
 
 def wget_file_url(url,save_path):
-    cmd_str = 'wget --no-check-certificate --output-document=%s  %s' % (save_path,url)
+    # --continue, continue if the previous attempt failed
+    cmd_str = 'wget --continue --no-check-certificate --output-document=%s  %s' % (save_path,url)
     status, result = basic.exec_command_string(cmd_str)
     return status, result
 
