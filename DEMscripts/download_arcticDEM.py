@@ -80,6 +80,11 @@ def run_a_process_download(url, tar_path, save_tif_dir, process_num=1, b_unpack=
         status, result = wget_file_url(new_url,tar_path)
 
     if status != 0:
+        # try one more time if failed, using the old url.
+        time.sleep(60)
+        status, result = wget_file_url(url, tar_path)
+
+    if status != 0:
         if process_num == 1:
             print(result)
             basic.outputlogMessage('failed to download DEM: %s' % url)
