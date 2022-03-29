@@ -79,6 +79,11 @@ def run_a_process_download(url, tar_path, save_tif_dir, process_num=1, b_unpack=
         print('try to download the file using new url: %s' % new_url)
         status, result = wget_file_url(new_url,tar_path)
 
+        if status != 0:
+            # try one more time if failed, using the new url.
+            time.sleep(60)
+            status, result = wget_file_url(new_url, tar_path)
+
     if status != 0:
         # try one more time if failed, using the old url.
         time.sleep(60)
