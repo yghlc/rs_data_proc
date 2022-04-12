@@ -787,7 +787,7 @@ def main(options, args):
                 make_note_all_task_done(extent_shp,process_node)
 
 
-            select_grids_shp = os.path.join(subset_shp_dir,io_function.get_name_by_adding_tail(os.path.basename(extent_shp),'sub%d' % subset_id))
+            select_grids_shp = os.path.join(subset_shp_dir, io_function.get_name_no_ext(extent_shp)+ '_sub%d' % subset_id + '.shp')
 
             # if the input is not a shapefile, then don't divide it to many subsets
             if extent_shp.endswith('.txt'):
