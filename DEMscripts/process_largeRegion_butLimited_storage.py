@@ -579,7 +579,7 @@ def remove_no_need_dem_files(b_remove=True):
                     io_function.delete_file_or_dir(path)
 
 no_subset_to_proc = 0
-def produce_dem_products(tasks,b_remove_job_folder=True):
+def produce_dem_products(tasks,b_remove_job_folder=True,no_slurm=False):
     # this function run on process node, such as curc
     global no_subset_to_proc
 
@@ -613,7 +613,10 @@ def produce_dem_products(tasks,b_remove_job_folder=True):
         # submit tasks with dependencies
         tasks_no_depend = [item for item in tasks if len(task_depend[item]) < 1 ]
         for task in tasks_no_depend:
-            res = os.system('./run.sh %s %s'%(ext_shp,task))
+            if no_slurm:
+                res = os.system('./run_local.sh %s %s' % (ext_shp, task))
+            else:
+                res = os.system('./run.sh %s %s'%(ext_shp,task))
             if res !=0:
                 sys.exit(1)
         time.sleep(5)   # wait
@@ -629,7 +632,10 @@ def produce_dem_products(tasks,b_remove_job_folder=True):
                     print(machine_name, datetime.now(),
                           'task: %s need results of task:%s whose jobs are not completed, need to wait'%(task,str(depend_tasks)))
                 else:
-                    res = os.system('./run.sh %s %s' % (ext_shp, task))
+                    if no_slurm:
+                        res = os.system('./run_local.sh %s %s' % (ext_shp, task))
+                    else:
+                        res = os.system('./run.sh %s %s' % (ext_shp, task))
                     if res != 0:
                         sys.exit(1)
                     tasks_with_depend.remove(task)  # if submit, remove it
@@ -726,6 +732,7 @@ def main(options, args):
     max_grid_count = options.max_grids
     b_remove_tmp_folders = options.b_remove_tmp_folders
     b_dont_remove_DEM_files = options.b_dont_remove_DEM_files
+    b_no_slurm = options.b_no_slurm
     b_divide_to_subsets = True
 
     # modify the folder name of subsets
@@ -829,6 +836,11 @@ def main(options, args):
             if num_grid_ids < 1:
                 make_note_all_task_done(extent_shp,process_node)
 
+            if b_no_slurm:
+                # process ArcticDEM using local computing resource
+                if produce_dem_products(task_list, b_remove_job_folder=b_remove_tmp_folders,no_slurm=b_no_slurm) is False:
+                    break
+
             if b_divide_to_subsets is False:
                 break
 
@@ -904,6 +916,10 @@ if __name__ == '__main__':
     parser.add_option("", "--b_dont_remove_DEM_files",
                       action="store_false", dest="b_dont_remove_DEM_files",default=True,
                       help="if set, then dont ArcticDEM (strip and mosaic) that have been processed")
+
+    parser.add_option("", "--b_no_slurm",
+                      action="store_true", dest="b_no_slurm",default=False,
+                      help="if set, dont submit a slurm job, run job using local machine ")
 
 
 
