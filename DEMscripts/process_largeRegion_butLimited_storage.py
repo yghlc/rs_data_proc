@@ -825,7 +825,8 @@ def main(options, args):
                 continue
 
             # copy file from remote machine
-            copy_results_from_remote_node()
+            if b_no_slurm is False:
+                copy_results_from_remote_node()
 
             sync_log_files(process_node, r_log_dir, process_log_dir)
 
