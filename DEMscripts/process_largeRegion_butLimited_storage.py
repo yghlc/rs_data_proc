@@ -103,7 +103,7 @@ def get_subset_info_txt_list(key,values,remote_node=None, remote_folder=None, lo
     return select_txt_list
 
 
-def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node,task_list):
+def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node,task_list, b_send_data=True):
     # this function run on tesia
 
     subset_info = get_subset_info(subset_info_txt)
@@ -155,9 +155,10 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
 
     # send to remote machine
     rsync_sh = os.path.join(ArcticDEM_tmp_dir,'rsync_to_curc.sh')
-    res = os.system(rsync_sh)
-    if res != 0:
-        sys.exit(1)
+    if b_send_data:
+        res = os.system(rsync_sh)
+        if res != 0:
+            sys.exit(1)
 
     update_subset_info(subset_info_txt,key_list=['pre_status'],info_list=['done'])
     # copy to remote machine
@@ -819,7 +820,8 @@ def main(options, args):
                                    info_list=[subset_id, str(datetime.now()) ,select_grids_shp, 'notYet', 'notYet'])
 
             # download and unpack ArcticDEM, do registration, send to curc
-            if download_process_send_arctic_dem(subset_info_txt, r_working_dir,process_node,task_list) is True:
+            if download_process_send_arctic_dem(subset_info_txt, r_working_dir,process_node,task_list,
+                                                b_send_data = b_no_slurm==False) is True:
                 continue
 
             # copy file from remote machine
