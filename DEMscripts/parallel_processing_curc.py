@@ -474,6 +474,8 @@ def main(options, args):
         print('unknow task name: %s'%task_name)
         pass
 
+    time.sleep(10)
+
     # wait all local task finished
     while basic.b_all_process_finish(local_tasks) is False:
         print(datetime.now(),'wait 5 minutes to let all local tasks to complete')
