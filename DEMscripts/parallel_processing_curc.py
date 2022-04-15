@@ -186,18 +186,24 @@ def run_segment_jobs(max_job_count,n_tif_per_jobs,extent_or_id_txt=None):
         subsidence_ids.extend(no_subsidence_ids)
 
         # remove dem diff already been segmented or no subsidence
+        new_dem_diff_ids, new_dem_diff_list = [], []
         for id, dem_diff in zip(dem_diff_ids,dem_diff_list_copy):
-            if id in subsidence_ids:
-                dem_diff_list.remove(dem_diff)
-                dem_diff_ids.remove(id)
+            if id not in subsidence_ids:
+                new_dem_diff_ids.append(id)
+                new_dem_diff_list.append(dem_diff)
+        dem_diff_ids = new_dem_diff_ids
+        dem_diff_list = new_dem_diff_list
 
         # only keep the ids within in extent
         if extent_or_id_txt is not None:
+            new_dem_diff_ids, new_dem_diff_list = [], []
             grid_ids = get_grid_ids_extent(extent_or_id_txt)
-            dem_diff_list_copy2 = dem_diff_list.copy()
-            for id, dem_diff in zip(dem_diff_ids, dem_diff_list_copy2):
-                if id not in grid_ids:
-                    dem_diff_list.remove(dem_diff)
+            for id, dem_diff in zip(dem_diff_ids, dem_diff_list):
+                if id in grid_ids:
+                    new_dem_diff_ids.append(id)
+                    new_dem_diff_list.append(dem_diff)
+            dem_diff_ids = new_dem_diff_ids
+            dem_diff_list = new_dem_diff_list
 
 
         print('total %d DEM differnce tifs, %d of them need to segment'%(len(dem_diff_list_copy), len(dem_diff_list)))
