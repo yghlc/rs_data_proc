@@ -189,11 +189,13 @@ def run_segment_jobs(max_job_count,n_tif_per_jobs,extent_or_id_txt=None):
         for id, dem_diff in zip(dem_diff_ids,dem_diff_list_copy):
             if id in subsidence_ids:
                 dem_diff_list.remove(dem_diff)
+                dem_diff_ids.remove(id)
 
         # only keep the ids within in extent
         if extent_or_id_txt is not None:
             grid_ids = get_grid_ids_extent(extent_or_id_txt)
-            for id, dem_diff in zip(dem_diff_ids, dem_diff_list_copy):
+            dem_diff_list_copy2 = dem_diff_list.copy()
+            for id, dem_diff in zip(dem_diff_ids, dem_diff_list_copy2):
                 if id not in grid_ids:
                     dem_diff_list.remove(dem_diff)
 
