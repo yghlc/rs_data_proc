@@ -164,7 +164,7 @@ def submit_segment_dem_diff_job(dem_diff_list, idx,max_job_count):
 
     return
 
-def run_segment_jobs(max_job_count,n_tif_per_jobs):
+def run_segment_jobs(max_job_count,n_tif_per_jobs,extent_or_id_txt=None):
 
     dem_list_txt = os.path.join(dem_common.process_log_dir, 'job_seg_dem_diff_list_' + machine_name + '.txt')
     if os.path.isfile(dem_list_txt):
@@ -189,6 +189,14 @@ def run_segment_jobs(max_job_count,n_tif_per_jobs):
         for id, dem_diff in zip(dem_diff_ids,dem_diff_list_copy):
             if id in subsidence_ids:
                 dem_diff_list.remove(dem_diff)
+
+        # only keep the ids within in extent
+        if extent_or_id_txt is not None:
+            grid_ids = get_grid_ids_extent(extent_or_id_txt)
+            for id, dem_diff in zip(dem_diff_ids, dem_diff_list_copy):
+                if id not in grid_ids:
+                    dem_diff_list.remove(dem_diff)
+
 
         print('total %d DEM differnce tifs, %d of them need to segment'%(len(dem_diff_list_copy), len(dem_diff_list)))
 
@@ -279,18 +287,10 @@ def submit_hillshade_newest_headwall_line_grid_job(ids_list, idx, grid_base_name
 
     os.chdir(curr_dir_before_start)
 
+from produce_DEM_diff_ArcticDEM import get_grid_20
+from dem_common import grid_20_shp
 
-def run_grid_jobs(max_job_count,n_tif_per_jobs,task_name,extent_shp):
-
-    from dem_common import grid_20_shp, grid_dem_diffs_dir
-    from produce_DEM_diff_ArcticDEM import get_grid_20
-
-    if os.path.isdir(grid_dem_diffs_dir) is  False:
-        io_function.mkdir(grid_dem_diffs_dir)
-
-    # get grid ids based on input extent
-    # grid_base_name = os.path.splitext(os.path.basename(extent_shp))[0]
-    grid_base_name = 'grid_ids'
+def get_grid_ids_extent(extent_shp):
     if 'ArcticDEM_grid_20km' in os.path.basename(extent_shp):
         print('input %s like a grid files, read grid polygons and ids from it directly'%extent_shp)
         grid_polys, grid_ids = vector_gpd.read_polygons_attributes_list(extent_shp, 'grid_id')
@@ -303,6 +303,20 @@ def run_grid_jobs(max_job_count,n_tif_per_jobs,task_name,extent_shp):
         all_grid_polys, all_ids = vector_gpd.read_polygons_attributes_list(grid_20_shp, 'id')   # in this file, it's "id", not "grid_id"
         print('time cost of read polygons and attributes', time.time() - time0)
         grid_polys, grid_ids = get_grid_20(extent_shp,all_grid_polys, all_ids)
+
+    return grid_ids
+
+def run_grid_jobs(max_job_count,n_tif_per_jobs,task_name,extent_shp):
+
+    from dem_common import grid_dem_diffs_dir
+
+    if os.path.isdir(grid_dem_diffs_dir) is  False:
+        io_function.mkdir(grid_dem_diffs_dir)
+
+    # get grid ids based on input extent
+    # grid_base_name = os.path.splitext(os.path.basename(extent_shp))[0]
+    grid_base_name = 'grid_ids'
+    grid_ids = get_grid_ids_extent(extent_shp)
 
     # divide grid_ids to many groups
     grid_ids_count = len(grid_ids)
@@ -445,7 +459,7 @@ def main(options, args):
         jobsh_dir = options.script_dir
 
     if task_name == 'segment':
-        run_segment_jobs(max_job_count, n_tif_per_jobs)
+        run_segment_jobs(max_job_count, n_tif_per_jobs,extent_or_id_txt=extent_shp_or_id_txt)
     elif task_name == 'dem_diff':
         run_grid_jobs(max_job_count, n_tif_per_jobs,'dem_diff',extent_shp_or_id_txt)
     elif task_name == 'hillshade_headwall_line':
