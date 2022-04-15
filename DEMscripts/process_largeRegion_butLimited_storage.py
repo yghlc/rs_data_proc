@@ -162,8 +162,9 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
 
     update_subset_info(subset_info_txt,key_list=['pre_status'],info_list=['done'])
     # copy to remote machine
-    if scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir, subset_info_txt):
-        scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir,subset_shp_dir)
+    if b_send_data:
+        if scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir, subset_info_txt):
+            scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir,subset_shp_dir)
 
 
 def copy_results_from_remote_node():
@@ -828,10 +829,10 @@ def main(options, args):
             if b_no_slurm is False:
                 copy_results_from_remote_node()
 
-            sync_log_files(process_node, r_log_dir, process_log_dir)
+                sync_log_files(process_node, r_log_dir, process_log_dir)
 
-            # update complete id list
-            update_complete_grid_list(grid_ids, task_list)
+                # update complete id list
+                update_complete_grid_list(grid_ids, task_list)
 
             # save this to disk, to check progress, if there are not too many grids (<100),
             # we can use this one to process withtou divide grids to many subsets
