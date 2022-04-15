@@ -641,7 +641,7 @@ def produce_dem_products(tasks,b_remove_job_folder=True,no_slurm=False):
                         sys.exit(1)
                     tasks_with_depend.remove(task)  # if submit, remove it
 
-            time.sleep(300)
+            time.sleep(60)
 
         # wait until all jobs finished
         while True:
