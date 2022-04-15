@@ -805,6 +805,7 @@ def main(options, args):
                     raise ValueError('There are too many grid to process once')
                 save_selected_girds_and_ids(selected_gird_ids,select_grid_polys,gird_prj,select_grids_shp)
                 b_divide_to_subsets = False
+                subset_id = 999999
             else:
                 select_grid_polys, selected_gird_ids = get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_count,
                                                                                   grid_ids_2d, visit_np,
