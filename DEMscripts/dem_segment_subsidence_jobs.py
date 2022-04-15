@@ -96,7 +96,7 @@ def produce_products_dem_subsidence(b_remove_job_folder=True):
     dem_list_txt = os.path.join(dem_common.process_log_dir, job_list_pre + machine_name + '.txt')
 
     # when submit segment of dem_diff, no need ext_shp
-    ext_shp = "None"
+    ext_shp = "monitor_fail_segment_jobs"
 
     while True:
         dem_diff_list = get_dem_diff_list_to_seg()

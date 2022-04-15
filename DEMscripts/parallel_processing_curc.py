@@ -167,7 +167,7 @@ def submit_segment_dem_diff_job(dem_diff_list, idx,max_job_count):
 def run_segment_jobs(max_job_count,n_tif_per_jobs,extent_or_id_txt=None):
 
     dem_list_txt = os.path.join(dem_common.process_log_dir, 'job_seg_dem_diff_list_' + machine_name + '.txt')
-    if os.path.isfile(dem_list_txt):
+    if os.path.isfile(dem_list_txt) and extent_or_id_txt=='monitor_fail_segment_jobs':
         dem_diff_list = io_function.read_list_from_txt(dem_list_txt)
         print(datetime.now(), 'total %d DEM differnce tifs to seg ' % (len(dem_diff_list)))
     else:
