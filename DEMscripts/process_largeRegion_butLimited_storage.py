@@ -116,7 +116,7 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
         return True
 
     # if subset_id for download is far more ahead than processing (curc), then wait, in case occupy too much storage
-    while True:
+    while True and b_send_data:
         remote_sub_txt = get_subset_info_txt_list('proc_status',['notYet', 'working'],remote_node=remote_node,remote_folder=r_working_dir)
         if len(remote_sub_txt) > download_ahead_proc:
             print(datetime.now(),'there is %d subset have not complete,'
@@ -796,17 +796,18 @@ def main(options, args):
                 make_note_all_task_done(extent_shp,process_node)
 
 
-            select_grids_shp = os.path.join(subset_shp_dir, io_function.get_name_no_ext(extent_shp)+ '_sub%d' % subset_id + '.shp')
-
             # if the input is not a shapefile, then don't divide it to many subsets
             if extent_shp.endswith('.txt'):
                 select_grid_polys, selected_gird_ids = grid_polys, grid_ids
                 if len(selected_gird_ids) > 2000:
                     raise ValueError('There are too many grid to process once')
-                save_selected_girds_and_ids(selected_gird_ids,select_grid_polys,gird_prj,select_grids_shp)
                 b_divide_to_subsets = False
                 subset_id = 999999
+                select_grids_shp = os.path.join(subset_shp_dir,io_function.get_name_no_ext(extent_shp) + '_sub%d' % subset_id + '.shp')
+                save_selected_girds_and_ids(selected_gird_ids,select_grid_polys,gird_prj,select_grids_shp)
+
             else:
+                select_grids_shp = os.path.join(subset_shp_dir,io_function.get_name_no_ext(extent_shp) + '_sub%d' % subset_id + '.shp')
                 select_grid_polys, selected_gird_ids = get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_count,
                                                                                   grid_ids_2d, visit_np,
                                                                                   select_grids_shp, proj=gird_prj)
