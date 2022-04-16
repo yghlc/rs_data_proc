@@ -864,7 +864,7 @@ def main(options, args):
 
     # monitor results in remote computer
     check_time = 200
-    while check_time > 0:
+    while check_time > 0 and b_no_slurm==False:
         # on tesia, uist, vpn-connected laptop
         if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
             print(datetime.now(),'wait 10 min for results in computing nodes')
