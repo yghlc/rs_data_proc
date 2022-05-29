@@ -6,3 +6,4 @@ rasterio
 triangle
 retrying
 scikit-image
+opencv-python
