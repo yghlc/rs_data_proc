@@ -111,9 +111,10 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
     if subset_info['pre_status'] == 'done':
         print(datetime.now(),'pre_status for %s is done, skip'%subset_info_txt)
         # copy to remote machine
-        if scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir, subset_info_txt):
-            scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir, subset_shp_dir)
-        return True
+        if b_send_data:
+            if scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir, subset_info_txt):
+                scp_communicate.copy_file_folder_to_remote_machine(remote_node, r_working_dir, subset_shp_dir)
+            return True
 
     # if subset_id for download is far more ahead than processing (curc), then wait, in case occupy too much storage
     while True and b_send_data:
