@@ -137,17 +137,17 @@ def draw_headwallLine_on_hillshade(hillshade_tif, headwall_line_shp,save_path):
     
     # rasterize lines for each year
     line_raster_year_group = {}
-    line_raster_count = None
+    line_raster_count = np.zeros((height, width), dtype=np.uint8)   # if No lines, then all will be zeros
     line_raster_array = np.zeros((height, width), dtype=np.int16)
     for idx, year in enumerate(sorted_years):
         line_polys_year = [ line for line, y in zip(line_polys,years) if y == year ]
         print('rasterize %d line polygons of year: %d'%(len(line_polys_year), year))
         raster_array_np = raster_io.burn_polygons_to_a_raster(hillshade_tif,line_polys_year,1,None,date_type='uint8')
         line_raster_year_group[year] = raster_array_np
-        if idx == 0:
-            line_raster_count = raster_array_np.copy()  # copy the entire array.
-        else:
-            line_raster_count += raster_array_np
+        # if idx == 0:
+        #     line_raster_count = raster_array_np.copy()  # copy the entire array.
+        # else:
+        line_raster_count += raster_array_np
 
         # the later year will replace the previous one
         line_raster_array[np.where(raster_array_np == 1) ] = year
