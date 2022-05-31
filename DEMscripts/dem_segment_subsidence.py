@@ -184,7 +184,8 @@ def merge_polygon_rasterize(ref_raster, in_polygons):
         raise IOError('Set nodata failed for %s'%save_raster)
 
     # polygonize
-    out_shp = vector_gpd.raster2shapefile(save_raster, connect8=True)
+    # change vector format from "ESRI Shapefile" to "GPKG", when polygons are complex, saving "GPKG" is much quicker
+    out_shp = vector_gpd.raster2shapefile(save_raster, connect8=True,format='GPKG')
     if out_shp is None:
         raise IOError('polygonzied failed for %s' % save_raster)
 
