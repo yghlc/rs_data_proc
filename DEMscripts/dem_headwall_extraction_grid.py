@@ -284,7 +284,7 @@ def main(options, args):
     grid_base_name = os.path.splitext(os.path.basename(extent_shp_or_ids_txt))[0]
     grid_polys, grid_ids = get_grid_20(extent_shp_or_ids_txt, all_grid_polys, all_ids)
 
-    # check dem difference existence
+    # check headwall shapefile existence
     grid_headwall_shps, grid_id_no_headwall_shp = get_existing_grid_headwall_shp(grid_dem_headwall_shp_dir, grid_base_name, grid_ids)
     if len(grid_id_no_headwall_shp) > 0:
         # refine grid_polys
