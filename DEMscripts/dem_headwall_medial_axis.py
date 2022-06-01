@@ -227,6 +227,7 @@ def slope_bin_to_medial_axis_raster(in_image_path, out_image_path):
     image_np, nodata = raster_io.read_raster_one_band_np(in_image_path)
 
     # out_np = morphology.medial_axis(image_np, mask=None, return_distance=False)
+    # random_state=None,  numpy.random.Generator singleton is used, this random_state will lead to results a little bit differnt each time.
     out_np,dist = morphology.medial_axis(image_np, mask=None, return_distance=True)
     # bool numpy to uint8
     out_np = out_np.astype(np.uint8)
