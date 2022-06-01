@@ -33,6 +33,7 @@ import basic_src.io_function as io_function
 import basic_src.map_projection as map_projection
 import basic_src.basic as basic
 
+from multiprocessing import Pool
 
 
 ###################################################################################################
@@ -267,7 +268,7 @@ def slope_bin_to_skeleton(in_image_path, out_image_path):
     return out_image_path
 
 
-def medial_axis_raster_to_vector(in_medial_axis_tif, medial_axis_dist_tif,out_vector_shp, raster_res=2):
+def medial_axis_raster_to_vector(in_medial_axis_tif, medial_axis_dist_tif,out_vector_shp, raster_res=2,process_num=1):
 
     if vector_gpd.raster2shapefile(in_medial_axis_tif,out_shp=out_vector_shp,connect8=True) is None:
         return None
@@ -277,7 +278,7 @@ def medial_axis_raster_to_vector(in_medial_axis_tif, medial_axis_dist_tif,out_ve
         print('%s exists, skip buffering'%vector_shp_buff)
         return vector_shp_buff
 
-
+    t0 = time.time()
     polys = vector_gpd.read_polygons_gpd(out_vector_shp,b_fix_invalid_polygon=False)
     if len(polys) < 1:
         basic.outputlogMessage('warning, no medial_axis in %s'%in_medial_axis_tif)
@@ -295,8 +296,13 @@ def medial_axis_raster_to_vector(in_medial_axis_tif, medial_axis_dist_tif,out_ve
     # buffer 0.1 meters, so the width of polygons is around 2.02 meters (2-m ArcticDEM), still have width of one pixel
     polys_buff = [item.buffer(0.01) for item in polys]
 
+    print('DEBUG:time cost for getting id_list, area_list, length_list, pixel_count_list:', time.time()-t0, 'seconds')
+    t0 = time.time()
+
     # after buffer, for complex medial axis, it may have holes in the polygons, get hole count
     hole_count_list =[len(list(item.interiors)) for item in polys_buff]
+    print('DEBUG:time cost for getting hole_count_list:', time.time() - t0, 'seconds')
+    t0 = time.time()
 
     # save, overwrite out_vector_shp
     wkt = map_projection.get_raster_or_vector_srs_info_proj4(out_vector_shp)
@@ -304,13 +310,19 @@ def medial_axis_raster_to_vector(in_medial_axis_tif, medial_axis_dist_tif,out_ve
                             'holes':hole_count_list,'Polygon':polys_buff})
     vector_gpd.save_polygons_to_files(save_pd, 'Polygon', wkt, vector_shp_buff)
 
+    print('DEBUG:time cost for saving vector_shp_buff:', time.time() - t0, 'seconds')
+    t0 = time.time()
     # get the width based on medial axis
-    raster_statistic.zonal_stats_multiRasters(vector_shp_buff,medial_axis_dist_tif,nodata=0,stats = ['max'],prefix='axisR',all_touched=False)
+    raster_statistic.zonal_stats_multiRasters(vector_shp_buff,medial_axis_dist_tif,nodata=0,stats = ['max'],prefix='axisR',
+                                              all_touched=False,process_num=process_num)
+    print('DEBUG:time cost for zonal_stats_multiRasters:', time.time() - t0, 'seconds')
+    t0 = time.time()
     # convert to meter and width
     width_max_list = vector_gpd.read_attribute_values_list(vector_shp_buff,'axisR_max')
     width_max_list = [ item*raster_res*2 for item in width_max_list]
     attributes = {'width_max':width_max_list}
     vector_gpd.add_attributes_to_shp(vector_shp_buff,attributes)
+    print('DEBUG:time cost for width_max_list & add_attributes_to_shp:', time.time() - t0, 'seconds')
 
     return vector_shp_buff
 
@@ -733,7 +745,7 @@ def get_longest_line_one_polygon(polygon, distance_np, dist_raster_transform, ra
 
 
 
-def get_main_longest_line_segments(medial_axis_shp,medial_axis_dist_tif, wkt, main_line_segment_shp,raster_res=2):
+def get_main_longest_line_segments(medial_axis_shp,medial_axis_dist_tif, wkt, main_line_segment_shp,raster_res=2,process_num=1):
     '''
     calculate the main (weighted longest) line segments in medial axis, then save to file
     :param medial_axis_shp:
@@ -747,12 +759,20 @@ def get_main_longest_line_segments(medial_axis_shp,medial_axis_dist_tif, wkt, ma
     distance_np, nodata = raster_io.read_raster_one_band_np(medial_axis_dist_tif)
     dist_transform = raster_io.get_transform_from_file(medial_axis_dist_tif)
 
-    main_line_list = []
-    id_list = []
-    for idx, poly in enumerate(polygons):
-        main_line = get_longest_line_one_polygon(poly,distance_np,dist_transform,raster_res=raster_res)
-        main_line_list.append(main_line)
-        id_list.append(idx)
+    if process_num == 1:
+        main_line_list = []
+        id_list = []
+        for idx, poly in enumerate(polygons):
+            main_line = get_longest_line_one_polygon(poly,distance_np,dist_transform,raster_res=raster_res)
+            main_line_list.append(main_line)
+            id_list.append(idx)
+    elif process_num > 1:
+        threadpool = Pool(process_num)
+        para_list = [(poly,distance_np,dist_transform,raster_res) for idx, poly in enumerate(polygons)]
+        main_line_list = threadpool.starmap(get_longest_line_one_polygon, para_list)
+        id_list = [ id for id in range(len(polygons))]
+    else:
+        raise ValueError('Wrong process number: %s ' % str(process_num))
 
     # length in meters
     length_list = [ item.length for item in main_line_list]
@@ -878,7 +898,7 @@ def extract_headwall_based_medial_axis_from_slope(idx, total, slope_tif, work_di
 
     # get madial axis vector (polygons: width of one pixel)
     medial_axis_poly_shp = os.path.join(work_dir, io_function.get_name_no_ext(medial_axis_tif) + '_poly.shp')
-    medial_axis_poly_shp_buff = medial_axis_raster_to_vector(medial_axis_tif, medial_axis_dist_tif,medial_axis_poly_shp)
+    medial_axis_poly_shp_buff = medial_axis_raster_to_vector(medial_axis_tif, medial_axis_dist_tif,medial_axis_poly_shp,process_num=process_num)
     if medial_axis_poly_shp_buff is None:
         return False
 
@@ -927,7 +947,7 @@ def extract_headwall_based_medial_axis_from_slope(idx, total, slope_tif, work_di
     if os.path.isfile(main_line_shp):
         print('%s exists, skip getting main line'%main_line_shp)
     else:
-        get_main_longest_line_segments(rm_hole_shp,medial_axis_dist_tif, wkt, main_line_shp,raster_res=2)
+        get_main_longest_line_segments(rm_hole_shp,medial_axis_dist_tif, wkt, main_line_shp,raster_res=2,process_num=process_num)
 
     # copy the results.
     io_function.copy_shape_file(main_line_shp, save_headwall_shp)
@@ -964,18 +984,23 @@ def test_extract_headwall_based_medial_axis_from_slope():
     # work_dir = os.path.expanduser('~/Data/dem_processing')
     # save_dir = os.path.expanduser('~/Data/dem_processing/grid_6174_tmp_files')
 
-    data_dir = os.path.expanduser('~/Data/dem_processing/grid_9053_tmp_files/slope_sub_9053')
-    slope_tif = os.path.join(data_dir,'20140701_dem_slope.tif')
-    work_dir = os.path.expanduser('~/Data/dem_processing/grid_9053_tmp_files')
-    save_dir = os.path.expanduser('~/Data/dem_processing/grid_9053_tmp_files')
+    # data_dir = os.path.expanduser('~/Data/dem_processing/grid_9053_tmp_files/slope_sub_9053')
+    # slope_tif = os.path.join(data_dir,'20140701_dem_slope.tif')
+    # work_dir = os.path.expanduser('~/Data/dem_processing/grid_9053_tmp_files')
+    # save_dir = os.path.expanduser('~/Data/dem_processing/grid_9053_tmp_files')
+
+    data_dir = os.path.expanduser('~/Data/dem_processing/extract_headwall_grid_00066_49350/slope_sub_49350')
+    slope_tif = os.path.join(data_dir,'20150701_dem_slope.tif')
+    work_dir = os.path.expanduser('~/Data/dem_processing/extract_headwall_grid_00066_49350/20150701_dem_slope')
+    save_dir = os.path.expanduser('~/Data/dem_processing/extract_headwall_grid_00066_49350/headwall_shp_sub_49350')
 
     slope_threshold = 20
     min_area_size = 200     # in m^2
     max_area_size = 50000   # in m^2
     max_axis_width = 80     # in meters
     min_length = 15      # in pixel
-    max_length = 1000    # in pixel
-    max_hole_count = 0
+    max_length = 2000    # in pixel
+    max_hole_count = 10
     process_num = 1
 
     extract_headwall_based_medial_axis_from_slope(0, 1, slope_tif, work_dir, save_dir, slope_threshold,min_area_size,max_area_size,
