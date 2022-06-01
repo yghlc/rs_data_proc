@@ -155,6 +155,7 @@ def segment_a_grey_image(img_path, save_dir,process_num, org_raster=None,b_save_
                 # add to the attributes
                 object_attributes.update(update_label_attr)
 
+    theadPool.close()
     # # apply median filter (remove some noise), #  we should not use median  filter, because it's labels, not images.
     # label_blurs = cv2.medianBlur(np.float32(save_labes), 3)  # with kernal=3, cannot accept int32
     # # print(label_blurs, label_blurs.dtype)
