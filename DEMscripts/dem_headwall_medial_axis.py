@@ -307,23 +307,33 @@ def medial_axis_raster_to_vector(in_medial_axis_tif, medial_axis_dist_tif,out_ve
 
     # save, overwrite out_vector_shp
     wkt = map_projection.get_raster_or_vector_srs_info_proj4(out_vector_shp)
-    save_pd = pd.DataFrame({'id':id_list,'area':area_list,'length':length_list,'pixels':pixel_count_list,
-                            'holes':hole_count_list,'Polygon':polys_buff})
-    vector_gpd.save_polygons_to_files(save_pd, 'Polygon', wkt, vector_shp_buff)
+    # save_pd = pd.DataFrame({'id':id_list,'area':area_list,'length':length_list,'pixels':pixel_count_list,
+    #                         'holes':hole_count_list,'Polygon':polys_buff})
+    # vector_gpd.save_polygons_to_files(save_pd, 'Polygon', wkt, vector_shp_buff)
 
-    print('DEBUG:time cost for saving vector_shp_buff:', time.time() - t0, 'seconds')
-    t0 = time.time()
+    # print('DEBUG:time cost for saving vector_shp_buff:', time.time() - t0, 'seconds')
+    # t0 = time.time()
     # get the width based on medial axis
-    raster_statistic.zonal_stats_multiRasters(vector_shp_buff,medial_axis_dist_tif,nodata=0,stats = ['max'],prefix='axisR',
+    # raster_statistic.zonal_stats_multiRasters(vector_shp_buff,medial_axis_dist_tif,nodata=0,stats = ['max'],prefix='axisR',
+    #                                           all_touched=False,process_num=process_num)
+    attributes = raster_statistic.zonal_stats_multiRasters_polygons(polys_buff,medial_axis_dist_tif,nodata=0,stats = ['max'],prefix='axisR',
                                               all_touched=False,process_num=process_num)
     print('DEBUG:time cost for zonal_stats_multiRasters:', time.time() - t0, 'seconds')
     t0 = time.time()
     # convert to meter and width
-    width_max_list = vector_gpd.read_attribute_values_list(vector_shp_buff,'axisR_max')
+    # width_max_list = vector_gpd.read_attribute_values_list(vector_shp_buff,'axisR_max')
+    width_max_list = attributes['axisR_max']
     width_max_list = [ item*raster_res*2 for item in width_max_list]
-    attributes = {'width_max':width_max_list}
-    vector_gpd.add_attributes_to_shp(vector_shp_buff,attributes)
-    print('DEBUG:time cost for width_max_list & add_attributes_to_shp:', time.time() - t0, 'seconds')
+    # attributes = {'width_max':width_max_list}
+    # vector_gpd.add_attributes_to_shp(vector_shp_buff,attributes)
+    print('DEBUG:time cost for width_max_list:', time.time() - t0, 'seconds')
+    t0 = time.time()
+
+    save_pd = pd.DataFrame({'id':id_list,'area':area_list,'length':length_list,'pixels':pixel_count_list,
+                            'holes':hole_count_list,'axisR_max':attributes['axisR_max'], 'width_max':width_max_list,'Polygon':polys_buff})
+    vector_gpd.save_polygons_to_files(save_pd, 'Polygon', wkt, vector_shp_buff)
+
+    print('DEBUG:time cost for saving vector_shp_buff:', time.time() - t0, 'seconds')
 
     return vector_shp_buff
 
@@ -990,10 +1000,10 @@ def test_extract_headwall_based_medial_axis_from_slope():
     # work_dir = os.path.expanduser('~/Data/dem_processing/grid_9053_tmp_files')
     # save_dir = os.path.expanduser('~/Data/dem_processing/grid_9053_tmp_files')
 
-    data_dir = os.path.expanduser('~/Data/dem_processing/extract_headwall_grid_00066_49350/slope_sub_49350')
-    slope_tif = os.path.join(data_dir,'20150701_dem_slope.tif')
-    work_dir = os.path.expanduser('~/Data/dem_processing/extract_headwall_grid_00066_49350/20150701_dem_slope')
-    save_dir = os.path.expanduser('~/Data/dem_processing/extract_headwall_grid_00066_49350/headwall_shp_sub_49350')
+    data_dir = os.path.expanduser('~/Data/dem_processing/extract_headwall_grid_00072/grid_49374_tmp_files/slope_sub_49374')
+    slope_tif = os.path.join(data_dir,'20170701_dem_slope.tif')
+    work_dir = os.path.expanduser('~/Data/dem_processing/extract_headwall_grid_00072/grid_49374_tmp_files/20170701_dem_slope')
+    save_dir = os.path.expanduser('~/Data/dem_processing/extract_headwall_grid_00072/grid_49374_tmp_files/headwall_shp_sub_49374')
 
     slope_threshold = 20
     min_area_size = 200     # in m^2
@@ -1002,7 +1012,7 @@ def test_extract_headwall_based_medial_axis_from_slope():
     min_length = 15      # in pixel
     max_length = 2000    # in pixel
     max_hole_count = 10
-    process_num = 1
+    process_num = 4
 
     extract_headwall_based_medial_axis_from_slope(0, 1, slope_tif, work_dir, save_dir, slope_threshold,min_area_size,max_area_size,
                                                   min_length, max_length, max_hole_count, max_axis_width,process_num)
