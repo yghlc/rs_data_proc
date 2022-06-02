@@ -331,11 +331,12 @@ def medial_axis_raster_to_vector(in_medial_axis_tif, medial_axis_dist_tif,out_ve
 
     save_pd = pd.DataFrame({'id':id_list,'area':area_list,'length':length_list,'pixels':pixel_count_list,
                             'holes':hole_count_list,'axisR_max':attributes['axisR_max'], 'width_max':width_max_list,'Polygon':polys_buff})
-    vector_gpd.save_polygons_to_files(save_pd, 'Polygon', wkt, vector_shp_buff)
+    # vector_gpd.save_polygons_to_files(save_pd, 'Polygon', wkt, vector_shp_buff)
 
-    print('DEBUG:time cost for saving vector_shp_buff:', time.time() - t0, 'seconds')
+    # print('DEBUG:time cost for saving vector_shp_buff:', time.time() - t0, 'seconds')
 
-    return vector_shp_buff
+    # return vector_shp_buff
+    return save_pd
 
 
 def remove_based_on_length_pixel(medial_axis_shp,min_length, max_length, max_axis_width,wkt, rm_length_shp):
@@ -368,6 +369,36 @@ def remove_based_on_length_pixel(medial_axis_shp,min_length, max_length, max_axi
 
     return rm_length_shp
 
+def remove_based_on_length_pixel_dataframe(dataframe,min_length, max_length, max_axis_width):
+    polygons = dataframe['Polygon'].to_list()
+
+    lengths_pixel = dataframe['pixels'].to_list()
+    width_max_meter = dataframe['width_max'].to_list()
+
+    remain_polygons_idx = []
+    # remove relative large but narrow ones.
+    remove_count = 0
+    remove_based_width = 0
+    for idx, (poly,length,width) in enumerate(zip(polygons,lengths_pixel,width_max_meter)):
+        # remove too long or too short ones
+        if length > max_length or length < min_length:
+            remove_count += 1
+            dataframe.drop(idx, inplace=True)
+            continue
+        if width > max_axis_width:
+            remove_based_width += 1
+            dataframe.drop(idx, inplace=True)
+            continue
+        remain_polygons_idx.append(idx)
+
+    basic.outputlogMessage('remove %d polygons based on length in pixel, %d polygon based on max width, remain %d ones' %
+                           (remove_count,remove_based_width, len(remain_polygons_idx)))
+
+    if len(remain_polygons_idx) < 1:
+        return False
+    dataframe.reset_index(inplace=True)  # reset the idx
+    return dataframe
+
 
 def remove_based_on_hole(medial_axis_shp, max_hole,wkt, rm_hole_shp):
 
@@ -392,6 +423,30 @@ def remove_based_on_hole(medial_axis_shp, max_hole,wkt, rm_hole_shp):
     vector_gpd.save_shapefile_subset_as(remain_polygons_idx,medial_axis_shp,rm_hole_shp)
 
     return rm_hole_shp
+
+def remove_based_on_hole_dataframe(dataframe, max_hole):
+
+    polygons = dataframe['Polygon'].to_list()
+    holes_count = dataframe['holes'].to_list()
+
+    remain_polygons_idx = []
+    # remove relative large but narrow ones.
+    remove_count = 0
+    for idx, (poly,holes) in enumerate(zip(polygons,holes_count)):
+        # remove too long or too short ones
+        if holes > max_hole:
+            remove_count += 1
+            dataframe.drop(idx, inplace=True)
+            continue
+        remain_polygons_idx.append(idx)
+
+    basic.outputlogMessage('remove %d polygons based on holes, remain %d ones' %
+                           (remove_count, len(remain_polygons_idx)))
+
+    if len(remain_polygons_idx) < 1:
+        return False
+    dataframe.reset_index(inplace=True)  # reset the idx
+    return dataframe
 
 
 def remove_based_on_slope_area(slope_bin_path, min_slope_area_size,max_slope_area_size):
@@ -756,17 +811,18 @@ def get_longest_line_one_polygon(polygon, distance_np, dist_raster_transform, ra
 
 
 
-def get_main_longest_line_segments(medial_axis_shp,medial_axis_dist_tif, wkt, main_line_segment_shp,raster_res=2,process_num=1):
+def get_main_longest_line_segments(medial_axis_polygons,medial_axis_dist_tif, wkt, main_line_segment_shp,raster_res=2,process_num=1):
     '''
     calculate the main (weighted longest) line segments in medial axis, then save to file
-    :param medial_axis_shp:
+    :param medial_axis_polygons: read polygons outside this function
     :param medial_axis_dist_tif:
     :param wkt:
     :param main_line_segment_shp:
     :return:
     '''
     # calculate the number of line segments
-    polygons = vector_gpd.read_polygons_gpd(medial_axis_shp, b_fix_invalid_polygon=False)
+    # polygons = vector_gpd.read_polygons_gpd(medial_axis_shp, b_fix_invalid_polygon=False)
+    polygons = medial_axis_polygons
     distance_np, nodata = raster_io.read_raster_one_band_np(medial_axis_dist_tif)
     dist_transform = raster_io.get_transform_from_file(medial_axis_dist_tif)
 
@@ -909,27 +965,42 @@ def extract_headwall_based_medial_axis_from_slope(idx, total, slope_tif, work_di
 
     # get madial axis vector (polygons: width of one pixel)
     medial_axis_poly_shp = os.path.join(work_dir, io_function.get_name_no_ext(medial_axis_tif) + '_poly.shp')
-    medial_axis_poly_shp_buff = medial_axis_raster_to_vector(medial_axis_tif, medial_axis_dist_tif,medial_axis_poly_shp,process_num=process_num)
-    if medial_axis_poly_shp_buff is None:
+    medial_axis_poly_buff_dateFrame = medial_axis_raster_to_vector(medial_axis_tif, medial_axis_dist_tif,medial_axis_poly_shp,process_num=process_num)
+    if medial_axis_poly_buff_dateFrame is None:
         return False
 
     # only keep not too long or too short line segments, and not too wide
-    rm_length_shp = io_function.get_name_by_adding_tail(medial_axis_poly_shp_buff, 'rmLength')
-    if os.path.isfile(rm_length_shp):
-        print('%s exists, skip removing based on length in pixels' % rm_length_shp)
-    else:
-        # medial_axis_shp,min_length, max_length,wkt, rm_length_shp
-        if remove_based_on_length_pixel(medial_axis_poly_shp_buff, min_length, max_length, max_axis_width, wkt, rm_length_shp) is False:
-            return False
+    t0 = time.time()
+    # rm_length_shp = io_function.get_name_by_adding_tail(medial_axis_poly_shp_buff, 'rmLength')
+    # if os.path.isfile(rm_length_shp):
+    #     print('%s exists, skip removing based on length in pixels' % rm_length_shp)
+    # else:
+    #     # medial_axis_shp,min_length, max_length,wkt, rm_length_shp
+    #     if remove_based_on_length_pixel(medial_axis_poly_shp_buff, min_length, max_length, max_axis_width, wkt, rm_length_shp) is False:
+    #         return False
+
+    dateFrame_rmLength = remove_based_on_length_pixel_dataframe(medial_axis_poly_buff_dateFrame, min_length, max_length, max_axis_width)
+    if dateFrame_rmLength is False:
+        return False
+
+    print('DEBUG: time cost for remove_based_on_length_pixel:', time.time() - t0, 'seconds')
+    t0 = time.time()
 
     # remove based on  hole count, if too many holes, not headwall
-    rm_hole_shp = io_function.get_name_by_adding_tail(rm_length_shp, 'rmHole')
-    if os.path.isfile(rm_hole_shp):
-        print('%s exists, skip removing based holes' % rm_hole_shp)
-    else:
-        # medial_axis_shp,min_length, max_length,wkt, rm_length_shp
-        if remove_based_on_hole(rm_length_shp, max_hole_count, wkt, rm_hole_shp) is False:
-            return False
+    # rm_hole_shp = io_function.get_name_by_adding_tail(rm_length_shp, 'rmHole')
+    # if os.path.isfile(rm_hole_shp):
+    #     print('%s exists, skip removing based holes' % rm_hole_shp)
+    # else:
+    #     # medial_axis_shp,min_length, max_length,wkt, rm_length_shp
+    #     if remove_based_on_hole(rm_length_shp, max_hole_count, wkt, rm_hole_shp) is False:
+    #         return False
+
+    dateFrame_rmHole = remove_based_on_hole_dataframe(dateFrame_rmLength, max_hole_count)
+    if dateFrame_rmHole is False:
+        return False
+
+    print('DEBUG: time cost for remove_based_on_hole:', time.time() - t0, 'seconds')
+    t0 = time.time()
 
     # get line segments in polygons and remove based on line segments
     # eventually, this is the same to hole count and does not provide new information.
@@ -954,12 +1025,12 @@ def extract_headwall_based_medial_axis_from_slope(idx, total, slope_tif, work_di
     #                                               raster_res=2, max_unwant_line_pixel=max_unwanted_line_pixel) is False:
     #         return False
 
-    main_line_shp = io_function.get_name_by_adding_tail(rm_hole_shp,'mainLine')
+    main_line_shp = io_function.get_name_by_adding_tail(medial_axis_poly_shp,'mainLine')
     if os.path.isfile(main_line_shp):
         print('%s exists, skip getting main line'%main_line_shp)
     else:
-        get_main_longest_line_segments(rm_hole_shp,medial_axis_dist_tif, wkt, main_line_shp,raster_res=2,process_num=process_num)
-
+        get_main_longest_line_segments(dateFrame_rmHole['Polygon'].to_list(),medial_axis_dist_tif, wkt, main_line_shp,raster_res=2,process_num=process_num)
+    print('DEBUG: time cost for get_main_longest_line_segments:', time.time() - t0, 'seconds')
     # copy the results.
     io_function.copy_shape_file(main_line_shp, save_headwall_shp)
 
