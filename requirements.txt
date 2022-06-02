@@ -7,3 +7,4 @@ triangle
 retrying
 scikit-image
 opencv-python
+matplotlib
