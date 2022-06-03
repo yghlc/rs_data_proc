@@ -83,6 +83,7 @@ dem_tile_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/BROWSE_SERVER/indexes
 
 
 # some log and information files
+subset_message_dir = os.path.join(ArcticDEM_tmp_dir, 'subset_message_dir')
 process_log_dir = os.path.join(ArcticDEM_tmp_dir, 'log_dir')
 grid_complete_list_txt = os.path.join(process_log_dir,'grid_complete_ids.txt')  # store ids of grids that have completed
 # manually exclude some grids that dont have enough data

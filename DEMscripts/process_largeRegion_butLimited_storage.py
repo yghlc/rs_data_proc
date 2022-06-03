@@ -63,6 +63,9 @@ dem_unpack_reg_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEM
 subset_shp_dir = 'subset_grids_shp'
 msg_file_pre = 'subset'     # prename of the message file
 download_ahead_proc = 4
+from dem_common import subset_message_dir
+if os.path.isdir(subset_message_dir) is False:
+    io_function.mkdir(subset_message_dir)
 
 def update_subset_info(txt_path, key_list=None, info_list=None):
     # maintain a info of subset for processing, dict
@@ -78,6 +81,8 @@ def update_subset_info(txt_path, key_list=None, info_list=None):
         key_list = [key_list]
     if isinstance(info_list,str):
         info_list = [info_list]
+    if len(key_list) != len(info_list):
+        raise ValueError('the lengths of keys and info are different')
     for key, info in zip(key_list, info_list):
         info_dict[key] = info
     io_function.save_dict_to_txt_json(txt_path,info_dict)
@@ -100,7 +105,7 @@ def get_subset_info_txt_list(key,values,remote_node=None, remote_folder=None, lo
         info_dict = get_subset_info(txt)
         if info_dict[key] in values:
             select_txt_list.append(txt)
-    return select_txt_list
+    return sorted(select_txt_list)
 
 
 def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node,task_list, b_send_data=True):
@@ -126,7 +131,7 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
         else:
             break
 
-    update_subset_info(subset_info_txt, key_list=['pre_status'], info_list=['working'])
+    update_subset_info(subset_info_txt, key_list=['pre_status','pre_node'], info_list=['working',machine_name])
 
     # download strip tarball, upack, registration
     res = os.system(dem_download_py + ' ' + subset_info['shp'] + ' ' + dem_strip_shp )
@@ -737,14 +742,16 @@ def main(options, args):
     b_dont_remove_DEM_files = options.b_dont_remove_DEM_files
     b_no_slurm = options.b_no_slurm
     b_divide_to_subsets = True
+    b_main_preProc = options.b_main_preProc
 
     # modify the folder name of subsets
     global subset_shp_dir
     subset_shp_dir = subset_shp_dir + '_' +io_function.get_name_no_ext(extent_shp)
+    subset_shp_dir = os.path.join(subset_message_dir,subset_shp_dir)
     global msg_file_pre
     msg_file_pre = io_function.get_name_no_ext(extent_shp) + '_' + msg_file_pre
 
-    grid_ids_to_process_txt = io_function.get_name_no_ext(extent_shp) +'_' + 'grid_ids_to_process.txt'
+    grid_ids_to_process_txt = os.path.join(subset_message_dir,io_function.get_name_no_ext(extent_shp) +'_' + 'grid_ids_to_process.txt')
 
     # build map dem cover grid (take time, but only need to run once at the beginning)
     build_dict_of_dem_cover_grid_ids(dem_strip_shp, grid_20_shp, strip_dem_cover_grids_txt)
@@ -780,56 +787,77 @@ def main(options, args):
 
     subset_id = -1
     # on tesia, uist, vpn-connected laptop
-    if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
+    if b_main_preProc:
         io_function.mkdir(subset_shp_dir)
         sync_log_files(process_node, r_log_dir, process_log_dir)
         update_complete_grid_list(grid_ids, task_list)
 
+    # divide a region into many subsets
+    if b_main_preProc:
+        # remove grids that has been complete or ignored
+        ignore_ids = get_complete_ignore_grid_ids()
+        num_grid_ids = save_grid_ids_need_to_process(grid_ids, ignore_ids=ignore_ids,
+                                                     save_path=grid_ids_to_process_txt)
+        if num_grid_ids < 1:
+            make_note_all_task_done(extent_shp, process_node)
+        else:
+            # divide a region into many subsets
+            while True:
+                subset_id += 1
+                # if the input is not a shapefile, then don't divide it to many subsets
+                if extent_shp.endswith('.txt'):
+                    select_grid_polys, selected_gird_ids = grid_polys, grid_ids
+                    if len(selected_gird_ids) > 2000:
+                        raise ValueError('There are too many grid to process once')
+                    b_divide_to_subsets = False
+                    subset_id = 999999
+                    select_grids_shp = os.path.join(subset_shp_dir, io_function.get_name_no_ext(extent_shp) + '_sub%d' % subset_id + '.shp')
+                    save_selected_girds_and_ids(selected_gird_ids, select_grid_polys, gird_prj, select_grids_shp)
+
+                else:
+                    select_grids_shp = os.path.join(subset_shp_dir, io_function.get_name_no_ext(extent_shp) + '_sub%d' % subset_id + '.shp')
+                    # when re-run this, each subset will be the same or some grids in the subset would be removed if they has been completed (or ignored)
+                    select_grid_polys, selected_gird_ids = get_grids_for_download_process(grid_polys, grid_ids, ignore_ids, max_grid_count,
+                                                                                          grid_ids_2d, visit_np,select_grids_shp,proj=gird_prj)
+                if selected_gird_ids is None:
+                    break  # no more grids
+                if len(selected_gird_ids) < 1:
+                    continue
+
+                subset_info_txt = os.path.join(subset_message_dir, msg_file_pre + str(subset_id).zfill(6)+'.txt')
+                if os.path.isfile(subset_info_txt) is False:
+                    # init the file
+                    update_subset_info(subset_info_txt,
+                                       key_list=['id', 'createTime', 'shp', 'pre_status', 'pre_node','proc_status'],
+                                       info_list=[subset_id, str(datetime.now()), select_grids_shp, 'notYet', 'unknown' ,'notYet'])
+
+    b_preProc_complete = False
     while True:
-        subset_id += 1
         # on tesia, uist, vpn-connected laptop
         if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
 
-            # remove grids that has been complete or ignored
-            ignore_ids = get_complete_ignore_grid_ids()
-            num_grid_ids = save_grid_ids_need_to_process(grid_ids,ignore_ids=ignore_ids,save_path=grid_ids_to_process_txt)
-            if num_grid_ids < 1:
-                make_note_all_task_done(extent_shp,process_node)
+            subset_txt_list = get_subset_info_txt_list('pre_status', ['notYet', 'working'], local_folder=subset_message_dir)
+            if len(subset_txt_list) > 0:
+                subset_info_txt = None
+                for txt in subset_txt_list:
+                    info_dict = get_subset_info(txt)
+                    if info_dict['pre_status'] == 'working' and info_dict['pre_node'] == machine_name:
+                        subset_info_txt = txt
+                        break
+                    if info_dict['pre_status'] == 'notYet':
+                        subset_info_txt = txt
+                        break
 
-
-            # if the input is not a shapefile, then don't divide it to many subsets
-            if extent_shp.endswith('.txt'):
-                select_grid_polys, selected_gird_ids = grid_polys, grid_ids
-                if len(selected_gird_ids) > 2000:
-                    raise ValueError('There are too many grid to process once')
-                b_divide_to_subsets = False
-                subset_id = 999999
-                select_grids_shp = os.path.join(subset_shp_dir,io_function.get_name_no_ext(extent_shp) + '_sub%d' % subset_id + '.shp')
-                save_selected_girds_and_ids(selected_gird_ids,select_grid_polys,gird_prj,select_grids_shp)
-
-            else:
-                select_grids_shp = os.path.join(subset_shp_dir,io_function.get_name_no_ext(extent_shp) + '_sub%d' % subset_id + '.shp')
-                select_grid_polys, selected_gird_ids = get_grids_for_download_process(grid_polys, grid_ids, ignore_ids,max_grid_count,
-                                                                                  grid_ids_2d, visit_np,
-                                                                                  select_grids_shp, proj=gird_prj)
-            if selected_gird_ids is None:
-                break   # no more grids
-            if len(selected_gird_ids) < 1:
-                continue
-
-            subset_info_txt = msg_file_pre+'%d.txt'%subset_id
-            if os.path.isfile(subset_info_txt) is False:
-                # init the file
-                update_subset_info(subset_info_txt, key_list=['id','createTime', 'shp', 'pre_status', 'proc_status'],
-                                   info_list=[subset_id, str(datetime.now()) ,select_grids_shp, 'notYet', 'notYet'])
-
-            # download and unpack ArcticDEM, do registration, send to curc
-            if download_process_send_arctic_dem(subset_info_txt, r_working_dir,process_node,task_list,
-                                                b_send_data = b_no_slurm==False) is True:
-                continue
+                if subset_info_txt is not None:
+                    # download and unpack ArcticDEM, do registration, send to curc
+                    if download_process_send_arctic_dem(subset_info_txt, r_working_dir,process_node,task_list,
+                                                        b_send_data = b_no_slurm==False) is True:
+                        continue
+                else:
+                    b_preProc_complete = True
 
             # copy file from remote machine
-            if b_no_slurm is False:
+            if b_no_slurm is False and b_main_preProc:
                 copy_results_from_remote_node()
 
                 sync_log_files(process_node, r_log_dir, process_log_dir)
@@ -839,22 +867,24 @@ def main(options, args):
 
             # save this to disk, to check progress, if there are not too many grids (<100),
             # we can use this one to process withtou divide grids to many subsets
-            num_grid_ids = save_grid_ids_need_to_process(grid_ids,save_path=grid_ids_to_process_txt)
-            if num_grid_ids < 1:
-                make_note_all_task_done(extent_shp,process_node)
+            if b_main_preProc:
+                num_grid_ids = save_grid_ids_need_to_process(grid_ids,save_path=grid_ids_to_process_txt)
+                if num_grid_ids < 1:
+                    make_note_all_task_done(extent_shp,process_node)
 
             if b_no_slurm:
                 # process ArcticDEM using local computing resource
                 if produce_dem_products(task_list, b_remove_job_folder=b_remove_tmp_folders,no_slurm=b_no_slurm) is False:
                     break
 
-            if b_divide_to_subsets is False:
+            if b_divide_to_subsets is False or b_preProc_complete is True:
                 break
 
         elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:  # curc
             # process ArcticDEM using the computing resource on CURC
             if produce_dem_products(task_list,b_remove_job_folder=b_remove_tmp_folders) is False:
                 break
+
         else:
             print('unknown machine : %s '%machine_name)
             break
@@ -865,7 +895,7 @@ def main(options, args):
 
     # monitor results in remote computer
     check_time = 200
-    while check_time > 0 and b_no_slurm==False:
+    while check_time > 0 and b_no_slurm==False and b_main_preProc is True:
         # on tesia, uist, vpn-connected laptop
         if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
             print(datetime.now(),'wait 10 min for results in computing nodes')
@@ -927,6 +957,12 @@ if __name__ == '__main__':
     parser.add_option("", "--b_no_slurm",
                       action="store_true", dest="b_no_slurm",default=False,
                       help="if set, dont submit a slurm job, run job using local machine ")
+
+    parser.add_option("", "--b_main_preProc",
+                      action="store_true", dest="b_main_preProc",default=False,
+                      help="if set, this computer is the main computer for pre-processing, "
+                           "only the main computer would divide a region into subsets, check completeness,"
+                           "the main computer must be run")
 
 
 
