@@ -90,7 +90,7 @@ def update_subset_info(txt_path, key_list=None, info_list=None):
 def get_subset_info(txt_path):
     info_dict = io_function.read_dict_from_txt_json(txt_path)
     # change file name to absolute path depending on machine
-    info_dict['shp'] = os.path.join(subset_message_dir,info_dict['shp'])
+    info_dict['shp'] = os.path.join(subset_shp_dir,info_dict['shp'])
     return info_dict
 
 def get_subset_info_txt_list(key,values,remote_node=None, remote_folder=None, local_folder='./'):
