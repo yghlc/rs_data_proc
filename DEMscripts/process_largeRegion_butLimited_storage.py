@@ -840,6 +840,16 @@ def main(options, args):
         # on tesia, uist, vpn-connected laptop
         if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
 
+            # if subset_id for download is far more ahead than processing (curc), then wait, in case occupy too much storage
+            while True and b_no_slurm is False:
+                remote_sub_txt_list = get_subset_info_txt_list('proc_status', ['notYet', 'working'], remote_node=process_node,remote_folder=r_working_dir)
+                if len(remote_sub_txt_list) > download_ahead_proc:
+                    print(datetime.now(), 'there is %d subset have not complete,'
+                                          ' wait 300 seconds, avoid downloading too many data' % len(remote_sub_txt_list))
+                    time.sleep(300)
+                else:
+                    break
+
             subset_txt_list = get_subset_info_txt_list('pre_status', ['notYet', 'working'], local_folder=subset_message_dir)
             if len(subset_txt_list) > 0:
                 subset_info_txt = None
