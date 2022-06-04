@@ -618,7 +618,7 @@ def produce_dem_products(tasks,b_remove_job_folder=True,no_slurm=False):
     subset_txt_list = sorted(subset_txt_list)
     for sub_txt in subset_txt_list:
         update_subset_info(sub_txt,key_list=['proc_status'],info_list=['working'])
-        subset_info = io_function.read_dict_from_txt_json(sub_txt)
+        subset_info = get_subset_info(sub_txt)
         ext_shp = subset_info['shp']
 
         # submit tasks with dependencies
