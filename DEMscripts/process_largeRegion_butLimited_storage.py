@@ -88,7 +88,10 @@ def update_subset_info(txt_path, key_list=None, info_list=None):
     io_function.save_dict_to_txt_json(txt_path,info_dict)
 
 def get_subset_info(txt_path):
-    return io_function.read_dict_from_txt_json(txt_path)
+    info_dict = io_function.read_dict_from_txt_json(txt_path)
+    # change file name to absolute path depending on machine
+    info_dict['shp'] = os.path.join(subset_message_dir,info_dict['shp'])
+    return info_dict
 
 def get_subset_info_txt_list(key,values,remote_node=None, remote_folder=None, local_folder='./'):
     # get subset info with specific key and values
@@ -829,7 +832,8 @@ def main(options, args):
                     # init the file
                     update_subset_info(subset_info_txt,
                                        key_list=['id', 'createTime', 'shp', 'pre_status', 'pre_node','proc_status'],
-                                       info_list=[subset_id, str(datetime.now()), select_grids_shp, 'notYet', 'unknown' ,'notYet'])
+                                       info_list=[subset_id, str(datetime.now()), os.path.basename(select_grids_shp),
+                                                  'notYet', 'unknown' ,'notYet'])
 
     b_preProc_complete = False
     while True:
