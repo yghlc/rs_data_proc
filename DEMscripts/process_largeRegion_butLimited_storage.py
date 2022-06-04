@@ -888,14 +888,16 @@ def main(options, args):
             # process ArcticDEM using the computing resource on CURC
             if produce_dem_products(task_list,b_remove_job_folder=b_remove_tmp_folders) is False:
                 break
+            # remove no need dem files
+            remove_no_need_dem_files(b_remove=b_dont_remove_DEM_files)
 
         else:
             print('unknown machine : %s '%machine_name)
             break
 
-
-        # remove no need dem files
-        remove_no_need_dem_files(b_remove=b_dont_remove_DEM_files)
+        if b_main_preProc:
+            # remove no need dem files
+            remove_no_need_dem_files(b_remove=b_dont_remove_DEM_files)
 
     # monitor results in remote computer
     check_time = 200
