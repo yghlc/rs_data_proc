@@ -590,11 +590,11 @@ def remove_no_need_dem_files(b_remove=True):
                     io_function.delete_file_or_dir(path)
 
 no_subset_to_proc = 0
-def produce_dem_products(tasks,b_remove_job_folder=True,no_slurm=False):
+def produce_dem_products(tasks,b_remove_job_folder=True,no_slurm=False,message_dir='./'):
     # this function run on process node, such as curc
     global no_subset_to_proc
 
-    subset_txt_list = get_subset_info_txt_list('proc_status',['notYet', 'working'])
+    subset_txt_list = get_subset_info_txt_list('proc_status',['notYet', 'working'],local_folder=message_dir)
     if len(subset_txt_list) < 1:
         print(datetime.now(), 'checking times: %d: No subset (%s) for processing, wait 300 seconds'%(no_subset_to_proc, msg_file_pre+'*.txt'))
         time.sleep(300)
@@ -878,7 +878,7 @@ def main(options, args):
 
             if b_no_slurm:
                 # process ArcticDEM using local computing resource
-                if produce_dem_products(task_list, b_remove_job_folder=b_remove_tmp_folders,no_slurm=b_no_slurm) is False:
+                if produce_dem_products(task_list, b_remove_job_folder=b_remove_tmp_folders,no_slurm=b_no_slurm, message_dir=subset_message_dir) is False:
                     break
 
             if b_divide_to_subsets is False or b_preProc_complete is True:
@@ -886,7 +886,7 @@ def main(options, args):
 
         elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name:  # curc
             # process ArcticDEM using the computing resource on CURC
-            if produce_dem_products(task_list,b_remove_job_folder=b_remove_tmp_folders) is False:
+            if produce_dem_products(task_list,b_remove_job_folder=b_remove_tmp_folders,message_dir=subset_message_dir) is False:
                 break
             # remove no need dem files
             remove_no_need_dem_files(b_remove=b_dont_remove_DEM_files)
