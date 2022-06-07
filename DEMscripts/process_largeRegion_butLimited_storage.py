@@ -869,6 +869,14 @@ def main(options, args):
                         continue
                 else:
                     b_preProc_complete = True
+            else:
+                subset_txt_all_list = get_subset_info_txt_list('pre_status', ['notYet', 'working','done'],local_folder=subset_message_dir)
+                if len(subset_txt_all_list)==0:
+                    # wait 10 minutes, until main computer create new subset info text files
+                    print(datetime.now(), 'No subset info txt, wait 10 minutes')
+                    time.sleep(600)
+                else:
+                    b_preProc_complete = True
 
             # copy file from remote machine
             if b_no_slurm is False and b_main_preProc:
