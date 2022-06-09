@@ -10,6 +10,7 @@ add time: 20 March, 2021
 import os,sys
 from optparse import OptionParser
 import time
+from datetime import datetime
 
 deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
@@ -185,6 +186,14 @@ def main(options, args):
 
     failed_tifs = []
 
+    # create a lock file (make sure only one workstation is working on producing slope)
+    arcticDEM_slope_lock = os.path.join(arcticDEM_slope_dir,'arcticDEM_slope_lock.txt')
+    while os.path.isfile(arcticDEM_slope_lock):
+        print(datetime.now(),'wait 300 seconds because other program is creating slope files into %s'%arcticDEM_slope_dir)
+        time.sleep(300)
+    # lock this folder
+    io_function.save_list_to_txt(arcticDEM_slope_lock,['locked at ' + str(datetime.now())])
+
     dem_reg_list = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir,dem_pattern)
     count = len(dem_reg_list)
     print('Find %d DEM in %s, with pattern: %s'%(count,arcticDEM_reg_tif_dir,dem_pattern))
@@ -206,6 +215,9 @@ def main(options, args):
     with open('to_hillshade_slope8bit_failed_cases.txt','w') as f_obj:
         for item in failed_tifs:
             f_obj.writelines(item + '\n')
+
+    # delete the lock file
+    io_function.delete_file_or_dir(arcticDEM_slope_lock)
 
 if __name__ == '__main__':
     usage = "usage: %prog [options] products (slope, slope_8bit, hillshade, tpi) "
