@@ -139,5 +139,26 @@ def get_extent_grid_id_txt_done_files(extent_shp):
 def get_grid_id_from_path(item):
     return int(re.findall('grid\d+', os.path.basename(item))[0][4:])
 
+import time
+from datetime import datetime
+
+def check_create_lock(lock_path, message):
+    # lock_path: the absolute path for a lock file
+    # message: information for why it's locked
+    check_lock_time = 0
+    while os.path.isfile(lock_path):
+        print(datetime.now(),'checked %d times: wait 300 seconds'%check_lock_time,message)
+        time.sleep(300)
+        check_lock_time += 1
+    # create a lock
+    with open(lock_path, 'w') as f_obj:
+        f_obj.writelines('locked at ' + str(datetime.now()) + '\n')
+
+def release_lock(lock_path):
+    if os.path.exists(lock_path):
+        os.remove(lock_path)
+    else:
+        print("Error: The lock file: %s does not exist"%lock_path)
+
 if __name__ == '__main__':
     pass
