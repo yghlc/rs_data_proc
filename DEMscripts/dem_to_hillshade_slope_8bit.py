@@ -188,9 +188,12 @@ def main(options, args):
 
     # create a lock file (make sure only one workstation is working on producing slope)
     arcticDEM_slope_lock = os.path.join(arcticDEM_slope_dir,'arcticDEM_slope_lock.txt')
+    check_lock_time = 0
     while os.path.isfile(arcticDEM_slope_lock):
-        print(datetime.now(),'wait 300 seconds because other program is creating slope files into %s'%arcticDEM_slope_dir)
+        print(datetime.now(),'checked %d times: wait 300 seconds because other program is creating slope files into %s'
+              %(check_lock_time,arcticDEM_slope_dir))
         time.sleep(300)
+        check_lock_time += 1
     # lock this folder
     io_function.save_list_to_txt(arcticDEM_slope_lock,['locked at ' + str(datetime.now())])
 
