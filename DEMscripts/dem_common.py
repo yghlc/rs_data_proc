@@ -152,7 +152,7 @@ def check_create_lock(lock_path, message):
         check_lock_time += 1
     # create a lock
     with open(lock_path, 'w') as f_obj:
-        f_obj.writelines('locked at ' + str(datetime.now()) + '\n')
+        f_obj.writelines('locked at ' + str(datetime.now()) +' by %s:%d'%(machine_name, os.getpid()) + '\n')
 
 def release_lock(lock_path):
     if os.path.exists(lock_path):
