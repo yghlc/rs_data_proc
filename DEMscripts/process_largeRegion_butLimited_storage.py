@@ -165,17 +165,18 @@ def download_process_send_arctic_dem(subset_info_txt, r_working_dir, remote_node
             sys.exit(1)
 
 
-    # create a lock file (make sure only one workstation is sending data to curc)
-    rsync_to_curc_lock = os.path.join(ArcticDEM_tmp_dir,'rsync_to_curc_lock.txt')
-    check_create_lock(rsync_to_curc_lock,'because other program is sending data (rsync_to_curc.sh)')
 
     # send to remote machine
     rsync_sh = os.path.join(ArcticDEM_tmp_dir,'rsync_to_curc.sh')
     if b_send_data:
+        # create a lock file (make sure only one workstation is sending data to curc)
+        rsync_to_curc_lock = os.path.join(ArcticDEM_tmp_dir, 'rsync_to_curc_lock.txt')
+        check_create_lock(rsync_to_curc_lock, 'because other program is sending data (rsync_to_curc.sh)')
+
         res = os.system(rsync_sh)
         if res != 0:
             sys.exit(1)
-    release_lock(rsync_to_curc_lock)
+        release_lock(rsync_to_curc_lock)
 
     update_subset_info(subset_info_txt,key_list=['pre_status','pre_done_time'],info_list=['done',str(datetime.now())])
     # copy to remote machine
