@@ -19,6 +19,8 @@ machine_name = os.uname()[1]
 deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
 import vector_gpd
+import pandas as pd
+import geopandas as gpd
 import raster_io
 import basic_src.basic as basic
 import basic_src.timeTools as timeTools
@@ -27,6 +29,7 @@ import basic_src.io_function as io_function
 
 from multiprocessing import Pool
 from shapely.strtree import STRtree
+
 
 # object.parallel_offset
 
@@ -86,9 +89,62 @@ def test_calculate_hausdorff_dis():
     calculate_hausdorff_dis(line_list, max_extent=100, process_num=1)
     pass
 
+def one_line_ripple(idx, line, dataframe, delta=2, total_steps=50, max_extent=100):
+
+    # clip
+    mask = line.buffer(max_extent + 1)
+    # m_df = pd.DataFrame({'extent_polygon':[mask]})
+    # m_gdf = gpd.GeoDataFrame(m_df, geometry='extent_polygon')
+    clip_dataframe = gpd.clip(dataframe,mask,keep_geom_type=True)   # clip(gdf, mask, keep_geom_type=False)
+
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(figsize=(12, 8))
+    clip_dataframe.plot(ax=ax, color="purple")
+    dataframe.boundary.plot(ax=ax, color="red")
+    ax.set_title(" Clipped", fontsize=20)
+    ax.set_axis_off()
+    plt.show()
+
+    # buffer operations
+
+
+
+def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, max_extent=100, process_num=1):
+    '''
+    statistic lines information soemthing like a ripple using buffer operation
+    :param lines_multiTemporal_path: input path
+    :param delta: the increase of each buffer operation
+    :param total_steps: run buffer operation for  total_steps times
+    :param max_extent: max extent of a ripple
+    :param process_num:
+    :return:
+    '''
+
+    # read the data frame (lines and all attributes)
+    io_function.is_file_exist(lines_multiTemporal_path)
+    line_dataframe = gpd.read_file(lines_multiTemporal_path)
+
+    crop_ext = max(delta*total_steps, max_extent)
+
+    # initial
+    for ri, row in line_dataframe.iterrows():
+        line = row['geometry']
+        one_line_ripple(ri,line,line_dataframe,delta=delta, total_steps=total_steps, max_extent=crop_ext)
+
+
+
+
+
+def test_line_ripple_statistics():
+    data_dir = os.path.expanduser('~/Data/dem_processing/Alaska_grid10741_results')
+    lines_shp = os.path.join(data_dir,'dem_headwall_shp_grid/headwall_shps_grid10741/headwall_shp_multiDates_10741_subset.shp')
+
+    line_ripple_statistics(lines_shp, delta=2, total_steps=50, max_extent=100, process_num=1)
+
 
 def main(options, args):
-    test_calculate_hausdorff_dis()
+    # test_calculate_hausdorff_dis()
+    test_line_ripple_statistics()
 
     # lines_shp = args[0]
     # print(lines_shp)
