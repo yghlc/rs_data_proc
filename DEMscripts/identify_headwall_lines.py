@@ -29,7 +29,7 @@ import basic_src.io_function as io_function
 
 from multiprocessing import Pool
 from shapely.strtree import STRtree
-
+import numpy as np
 
 # object.parallel_offset
 
@@ -89,33 +89,92 @@ def test_calculate_hausdorff_dis():
     calculate_hausdorff_dis(line_list, max_extent=100, process_num=1)
     pass
 
-def one_line_ripple(idx, line, dataframe, delta=2, total_steps=50, max_extent=100):
+def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_extent=100, sim_range=[0.5, 2]):
 
     # clip
+    # max_extent = 50
     mask = line.buffer(max_extent + 1)
-    # m_df = pd.DataFrame({'extent_polygon':[mask]})
-    # m_gdf = gpd.GeoDataFrame(m_df, geometry='extent_polygon')
-    clip_dataframe = gpd.clip(dataframe,mask,keep_geom_type=True)   # clip(gdf, mask, keep_geom_type=False)
 
-    import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(figsize=(12, 8))
-    clip_dataframe.plot(ax=ax, color="purple")
-    dataframe.boundary.plot(ax=ax, color="red")
-    ax.set_title(" Clipped", fontsize=20)
-    ax.set_axis_off()
-    plt.show()
+    # got an error: IllegalArgumentException: Argument must be Polygonal or LinearRing
+    # uninstall pygeos on my Mac fix this problem
+    # clip cut some lines and create new lines, no good.
+    # clip_dataframe = gpd.clip(dataframe,mask,keep_geom_type=True)   # clip(gdf, mask, keep_geom_type=False)
+
+    intersects = dataframe.intersects(mask)# (dataframe,mask,keep_geom_type=True)
+    select_dataframe = dataframe[intersects]
+
+    # remove the "line" itself
+    select_dataframe.set_index('id',inplace=True)
+    select_dataframe = select_dataframe.drop(id) # ,inplace=True
+
+    # save results to check.
+    # # clip_dataframe.to_file('clip_results_%d.shp'%id, driver='ESRI Shapefile')  # save to checking
+    # select_dataframe.to_file('intersect_results_%d.shp' % id, driver='ESRI Shapefile')  # save to checking
+    # m_pd = pd.DataFrame({'ext_polygon':[mask]})
+    # vector_gpd.save_lines_to_files(m_pd,'ext_polygon',select_dataframe.crs,'masks_%d.shp'%id)
+
+
+    # plot figures to check
+    # import matplotlib.pyplot as plt
+    # fig, ax = plt.subplots(figsize=(12, 8))
+    # clip_dataframe.plot(ax=ax, color="purple")
+    # ax.set_title(" Clipped", fontsize=20)
+    # plt.show()
+    # sys.exit(1)
+
+
 
     # buffer operations
+    buffer_dis = 0.1
+    # only count these lines 1: have similar length with the center line, 2.not in the same year has been recorded.
+    line_count_per_step = np.zeros((total_steps,),dtype=np.uint16)
+    previous_inter = pd.Series([False]*len(select_dataframe), index=select_dataframe.index,dtype=bool)
+    min_length = line.length * sim_range[0]
+    max_length = line.length * sim_range[1]
+    recorded_Times = [lTime]
+
+    for step in range(total_steps):
+        dis = buffer_dis + delta*step
+        ripple_poly = line.buffer(dis)
+
+        b_inters = select_dataframe.intersects(ripple_poly) # pandas.Series type, True or False
+        # b_new = b_inters.drop_duplicates(previous)
+        # b_new = b_inters.compare(previous)
+        # b_new = b_inters.ne(previous)
+        b_inters[previous_inter] = False    # remove previous ones
+        # print(b_inters)
+        if not b_inters.any():  # "is False" not working
+            continue
+
+        new_dataframe = select_dataframe[b_inters]   # find new intersected lines
+        new_line_count = 0
+        # 1. have similar length with the center line,
+        # 2.not in the same year has been recorded.
+        for idx, row in new_dataframe.iterrows():
+            if min_length <= row['length_m'] <= max_length and row['dem_year'] not in recorded_Times:
+                new_line_count += 1
+                recorded_Times.append(row['dem_year'])
+        line_count_per_step[step] = new_line_count
+
+        # update previous iteration
+        previous_inter[b_inters] = True
+        if previous_inter.all():  # if all of them have been checked, quit
+            break
+
+    print(line_count_per_step)
 
 
 
-def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, max_extent=100, process_num=1):
+
+
+def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, max_extent=100, sim_range=[0.5, 2],process_num=1):
     '''
     statistic lines information soemthing like a ripple using buffer operation
     :param lines_multiTemporal_path: input path
     :param delta: the increase of each buffer operation
     :param total_steps: run buffer operation for  total_steps times
     :param max_extent: max extent of a ripple
+    :param sim_range: if a line is within a range of sim_range[0]*length to sim_range[1]*length, then consider them as similar
     :param process_num:
     :return:
     '''
@@ -129,7 +188,9 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
     # initial
     for ri, row in line_dataframe.iterrows():
         line = row['geometry']
-        one_line_ripple(ri,line,line_dataframe,delta=delta, total_steps=total_steps, max_extent=crop_ext)
+        if row['id'] != 709:
+            continue
+        one_line_ripple(row['id'],line, row['dem_year'], line_dataframe,delta=delta, total_steps=total_steps, max_extent=crop_ext,sim_range=sim_range)
 
 
 
