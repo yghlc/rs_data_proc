@@ -142,21 +142,39 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
             continue
 
         new_dataframe = select_dataframe[b_inters]   # find new intersected lines
+        # re-calculate the length within "ripple_poly"
+        # to avoid the problem that some portion of headwall don't retreat but other parts retreat over years.
+        inters_lines = new_dataframe.intersection(ripple_poly)
+        # got SettingWithCopyWarning when adding a new column to this
+        # new_dataframe.loc[:,'recal_len'] = inters_lines.length      # added length within the buffer zone
+
         new_line_count = 0
-        # 1. have similar length with the center line,
+        rm_index = []
+        # 1. have similar length (within buffer) with the center line,
         # 2.not in the same year has been recorded.
         for idx, row in new_dataframe.iterrows():
-            if min_length <= row['length_m'] <= max_length and row['dem_year'] not in recorded_Times:
+            if row['dem_year'] in recorded_Times:
+                rm_index.append(idx)
+                continue
+            if min_length <= inters_lines.length[idx] <= max_length:
                 new_line_count += 1
                 recorded_Times.append(row['dem_year'])
+                rm_index.append(idx)
+            elif inters_lines.length[idx] >= row['length_m']:
+                rm_index.append(idx)
+            else:
+                pass
         line_count_per_step[step] = new_line_count
 
         # remove the lines have been checked
-        select_dataframe = select_dataframe.drop(new_dataframe.index)
+        select_dataframe = select_dataframe.drop(rm_index)
         if len(select_dataframe) < 1:  # if all of them have been checked, quit
             break
 
-    print(line_count_per_step)
+    # print(line_count_per_step)
+    # print(recorded_Times)
+    # return np.sum(line_count_per_step) + 1       # +1 itself back
+    return len(recorded_Times)                     # same to the one above
 
 
 
