@@ -128,7 +128,7 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
     buffer_dis = 0.1
     # only count these lines 1: have similar length with the center line, 2.not in the same year has been recorded.
     line_count_per_step = np.zeros((total_steps,),dtype=np.uint16)
-    previous_inter = pd.Series([False]*len(select_dataframe), index=select_dataframe.index,dtype=bool)
+    # previous_inter = pd.Series([False]*len(select_dataframe), index=select_dataframe.index,dtype=bool)
     min_length = line.length * sim_range[0]
     max_length = line.length * sim_range[1]
     recorded_Times = [lTime]
@@ -138,11 +138,6 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
         ripple_poly = line.buffer(dis)
 
         b_inters = select_dataframe.intersects(ripple_poly) # pandas.Series type, True or False
-        # b_new = b_inters.drop_duplicates(previous)
-        # b_new = b_inters.compare(previous)
-        # b_new = b_inters.ne(previous)
-        b_inters[previous_inter] = False    # remove previous ones
-        # print(b_inters)
         if not b_inters.any():  # "is False" not working
             continue
 
@@ -156,9 +151,9 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
                 recorded_Times.append(row['dem_year'])
         line_count_per_step[step] = new_line_count
 
-        # update previous iteration
-        previous_inter[b_inters] = True
-        if previous_inter.all():  # if all of them have been checked, quit
+        # remove the lines have been checked
+        select_dataframe = select_dataframe.drop(new_dataframe.index)
+        if len(select_dataframe) < 1:  # if all of them have been checked, quit
             break
 
     print(line_count_per_step)
