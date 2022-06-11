@@ -171,13 +171,32 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
         if len(select_dataframe) < 1:  # if all of them have been checked, quit
             break
 
-    # print(line_count_per_step)
-    # print(recorded_Times)
+    print(line_count_per_step)
+    # print(recorded_Times,pd.Series(recorded_Times).is_monotonic_increasing, pd.Series(recorded_Times).is_monotonic_decreasing)  # be monotonically increasing
+
     # return np.sum(line_count_per_step) + 1       # +1 itself back
-    return len(recorded_Times)                     # same to the one above
+    # return len(recorded_Times)                     # same to the one above
+
+    # calculate ripple attributes
+    line_count_per_step[0] = 1  # add the started line back
+    # # min, max, and average distance of each ripple lines
+    non_zero_idx = np.where(line_count_per_step > 0)[0]
+    ripple_distance = non_zero_idx - np.roll(non_zero_idx,1)    # roll offset one element
+    ripple_distance = ripple_distance[1:]
+    if line_count_per_step.max() > 1:       # if two line overlap
+        min_ripple_delta = 0
+    else:
+        min_ripple_delta = ripple_distance.min()
+    max_ripple_delta = ripple_distance.max()
+    avg_ripple_delta = ripple_distance.mean()
 
 
+    #  be monotonically increasing or decreasing
+    time_series = pd.Series(recorded_Times)
+    b_mono_increase = time_series.is_monotonic_increasing   # likely an oldest headwall line
+    b_mono_decrease = time_series.is_monotonic_decreasing   # likely the most recent headwall line
 
+    return len(recorded_Times)
 
 
 def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, max_extent=100, sim_range=[0.5, 2],process_num=1):
@@ -201,10 +220,10 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
     # initial
     for ri, row in line_dataframe.iterrows():
         line = row['geometry']
-        if row['id'] != 709:
-            continue
-        one_line_ripple(row['id'],line, row['dem_year'], line_dataframe,delta=delta, total_steps=total_steps, max_extent=crop_ext,sim_range=sim_range)
-
+        # if row['id'] != 709:
+        #     continue
+        ripple_count = one_line_ripple(row['id'],line, row['dem_year'], line_dataframe,delta=delta, total_steps=total_steps, max_extent=crop_ext,sim_range=sim_range)
+        print(row['id'],ripple_count)
 
 
 
