@@ -192,9 +192,9 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
         if line_count_per_step.max() > 1:       # if two line overlap
             min_ripple_delta = 0
         else:
-            min_ripple_delta = ripple_distance.min()
-        max_ripple_delta = ripple_distance.max()
-        avg_ripple_delta = ripple_distance.mean()
+            min_ripple_delta = ripple_distance.min()*delta
+        max_ripple_delta = ripple_distance.max()*delta
+        avg_ripple_delta = ripple_distance.mean()*delta
 
 
     #  be monotonically increasing or decreasing
