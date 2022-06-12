@@ -283,11 +283,20 @@ def main(options, args):
     t0 = time.time()
 
     lines_shp = args[0]
+    process_num = options.process_num
+    buffer_delta = options.buffer_delta
+    total_steps = options.total_steps
+    max_extent = options.max_extent
+    lower_similarity = options.lower_similarity
+    upper_similarity = options.upper_similarity
+
+    sim_range = [lower_similarity,upper_similarity]
+
     # print(lines_shp)
 
     # read the vector files
-    # line_list, dem_year_list = vector_gpd.read_lines_attributes_list(lines_shp,'dem_year')
-    line_ripple_statistics(lines_shp, delta=2, total_steps=50, max_extent=100, sim_range=[0.5, 2], process_num=1)
+    line_ripple_statistics(lines_shp, delta=buffer_delta, total_steps=total_steps, max_extent=max_extent,
+                           sim_range=sim_range, process_num=process_num)
 
     print('total time cost of identify_headwall_lines.py', time.time() - t0, 'seconds')
 
@@ -302,9 +311,30 @@ if __name__ == '__main__':
     parser = OptionParser(usage=usage, version="1.0 2021-3-6")
     parser.description = 'Introduction: identify real headwall lines and thaw slumps  '
 
+    parser.add_option("-d", "--buffer_delta",
+                      action="store", dest="buffer_delta", type=float, default=2.0,
+                      help="the delta of each step of buffer operation")
+
+    parser.add_option("-t", "--total_steps",
+                      action="store", dest="total_steps", type=int, default=50,
+                      help="the total steps of buffer operation")
+
+    parser.add_option("-e", "--max_extent",
+                      action="store", dest="max_extent", type=float, default=100.0,
+                      help="the maximum extent to check the surrounding area of a line")
+
+    parser.add_option("-l", "--lower_similarity",
+                      action="store", dest="lower_similarity", type=float, default=0.5,
+                      help="the lower range to check if the length of a line is similar")
+
+    parser.add_option("-u", "--upper_similarity",
+                      action="store", dest="upper_similarity", type=float, default=2.0,
+                      help="the upper range to check if the length of a line is similar")
+
+
     parser.add_option("", "--process_num",
                       action="store", dest="process_num", type=int, default=4,
-                      help="number of processes to create the mosaic")
+                      help="number of processes to run")
 
     (options, args) = parser.parse_args()
     # print(options.create_mosaic)
