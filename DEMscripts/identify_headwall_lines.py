@@ -132,6 +132,7 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
     min_length = line.length * sim_range[0]
     max_length = line.length * sim_range[1]
     recorded_Times = [lTime]
+    line_id_list = [id]
 
     for step in range(total_steps):
         dis = buffer_dis + delta*step
@@ -159,6 +160,7 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
             if min_length <= row['length_m'] <= max_length:
                 new_line_count += 1
                 recorded_Times.append(row['dem_year'])
+                line_id_list.append(idx)    # previously, already set row['id'] as "index"
                 rm_index.append(idx)
             else:
                 rm_index.append(idx)
@@ -200,7 +202,7 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
     b_mono_increase = time_series.is_monotonic_increasing   # likely an oldest headwall line
     b_mono_decrease = time_series.is_monotonic_decreasing   # likely the most recent headwall line
 
-    return len(recorded_Times),b_mono_increase,b_mono_decrease,min_ripple_delta,max_ripple_delta,avg_ripple_delta
+    return len(recorded_Times),b_mono_increase,b_mono_decrease,min_ripple_delta,max_ripple_delta,avg_ripple_delta,line_id_list
 
 
 def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, max_extent=100, sim_range=[0.5, 2],process_num=1):
@@ -221,6 +223,9 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
 
     crop_ext = max(delta*total_steps, max_extent)
     total_count = len(line_dataframe)
+    if total_count < 1:
+        basic.outputlogMessage('No lines in %s'%lines_multiTemporal_path)
+        return False
 
     ripple_count_list = []
     b_mono_increase_list = []
@@ -228,10 +233,11 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
     min_ripple_delta_list = []
     max_ripple_delta_list = []
     avg_ripple_delta_list = []
+    line_ids_list = []
 
     if process_num==1:
         for ri, row in line_dataframe.iterrows():
-            ripple_count, b_mono_increase, b_mono_decrease, min_ripple_delta, max_ripple_delta, avg_ripple_delta \
+            ripple_count, b_mono_increase, b_mono_decrease, min_ripple_delta, max_ripple_delta, avg_ripple_delta, line_ids \
                 = one_line_ripple(row['id'],row['geometry'], row['dem_year'], line_dataframe,delta=delta,
                                   total_steps=total_steps, max_extent=crop_ext,sim_range=sim_range)
             ripple_count_list.append(ripple_count)
@@ -240,6 +246,7 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
             min_ripple_delta_list.append(min_ripple_delta)
             max_ripple_delta_list.append(max_ripple_delta)
             avg_ripple_delta_list.append(avg_ripple_delta)
+            line_ids_list.append('_'.join([str(item) for item in line_ids ]))
 
             print('%d/%d'%(ri,total_count),ripple_count, b_mono_increase, b_mono_decrease, min_ripple_delta, max_ripple_delta, avg_ripple_delta)
     elif process_num > 1:
@@ -254,6 +261,7 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
             min_ripple_delta_list.append(res[3])
             max_ripple_delta_list.append(res[4])
             avg_ripple_delta_list.append(res[5])
+            line_ids_list.append('_'.join([str(item) for item in res[6] ]))
     else:
         raise ValueError('uknown process_num %s'%str(process_num))
 
@@ -263,7 +271,8 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
                      'mono_decre':b_mono_decrease_list,
                      'minRdelta':min_ripple_delta_list,
                      'maxRdelta':max_ripple_delta_list,
-                     'avgRdelta':avg_ripple_delta_list}
+                     'avgRdelta':avg_ripple_delta_list,
+                      'line_ids':line_ids_list}
     vector_gpd.add_attributes_to_shp(lines_multiTemporal_path,add_attributes)
     basic.outputlogMessage('Save ripple attributes into %s'%lines_multiTemporal_path)
 
