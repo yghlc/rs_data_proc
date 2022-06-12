@@ -223,16 +223,50 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
     crop_ext = max(delta*total_steps, max_extent)
     total_count = len(line_dataframe)
 
-    # initial
-    for ri, row in line_dataframe.iterrows():
-        line = row['geometry']
-        # if row['id'] != 709:
-        #     continue
-        ripple_count, b_mono_increase, b_mono_decrease, min_ripple_delta, max_ripple_delta, avg_ripple_delta \
-            = one_line_ripple(row['id'],line, row['dem_year'], line_dataframe,delta=delta,
-                              total_steps=total_steps, max_extent=crop_ext,sim_range=sim_range)
-        print('%d/%d'%(ri,total_count),ripple_count, b_mono_increase, b_mono_decrease, min_ripple_delta, max_ripple_delta, avg_ripple_delta)
+    ripple_count_list = []
+    b_mono_increase_list = []
+    b_mono_decrease_list = []
+    min_ripple_delta_list = []
+    max_ripple_delta_list = []
+    avg_ripple_delta_list = []
 
+    if process_num==1:
+        for ri, row in line_dataframe.iterrows():
+            ripple_count, b_mono_increase, b_mono_decrease, min_ripple_delta, max_ripple_delta, avg_ripple_delta \
+                = one_line_ripple(row['id'],row['geometry'], row['dem_year'], line_dataframe,delta=delta,
+                                  total_steps=total_steps, max_extent=crop_ext,sim_range=sim_range)
+            ripple_count_list.append(ripple_count)
+            b_mono_increase_list.append(b_mono_increase)
+            b_mono_decrease_list.append(b_mono_decrease)
+            min_ripple_delta_list.append(min_ripple_delta)
+            max_ripple_delta_list.append(max_ripple_delta)
+            avg_ripple_delta_list.append(avg_ripple_delta)
+
+            print('%d/%d'%(ri,total_count),ripple_count, b_mono_increase, b_mono_decrease, min_ripple_delta, max_ripple_delta, avg_ripple_delta)
+    elif process_num > 1:
+        threadpool = Pool(process_num)
+        para_list = [(row['id'],row['geometry'], row['dem_year'],line_dataframe,delta,total_steps,crop_ext,sim_range) for ri, row in line_dataframe.iterrows()]
+        stats_res_list = threadpool.starmap(one_line_ripple, para_list)
+        threadpool.close()
+        for res in stats_res_list:
+            ripple_count_list.append(res[0])
+            b_mono_increase_list.append(res[1])
+            b_mono_decrease_list.append(res[2])
+            min_ripple_delta_list.append(res[3])
+            max_ripple_delta_list.append(res[4])
+            avg_ripple_delta_list.append(res[5])
+    else:
+        raise ValueError('uknown process_num %s'%str(process_num))
+
+    # save attributes into shapefile
+    add_attributes = {'ri_count':ripple_count_list,
+                     'mono_incre':b_mono_increase_list,
+                     'mono_decre':b_mono_decrease_list,
+                     'minRdelta':min_ripple_delta_list,
+                     'maxRdelta':max_ripple_delta_list,
+                     'avgRdelta':avg_ripple_delta_list}
+    vector_gpd.add_attributes_to_shp(lines_multiTemporal_path,add_attributes)
+    basic.outputlogMessage('Save ripple attributes into %s'%lines_multiTemporal_path)
 
 
 
