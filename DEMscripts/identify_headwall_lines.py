@@ -100,8 +100,8 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
     # clip cut some lines and create new lines, no good.
     # clip_dataframe = gpd.clip(dataframe,mask,keep_geom_type=True)   # clip(gdf, mask, keep_geom_type=False)
 
-    intersects = dataframe.intersects(mask)# (dataframe,mask,keep_geom_type=True)
-    select_dataframe = dataframe[intersects]
+    b_within = dataframe.within(mask)# (dataframe,mask,keep_geom_type=True)
+    select_dataframe = dataframe[b_within]
 
     # remove the "line" itself
     select_dataframe.set_index('id',inplace=True)
@@ -137,14 +137,14 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
         dis = buffer_dis + delta*step
         ripple_poly = line.buffer(dis)
 
-        b_inters = select_dataframe.intersects(ripple_poly) # pandas.Series type, True or False
-        if not b_inters.any():  # "is False" not working
+        b_ins = select_dataframe.within(ripple_poly) # pandas.Series type, True or False
+        if not b_ins.any():  # "is False" not working
             continue
 
-        new_dataframe = select_dataframe[b_inters]   # find new intersected lines
+        new_dataframe = select_dataframe[b_ins]   # find new contained lines
         # re-calculate the length within "ripple_poly"
         # to avoid the problem that some portion of headwall don't retreat but other parts retreat over years.
-        inters_lines = new_dataframe.intersection(ripple_poly)
+        # inters_lines = new_dataframe.intersection(ripple_poly)
         # got SettingWithCopyWarning when adding a new column to this
         # new_dataframe.loc[:,'recal_len'] = inters_lines.length      # added length within the buffer zone
 
@@ -156,14 +156,13 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
             if row['dem_year'] in recorded_Times:
                 rm_index.append(idx)
                 continue
-            if min_length <= inters_lines.length[idx] <= max_length:
+            if min_length <= row['length_m'] <= max_length:
                 new_line_count += 1
                 recorded_Times.append(row['dem_year'])
                 rm_index.append(idx)
-            elif inters_lines.length[idx] >= row['length_m']:
-                rm_index.append(idx)
             else:
-                pass
+                rm_index.append(idx)
+
         line_count_per_step[step] = new_line_count
 
         # remove the lines have been checked
