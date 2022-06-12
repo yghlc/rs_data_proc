@@ -171,7 +171,7 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
         if len(select_dataframe) < 1:  # if all of them have been checked, quit
             break
 
-    print(line_count_per_step)
+    # print(line_count_per_step)
     # print(recorded_Times,pd.Series(recorded_Times).is_monotonic_increasing, pd.Series(recorded_Times).is_monotonic_decreasing)  # be monotonically increasing
 
     # return np.sum(line_count_per_step) + 1       # +1 itself back
@@ -181,14 +181,19 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
     line_count_per_step[0] = 1  # add the started line back
     # # min, max, and average distance of each ripple lines
     non_zero_idx = np.where(line_count_per_step > 0)[0]
-    ripple_distance = non_zero_idx - np.roll(non_zero_idx,1)    # roll offset one element
-    ripple_distance = ripple_distance[1:]
-    if line_count_per_step.max() > 1:       # if two line overlap
-        min_ripple_delta = 0
+    if len(non_zero_idx) <= 1:
+        min_ripple_delta = None
+        max_ripple_delta = None
+        avg_ripple_delta = None
     else:
-        min_ripple_delta = ripple_distance.min()
-    max_ripple_delta = ripple_distance.max()
-    avg_ripple_delta = ripple_distance.mean()
+        ripple_distance = non_zero_idx - np.roll(non_zero_idx,1)    # roll offset one element
+        ripple_distance = ripple_distance[1:]
+        if line_count_per_step.max() > 1:       # if two line overlap
+            min_ripple_delta = 0
+        else:
+            min_ripple_delta = ripple_distance.min()
+        max_ripple_delta = ripple_distance.max()
+        avg_ripple_delta = ripple_distance.mean()
 
 
     #  be monotonically increasing or decreasing
@@ -196,7 +201,7 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
     b_mono_increase = time_series.is_monotonic_increasing   # likely an oldest headwall line
     b_mono_decrease = time_series.is_monotonic_decreasing   # likely the most recent headwall line
 
-    return len(recorded_Times)
+    return len(recorded_Times),b_mono_increase,b_mono_decrease,min_ripple_delta,max_ripple_delta,avg_ripple_delta
 
 
 def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, max_extent=100, sim_range=[0.5, 2],process_num=1):
@@ -216,14 +221,17 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
     line_dataframe = gpd.read_file(lines_multiTemporal_path)
 
     crop_ext = max(delta*total_steps, max_extent)
+    total_count = len(line_dataframe)
 
     # initial
     for ri, row in line_dataframe.iterrows():
         line = row['geometry']
         # if row['id'] != 709:
         #     continue
-        ripple_count = one_line_ripple(row['id'],line, row['dem_year'], line_dataframe,delta=delta, total_steps=total_steps, max_extent=crop_ext,sim_range=sim_range)
-        print(row['id'],ripple_count)
+        ripple_count, b_mono_increase, b_mono_decrease, min_ripple_delta, max_ripple_delta, avg_ripple_delta \
+            = one_line_ripple(row['id'],line, row['dem_year'], line_dataframe,delta=delta,
+                              total_steps=total_steps, max_extent=crop_ext,sim_range=sim_range)
+        print('%d/%d'%(ri,total_count),ripple_count, b_mono_increase, b_mono_decrease, min_ripple_delta, max_ripple_delta, avg_ripple_delta)
 
 
 
@@ -237,13 +245,17 @@ def test_line_ripple_statistics():
 
 def main(options, args):
     # test_calculate_hausdorff_dis()
-    test_line_ripple_statistics()
+    # test_line_ripple_statistics()
+    t0 = time.time()
 
-    # lines_shp = args[0]
+    lines_shp = args[0]
     # print(lines_shp)
 
     # read the vector files
     # line_list, dem_year_list = vector_gpd.read_lines_attributes_list(lines_shp,'dem_year')
+    line_ripple_statistics(lines_shp, delta=2, total_steps=50, max_extent=100, sim_range=[0.5, 2], process_num=1)
+
+    print('total time cost of identify_headwall_lines.py', time.time() - t0, 'seconds')
 
 
 
