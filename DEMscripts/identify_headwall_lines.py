@@ -33,6 +33,11 @@ from shapely.strtree import STRtree
 import numpy as np
 import math
 
+# ignore shapely 1.8.0 warning.
+import warnings
+from shapely.errors import ShapelyDeprecationWarning
+warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
+
 # object.parallel_offset
 
 def calculate_one_hausdorff_dis_closest(center_obj, geometry_list, max_extent=None):
@@ -386,6 +391,7 @@ def main(options, args):
     # test_calculate_hausdorff_dis()
     # test_line_ripple_statistics()
     # test_calculate_headwall_move()
+
     t0 = time.time()
 
     lines_shp = args[0]
