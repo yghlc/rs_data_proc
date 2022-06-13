@@ -332,11 +332,11 @@ if __name__ == '__main__':
                       help="the maximum extent to check the surrounding area of a line")
 
     parser.add_option("-l", "--lower_similarity",
-                      action="store", dest="lower_similarity", type=float, default=0.5,
+                      action="store", dest="lower_similarity", type=float, default=0.3,
                       help="the lower range to check if the length of a line is similar")
 
     parser.add_option("-u", "--upper_similarity",
-                      action="store", dest="upper_similarity", type=float, default=2.0,
+                      action="store", dest="upper_similarity", type=float, default=3.0,
                       help="the upper range to check if the length of a line is similar")
 
 
