@@ -95,7 +95,7 @@ def test_calculate_hausdorff_dis():
 def calculate_headwall_move(line_list, save_path=None, prj=None):
     # calculate the attributes of headwall movement
     # line_list: line in this list should be in chronological order, either increase or decrease
-    if len(line_list) < 3:
+    if len(line_list) < 2:
         basic.outputlogMessage('Error, need at least two lines for tracking headwall movement')
         return None, None
 
