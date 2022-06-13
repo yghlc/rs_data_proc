@@ -21,6 +21,7 @@ sys.path.insert(0, deeplabforRS)
 import vector_gpd
 import pandas as pd
 import geopandas as gpd
+from shapely.geometry import Point
 import raster_io
 import basic_src.basic as basic
 import basic_src.timeTools as timeTools
@@ -30,6 +31,7 @@ import basic_src.io_function as io_function
 from multiprocessing import Pool
 from shapely.strtree import STRtree
 import numpy as np
+import math
 
 # object.parallel_offset
 
@@ -88,6 +90,66 @@ def test_calculate_hausdorff_dis():
     line_list, dem_year_list = vector_gpd.read_lines_attributes_list(lines_shp, 'dem_year')
     calculate_hausdorff_dis(line_list, max_extent=100, process_num=1)
     pass
+
+
+def calculate_headwall_move(line_list, save_path=None, prj=None):
+    # calculate the attributes of headwall movement
+    # line_list: line in this list should be in chronological order, either increase or decrease
+    if len(line_list) < 3:
+        basic.outputlogMessage('Error, need at least two lines for tracking headwall movement')
+        return None, None
+
+    # get geometric centroid of each line
+    cen_points = [item.centroid for item in line_list]
+
+    # centroid to a line indicating headwall movement
+    line_move = vector_gpd.points_to_LineString(cen_points)
+
+    if len(cen_points) == 2:
+        return 1, 0
+
+    # calculate the attributes of the line of movement
+    straight_length = cen_points[0].distance(cen_points[-1])
+    real_length = line_move.length
+    sinuosity = real_length/straight_length
+
+    rectangle = line_move.minimum_rotated_rectangle
+    # points = list(rectangle.boundary.coords)
+    points = np.asarray(rectangle.boundary)
+    point1 = Point(points[0])
+    point2 = Point(points[1])
+    point3 = Point(points[2])
+    width = point1.distance(point2)
+    height = point2.distance(point3)
+    # assume width is smaller than height, for headwall, smaller is better
+    width_height_ratio = width/height if width < height else height/width
+
+    # save to check
+    if save_path is not None and prj is not None:
+        save_data = pd.DataFrame({'line':[line_move],'sinuosity':[sinuosity], 'ratio':[width_height_ratio]})
+        vector_gpd.save_lines_to_files(save_data,'line',prj,save_path)
+        print('save to %s'%save_path)
+
+
+    return sinuosity, width_height_ratio
+
+
+def test_calculate_headwall_move():
+
+    data_dir = os.path.expanduser('~/Data/dem_processing/Alaska_grid10741_results')
+    lines_shp = os.path.join(data_dir,'dem_headwall_shp_grid/headwall_shps_grid10741/headwall_shp_multiDates_10741_subset2.shp')
+
+    line_list, years = vector_gpd.read_lines_attributes_list(lines_shp, 'dem_year')
+
+    # order
+    zipped_list = zip(years, line_list)
+    sorted_lines = [ line for year, line in sorted(zipped_list) ]
+
+    save_path = io_function.get_name_by_adding_tail(lines_shp, 'headwallMOVE')
+    prj_info = map_projection.get_raster_or_vector_srs_info_proj4(lines_shp)
+
+    calculate_headwall_move(sorted_lines,save_path=save_path, prj=prj_info)
+
 
 def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_extent=100, sim_range=[0.5, 2]):
 
@@ -207,6 +269,8 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
     # calculate hausdorff distance
     min_ha_dis = None
     max_ha_dis = None
+    sinuosity = None
+    width_height_ratio = None
     if b_mono_increase or b_mono_decrease:
         if len(line_geometry_list) > 1:
             hausdorff_dis_list = [line_geometry_list[ii].hausdorff_distance(line_geometry_list[ii+1])
@@ -214,9 +278,11 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
             min_ha_dis = min(hausdorff_dis_list)
             max_ha_dis = max(hausdorff_dis_list)
 
+            # calculate the attributes of headwall movement
+            sinuosity, width_height_ratio = calculate_headwall_move(line_geometry_list)
 
-
-    return len(recorded_Times),b_mono_increase,b_mono_decrease,min_ripple_delta,max_ripple_delta,avg_ripple_delta,min_ha_dis,max_ha_dis,line_id_list
+    return len(recorded_Times),b_mono_increase,b_mono_decrease,min_ripple_delta,max_ripple_delta,avg_ripple_delta,\
+           min_ha_dis,max_ha_dis,sinuosity, width_height_ratio,line_id_list
 
 
 def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, max_extent=100, sim_range=[0.5, 2],process_num=1):
@@ -249,12 +315,14 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
     avg_ripple_delta_list = []
     min_ha_dis_list = []        # hausdorff distance
     max_ha_dis_list = []
+    sinuosity_list = []         # the arrtibute of headwall movement
+    w_h_ratio_list = []
     line_ids_list = []
 
     if process_num==1:
         for ri, row in line_dataframe.iterrows():
             ripple_count, b_mono_increase, b_mono_decrease, min_ripple_delta, max_ripple_delta, avg_ripple_delta, \
-            min_ha_dis,max_ha_dis,line_ids \
+            min_ha_dis,max_ha_dis,sinuosity,w_h_ratio,line_ids \
                 = one_line_ripple(row['id'],row['geometry'], row['dem_year'], line_dataframe,delta=delta,
                                   total_steps=total_steps, max_extent=crop_ext,sim_range=sim_range)
             ripple_count_list.append(ripple_count)
@@ -265,6 +333,8 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
             avg_ripple_delta_list.append(avg_ripple_delta)
             min_ha_dis_list.append(min_ha_dis)
             max_ha_dis_list.append(max_ha_dis)
+            sinuosity_list.append(sinuosity)
+            w_h_ratio_list.append(w_h_ratio)
             line_ids_list.append('_'.join([str(item) for item in line_ids ]))
 
             print('%d/%d'%(ri,total_count),ripple_count, b_mono_increase, b_mono_decrease, min_ripple_delta, max_ripple_delta, avg_ripple_delta)
@@ -282,7 +352,9 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
             avg_ripple_delta_list.append(res[5])
             min_ha_dis_list.append(res[6])
             max_ha_dis_list.append(res[7])
-            line_ids_list.append('_'.join([str(item) for item in res[8] ]))
+            sinuosity_list.append(res[8])
+            w_h_ratio_list.append(res[9])
+            line_ids_list.append('_'.join([str(item) for item in res[10] ]))
     else:
         raise ValueError('uknown process_num %s'%str(process_num))
 
@@ -295,6 +367,8 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
                      'avgRdelta':avg_ripple_delta_list,
                      'min_ha_dis':min_ha_dis_list,
                      'max_ha_dis':max_ha_dis_list,
+                      'move_sinu':sinuosity_list,
+                      'move_ratio':w_h_ratio_list,
                       'line_ids':line_ids_list}
     vector_gpd.add_attributes_to_shp(lines_multiTemporal_path,add_attributes)
     basic.outputlogMessage('Save ripple attributes into %s'%lines_multiTemporal_path)
@@ -311,6 +385,7 @@ def test_line_ripple_statistics():
 def main(options, args):
     # test_calculate_hausdorff_dis()
     # test_line_ripple_statistics()
+    # test_calculate_headwall_move()
     t0 = time.time()
 
     lines_shp = args[0]
@@ -325,7 +400,7 @@ def main(options, args):
 
     # print(lines_shp)
 
-    # read the vector files
+    #
     line_ripple_statistics(lines_shp, delta=buffer_delta, total_steps=total_steps, max_extent=max_extent,
                            sim_range=sim_range, process_num=process_num)
 
