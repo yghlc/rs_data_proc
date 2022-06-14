@@ -389,7 +389,7 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
                      'min_ha_dis':min_ha_dis_list,
                      'max_ha_dis':max_ha_dis_list,
                       'move_sinu':sinuosity_list,
-                      'move_minAng':min_angle_list,
+                      'move_minAn':min_angle_list,
                       'line_ids':line_ids_list}
     vector_gpd.add_attributes_to_shp(lines_multiTemporal_path,add_attributes)
     basic.outputlogMessage('Save ripple attributes into %s'%lines_multiTemporal_path)
@@ -444,11 +444,11 @@ if __name__ == '__main__':
                       help="the delta of each step of buffer operation")
 
     parser.add_option("-t", "--total_steps",
-                      action="store", dest="total_steps", type=int, default=50,
+                      action="store", dest="total_steps", type=int, default=75,
                       help="the total steps of buffer operation")
 
     parser.add_option("-e", "--max_extent",
-                      action="store", dest="max_extent", type=float, default=100.0,
+                      action="store", dest="max_extent", type=float, default=150.0,
                       help="the maximum extent to check the surrounding area of a line")
 
     parser.add_option("-l", "--lower_similarity",
