@@ -260,8 +260,9 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
         if merge_multi_headwall_shp_to_one(headwall_shp_list, save_merged_shp) is False:
             continue
 
-        line_ripple_statistics(save_merged_shp, delta=buffer_delta, total_steps=total_steps, max_extent=max_extent,
-                               sim_range=sim_range, process_num=process_num)
+        # temporally cancel this, it's time-consuming.
+        # line_ripple_statistics(save_merged_shp, delta=buffer_delta, total_steps=total_steps, max_extent=max_extent,
+        #                        sim_range=sim_range, process_num=process_num)
 
         # have not find a good method to merge them, just copy all of them now
         # res = os.system('cp -r %s %s'%(multi_headwall_shp_dir,save_headwall_folder))
