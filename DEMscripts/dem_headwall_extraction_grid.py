@@ -48,6 +48,15 @@ max_length = 2000    # in pixels
 max_hole_count = 10    # increase to 10, for some big rts also
 # max_unwanted_line_pixel = 5 # in pixels
 
+from identify_headwall_lines import line_ripple_statistics
+# parameters for ripple statistics
+buffer_delta = 2.0
+total_steps = 75
+max_extent = 150
+lower_similarity = 0.3
+upper_similarity = 3.0
+sim_range = [lower_similarity, upper_similarity]
+
 
 from produce_DEM_diff_ArcticDEM import get_grid_20
 from dem_mosaic_crop import get_dem_tif_ext_polygons
@@ -250,6 +259,9 @@ def extract_headwall_grids(grid_polys, grid_ids, pre_name,reg_tifs,b_mosaic_id,
         save_merged_shp = os.path.join(save_headwall_folder, 'headwall_shp_multiDates_%d.shp' % grid_id)
         if merge_multi_headwall_shp_to_one(headwall_shp_list, save_merged_shp) is False:
             continue
+
+        line_ripple_statistics(save_merged_shp, delta=buffer_delta, total_steps=total_steps, max_extent=max_extent,
+                               sim_range=sim_range, process_num=process_num)
 
         # have not find a good method to merge them, just copy all of them now
         # res = os.system('cp -r %s %s'%(multi_headwall_shp_dir,save_headwall_folder))
