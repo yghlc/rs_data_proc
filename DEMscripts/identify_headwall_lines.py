@@ -403,6 +403,27 @@ def test_line_ripple_statistics():
     line_ripple_statistics(lines_shp, delta=2, total_steps=50, max_extent=100, process_num=1)
 
 
+def filter_potential_headwall_lines(lines_shp, save_path, format='ESRI Shapefile'):
+    dataframe= gpd.read_file(lines_shp)
+    nrow, ncol = dataframe.shape
+
+    select_idx_list = []
+    selected_list = [False] * nrow
+    for idx,row in dataframe.iterrows():
+        if row['ri_count'] > 2:     # at least, there are three
+            if row['mono_incre'] > 0 or row['mono_decre'] > 0:
+                if row['move_sinu'] < 2 and row['move_minAn'] >90:
+                    select_idx_list.append(idx)
+                    selected_list[idx] = True
+
+    # save to file
+    save_count = len(select_idx_list)
+    dataframe_sub = dataframe[selected_list]
+    dataframe_sub.to_file(save_path, driver=format)
+    basic.outputlogMessage('select %d geometry from %d ones and saved to %s'%(save_count,nrow,save_path))
+
+    return True
+
 def main(options, args):
     # test_calculate_hausdorff_dis()
     # test_line_ripple_statistics()
@@ -419,12 +440,24 @@ def main(options, args):
     upper_similarity = options.upper_similarity
 
     sim_range = [lower_similarity,upper_similarity]
+    b_re_calculate = options.re_calculate
 
     # print(lines_shp)
+    select_headwall_lines = io_function.get_name_by_adding_tail(lines_shp,'rippleSel')
+    if os.path.isfile(select_headwall_lines):
+        basic.outputlogMessage('%s exists, skip'%select_headwall_lines)
+        return
 
-    #
-    line_ripple_statistics(lines_shp, delta=buffer_delta, total_steps=total_steps, max_extent=max_extent,
-                           sim_range=sim_range, process_num=process_num)
+    #  calculate attributes related to headwall movement, like a ripple in time
+    if vector_gpd.is_field_name_in_shp(lines_shp, 'ri_count') is False or b_re_calculate:
+        line_ripple_statistics(lines_shp, delta=buffer_delta, total_steps=total_steps, max_extent=max_extent,
+                               sim_range=sim_range, process_num=process_num)
+    else:
+        basic.outputlogMessage('the value of ripple statistics already exists: %s, '
+                               'please set --re_calculate if want to re-run'%lines_shp)
+
+    # select lines that are highly like a headwall line
+    filter_potential_headwall_lines(lines_shp,select_headwall_lines)
 
     print('total time cost of identify_headwall_lines.py', time.time() - t0, 'seconds')
 
@@ -458,6 +491,10 @@ if __name__ == '__main__':
     parser.add_option("-u", "--upper_similarity",
                       action="store", dest="upper_similarity", type=float, default=3.0,
                       help="the upper range to check if the length of a line is similar")
+
+    parser.add_option("-r", "--re_calculate",
+                      action="store_true", dest="re_calculate",default=False,
+                      help="if set, will re-run ripple statistics even the values already exists")
 
 
     parser.add_option("", "--process_num",
