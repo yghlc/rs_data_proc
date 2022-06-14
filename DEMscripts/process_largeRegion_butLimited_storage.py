@@ -825,6 +825,7 @@ def main(options, args):
                     subset_id = 999999
                     select_grids_shp = os.path.join(subset_shp_dir, io_function.get_name_no_ext(extent_shp) + '_sub%d' % subset_id + '.shp')
                     save_selected_girds_and_ids(selected_gird_ids, select_grid_polys, gird_prj, select_grids_shp)
+                    break
 
                 else:
                     select_grids_shp = os.path.join(subset_shp_dir, io_function.get_name_no_ext(extent_shp) + '_sub%d' % subset_id + '.shp')
