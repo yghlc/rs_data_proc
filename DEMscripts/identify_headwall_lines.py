@@ -111,32 +111,48 @@ def calculate_headwall_move(line_list, save_path=None, prj=None):
     line_move = vector_gpd.points_to_LineString(cen_points)
 
     if len(cen_points) == 2:
-        return 1, 0
+        # return 1, 0     # sinuosity, width_height_ratio
+        # return 0, 0     # min angle, max angle.
+        return 1, 0     # sinuosity, min angle.
 
     # calculate the attributes of the line of movement
     straight_length = cen_points[0].distance(cen_points[-1])
     real_length = line_move.length
     sinuosity = real_length/straight_length
 
-    rectangle = line_move.minimum_rotated_rectangle
-    # points = list(rectangle.boundary.coords)
-    points = np.asarray(rectangle.boundary)
-    point1 = Point(points[0])
-    point2 = Point(points[1])
-    point3 = Point(points[2])
-    width = point1.distance(point2)
-    height = point2.distance(point3)
-    # assume width is smaller than height, for headwall, smaller is better
-    width_height_ratio = width/height if width < height else height/width
+    # rectangle = line_move.minimum_rotated_rectangle
+    # # points = list(rectangle.boundary.coords)
+    # points = np.asarray(rectangle.boundary)
+    # point1 = Point(points[0])
+    # point2 = Point(points[1])
+    # point3 = Point(points[2])
+    # width = point1.distance(point2)
+    # height = point2.distance(point3)
+    # # assume width is smaller than height, for headwall, smaller is better
+    # width_height_ratio = width/height if width < height else height/width
+
+    # calculate angles between lines
+    # ref: https://stackoverflow.com/questions/28260962/calculating-angles-between-line-segments-python-with-math-atan2
+    angle_list = [] # angle in degree
+    point_array = [ np.array(item) for item in cen_points]
+    for idx in range(len(cen_points)-2):
+        vecA = point_array[idx] - point_array[idx+1]
+        vecB = point_array[idx+2] - point_array[idx+1]
+
+        cos_a = np.dot(vecA,vecB)/(np.linalg.norm(vecA)*np.linalg.norm(vecB))
+        angle_list.append(math.degrees(math.acos(cos_a)))
+    # print(angle_list)
 
     # save to check
     if save_path is not None and prj is not None:
-        save_data = pd.DataFrame({'line':[line_move],'sinuosity':[sinuosity], 'ratio':[width_height_ratio]})
+        # save_data = pd.DataFrame({'line':[line_move],'sinuosity':[sinuosity], 'ratio':[width_height_ratio]})
+        save_data = pd.DataFrame({'line':[line_move],'sinuosity':[sinuosity],'min_angle':[min(angle_list)]})
         vector_gpd.save_lines_to_files(save_data,'line',prj,save_path)
         print('save to %s'%save_path)
 
 
-    return sinuosity, width_height_ratio
+    # return sinuosity, width_height_ratio
+    return sinuosity,min(angle_list)
 
 
 def test_calculate_headwall_move():
@@ -275,7 +291,7 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
     min_ha_dis = None
     max_ha_dis = None
     sinuosity = None
-    width_height_ratio = None
+    min_angle = None
     if b_mono_increase or b_mono_decrease:
         if len(line_geometry_list) > 1:
             hausdorff_dis_list = [line_geometry_list[ii].hausdorff_distance(line_geometry_list[ii+1])
@@ -284,10 +300,10 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
             max_ha_dis = max(hausdorff_dis_list)
 
             # calculate the attributes of headwall movement
-            sinuosity, width_height_ratio = calculate_headwall_move(line_geometry_list)
+            sinuosity, min_angle = calculate_headwall_move(line_geometry_list)
 
     return len(recorded_Times),b_mono_increase,b_mono_decrease,min_ripple_delta,max_ripple_delta,avg_ripple_delta,\
-           min_ha_dis,max_ha_dis,sinuosity, width_height_ratio,line_id_list
+           min_ha_dis,max_ha_dis,sinuosity, min_angle,line_id_list
 
 
 def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, max_extent=100, sim_range=[0.5, 2],process_num=1):
@@ -321,13 +337,13 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
     min_ha_dis_list = []        # hausdorff distance
     max_ha_dis_list = []
     sinuosity_list = []         # the arrtibute of headwall movement
-    w_h_ratio_list = []
+    min_angle_list = []
     line_ids_list = []
 
     if process_num==1:
         for ri, row in line_dataframe.iterrows():
             ripple_count, b_mono_increase, b_mono_decrease, min_ripple_delta, max_ripple_delta, avg_ripple_delta, \
-            min_ha_dis,max_ha_dis,sinuosity,w_h_ratio,line_ids \
+            min_ha_dis,max_ha_dis,sinuosity,min_angle,line_ids \
                 = one_line_ripple(row['id'],row['geometry'], row['dem_year'], line_dataframe,delta=delta,
                                   total_steps=total_steps, max_extent=crop_ext,sim_range=sim_range)
             ripple_count_list.append(ripple_count)
@@ -339,7 +355,7 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
             min_ha_dis_list.append(min_ha_dis)
             max_ha_dis_list.append(max_ha_dis)
             sinuosity_list.append(sinuosity)
-            w_h_ratio_list.append(w_h_ratio)
+            min_angle_list.append(min_angle)
             line_ids_list.append('_'.join([str(item) for item in line_ids ]))
 
             print('%d/%d'%(ri,total_count),ripple_count, b_mono_increase, b_mono_decrease, min_ripple_delta, max_ripple_delta, avg_ripple_delta)
@@ -358,7 +374,7 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
             min_ha_dis_list.append(res[6])
             max_ha_dis_list.append(res[7])
             sinuosity_list.append(res[8])
-            w_h_ratio_list.append(res[9])
+            min_angle_list.append(res[9])
             line_ids_list.append('_'.join([str(item) for item in res[10] ]))
     else:
         raise ValueError('uknown process_num %s'%str(process_num))
@@ -373,7 +389,7 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
                      'min_ha_dis':min_ha_dis_list,
                      'max_ha_dis':max_ha_dis_list,
                       'move_sinu':sinuosity_list,
-                      'move_ratio':w_h_ratio_list,
+                      'move_minAng':min_angle_list,
                       'line_ids':line_ids_list}
     vector_gpd.add_attributes_to_shp(lines_multiTemporal_path,add_attributes)
     basic.outputlogMessage('Save ripple attributes into %s'%lines_multiTemporal_path)
