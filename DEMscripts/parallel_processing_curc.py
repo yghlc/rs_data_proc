@@ -458,7 +458,7 @@ def submit_headwall_ripple_job(headwall_shp_list, idx,max_job_count):
         io_function.save_list_to_txt('headwall_shp_list.txt', headwall_shp_list)
 
         # run segmentation
-        sh_list = ['headwall_ripple_stastics.sh', 'job_headwall_ripple.sh']
+        sh_list = ['headwall_ripple_stastics.sh', 'job_headwall_ripple.sh','setting.ini']
         copy_curc_job_files(jobsh_dir, work_dir, sh_list)
         slurm_utility.modify_slurm_job_sh('job_headwall_ripple.sh', 'job-name', job_name)
 

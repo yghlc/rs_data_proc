@@ -12,6 +12,13 @@ import os,sys
 import re
 
 machine_name = os.uname()[1]
+import time
+from datetime import datetime
+
+deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
+sys.path.insert(0, deeplabforRS)
+import basic_src.io_function as io_function
+import parameters
 
 # some folder paths
 if machine_name == 'uist-int-colorado-edu':
@@ -32,6 +39,12 @@ elif 'login' in machine_name or 'shas' in machine_name or 'sgpu' in machine_name
 else:
     ArcticDEM_tmp_dir = './'
     data_dir = './'
+
+setting_ini = 'setting.ini'
+if os.path.isfile(setting_ini):
+    ArcticDEM_tmp_dir = parameters.get_directory(setting_ini,'ArcticDEM_tmp_dir')
+    data_dir = parameters.get_directory(setting_ini,'data_dir')
+
 
 # tarball_dir = os.path.join(ArcticDEM_tmp_dir,'tarballs')    # strip version of ArcticDEM
 tarball_dir = 'tarballs'    # strip version of ArcticDEM
@@ -106,6 +119,9 @@ grid_no_headwall_txt = os.path.join(process_log_dir,'grid_no_headwall_ids.txt')
 # based on the criteria, there is no subsidence polygons
 grid_no_subscidence_poly_txt = os.path.join(process_log_dir,'grid_no_subscidence_poly_ids.txt')
 
+#based on the criteria, there is no headwall lines after filtering
+grid_no_rippleSel_headwall_line_txt = os.path.join(process_log_dir,'grid_no_rippleSel_headwall_line_ids.txt')
+
 strip_dem_cover_grids_txt = os.path.join(process_log_dir,'strip_dem_cover_grids.txt') # each strip cover how many grids (ids), dict
 tile_dem_cover_grids_txt = os.path.join(process_log_dir,'tile_dem_cover_grids.txt') # each tile cover how many grids (ids), dict
 
@@ -139,8 +155,22 @@ def get_extent_grid_id_txt_done_files(extent_shp):
 def get_grid_id_from_path(item):
     return int(re.findall('grid\d+', os.path.basename(item))[0][4:])
 
-import time
-from datetime import datetime
+def save_id_grid_no_result(grid_id,file_path):
+    if os.path.isdir(process_log_dir) is False:
+        io_function.mkdir(process_log_dir)
+
+    id_list = []
+    if os.path.isfile(file_path):
+        id_list = io_function.read_list_from_txt(file_path)  # no need covert to int
+    id_str = str(grid_id)
+    if id_str in id_list:
+        return True
+    else:
+        # save by adding one line
+        with open(file_path, 'a') as f_obj:
+            f_obj.writelines(str(grid_id) + '\n')
+        return True
+
 
 def check_create_lock(lock_path, message):
     # lock_path: the absolute path for a lock file

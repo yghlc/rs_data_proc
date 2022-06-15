@@ -39,6 +39,10 @@ from shapely.errors import ShapelyDeprecationWarning
 warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
 # object.parallel_offset
+from dem_common import grid_no_rippleSel_headwall_line_txt, save_id_grid_no_result,get_grid_id_from_path
+
+def save_id_grid_no_rippleSel_headwall_line(grid_id):
+    return save_id_grid_no_result(grid_id,grid_no_rippleSel_headwall_line_txt)
 
 def calculate_one_hausdorff_dis_closest(center_obj, geometry_list, max_extent=None):
     t0 = time.time()
@@ -418,6 +422,11 @@ def filter_potential_headwall_lines(lines_shp, save_path, format='ESRI Shapefile
 
     # save to file
     save_count = len(select_idx_list)
+    if save_count < 1:
+        grid_id = get_grid_id_from_path(lines_shp)
+        save_id_grid_no_rippleSel_headwall_line(grid_id)
+        basic.outputlogMessage('No headwall selected after filtering for grid: %d'%grid_id)
+        return False
     dataframe_sub = dataframe[selected_list]
     dataframe_sub.to_file(save_path, driver=format)
     basic.outputlogMessage('select %d geometry from %d ones and saved to %s'%(save_count,nrow,save_path))
@@ -431,7 +440,6 @@ def main(options, args):
 
     t0 = time.time()
 
-    lines_shp = args[0]
     process_num = options.process_num
     buffer_delta = options.buffer_delta
     total_steps = options.total_steps
@@ -442,24 +450,34 @@ def main(options, args):
     sim_range = [lower_similarity,upper_similarity]
     b_re_calculate = options.re_calculate
 
-    # print(lines_shp)
-    select_headwall_lines = io_function.get_name_by_adding_tail(lines_shp,'rippleSel')
-    if os.path.isfile(select_headwall_lines):
-        basic.outputlogMessage('%s exists, skip'%select_headwall_lines)
-        return
-
-    #  calculate attributes related to headwall movement, like a ripple in time
-    if vector_gpd.is_field_name_in_shp(lines_shp, 'ri_count') is False or b_re_calculate:
-        line_ripple_statistics(lines_shp, delta=buffer_delta, total_steps=total_steps, max_extent=max_extent,
-                               sim_range=sim_range, process_num=process_num)
+    input = args[0]
+    if input.endswith('.txt'):
+        lines_shp_list = io_function.read_list_from_txt(input)
     else:
-        basic.outputlogMessage('the value of ripple statistics already exists: %s, '
-                               'please set --re_calculate if want to re-run'%lines_shp)
+        lines_shp_list = [input]
 
-    # select lines that are highly like a headwall line
-    filter_potential_headwall_lines(lines_shp,select_headwall_lines)
+    for idx, lines_shp in enumerate(lines_shp_list):
+        t1 = time.time()
+        print(datetime.now(), '(%d/%d) start processing'%(idx+1, len(lines_shp_list)), lines_shp)
+        select_headwall_lines = io_function.get_name_by_adding_tail(lines_shp,'rippleSel')
+        if os.path.isfile(select_headwall_lines):
+            basic.outputlogMessage('%s exists, skip'%select_headwall_lines)
+            continue
 
-    print('total time cost of identify_headwall_lines.py', time.time() - t0, 'seconds')
+        #  calculate attributes related to headwall movement, like a ripple in time
+        if vector_gpd.is_field_name_in_shp(lines_shp, 'ri_count') is False or b_re_calculate:
+            line_ripple_statistics(lines_shp, delta=buffer_delta, total_steps=total_steps, max_extent=max_extent,
+                                   sim_range=sim_range, process_num=process_num)
+        else:
+            basic.outputlogMessage('the value of ripple statistics already exists: %s, '
+                                   'please set --re_calculate if want to re-run'%lines_shp)
+
+        # select lines that are highly like a headwall line
+        filter_potential_headwall_lines(lines_shp,select_headwall_lines)
+
+        print(datetime.now(), ' time cost for processing %s'%lines_shp, time.time() - t1, 'seconds')
+
+    print(datetime.now(),'completed, total time cost of identify_headwall_lines.py', time.time() - t0, 'seconds')
 
 
 
@@ -468,7 +486,7 @@ def main(options, args):
 
 
 if __name__ == '__main__':
-    usage = "usage: %prog [options] lines_multiTemporal.shp "
+    usage = "usage: %prog [options] lines_multiTemporal.shp or txt_list"
     parser = OptionParser(usage=usage, version="1.0 2021-3-6")
     parser.description = 'Introduction: identify real headwall lines and thaw slumps  '
 
