@@ -29,6 +29,7 @@ b_run_job_local = False
 
 root_dir = os.path.expanduser('/scratch/summit/lihu9680/Arctic/dem_processing')    # run in this folder
 jobsh_dir = os.path.expanduser('/projects/lihu9680/Data/Arctic/dem_proc_jobs')
+data_dir = None
 
 machine_name = os.uname()[1]
 curc_username = 'lihu9680'
@@ -443,6 +444,69 @@ def run_extract_headwall_jobs(max_job_count, n_tif_per_jobs):
         print(datetime.now(), 'processing %d group for extracting headwall, total %d ones'%(idx, len(slope_tif_groups)))
         submit_extract_headwall_job(slope_tifs_group, idx, max_job_count)
 
+def submit_headwall_ripple_job(headwall_shp_list, idx,max_job_count):
+
+    wait_if_reach_max_jobs(max_job_count, 'hwR')
+
+    job_name = 'hwR%d' % idx
+    check_length_jobname(job_name)
+    work_dir = working_dir_string(idx, 'headwall_ripple_', root=root_dir)
+    if os.path.isdir(work_dir) is False:
+        io_function.mkdir(work_dir)
+        os.chdir(work_dir)
+
+        io_function.save_list_to_txt('headwall_shp_list.txt', headwall_shp_list)
+
+        # run segmentation
+        sh_list = ['headwall_ripple_stastics.sh', 'job_headwall_ripple.sh']
+        copy_curc_job_files(jobsh_dir, work_dir, sh_list)
+        slurm_utility.modify_slurm_job_sh('job_headwall_ripple.sh', 'job-name', job_name)
+
+    else:
+        os.chdir(work_dir)
+
+        submit_job_names = slurm_utility.get_submited_job_names(curc_username)
+        if job_name in submit_job_names:
+            print('The folder: %s already exist and the job has been submitted, skip submitting a new job' % work_dir)
+            return
+
+        # job is completed
+        if os.path.isfile('done.txt'):
+            print('The job in the folder: %s is Done' % work_dir)
+            return
+
+    # submit the job
+    # sometime, when submit a job, end with: singularity: command not found,and exist, wired, then try run submit a job in scomplie note
+    submit_job_curc_or_run_script_local('job_headwall_ripple.sh', 'headwall_ripple_stastics.sh')
+
+    os.chdir(curr_dir_before_start)
+
+    return
+
+def run_headwall_ripple_jobs(max_job_count,n_tif_per_jobs,extent_or_id_txt=None):
+
+    shp_list_txt = os.path.join(dem_common.process_log_dir, 'job_headwall_ripple_list_' + machine_name + '.txt')
+    if os.path.isfile(shp_list_txt) and extent_or_id_txt == 'monitor_fail_headwall_ripple_jobs':
+        headwall_shps = io_function.read_list_from_txt(shp_list_txt)
+        print(datetime.now(), 'total %d headwall ripple shps to run ' % (len(headwall_shps)))
+    else:
+        grid_dem_headwall_shp_dir = data_dir
+        headwall_shps = io_function.get_file_list_by_pattern(grid_dem_headwall_shp_dir, 'headwall_shps_grid*/*.shp')
+        # remove rippleSel
+        headwall_shps = [ item for item in headwall_shps if 'rippleSel' not in os.path.basename(item)]
+
+        # headwall_shps_copy = headwall_shps.copy()
+        if len(headwall_shps) < 1:
+            raise ValueError('No headwall_shps_grid*/*.shp in %s' % grid_dem_headwall_shp_dir)
+
+    total_count = len(headwall_shps)
+    # divide to many sub jobs
+    tif_groups = [headwall_shps[i:i + n_tif_per_jobs] for i in range(0, total_count, n_tif_per_jobs)]
+
+    for idx, tif_group in enumerate(tif_groups):
+        print(datetime.now(), 'processing %d group of headwall ripple, total %d ones' % (idx, len(tif_groups)))
+        submit_headwall_ripple_job(tif_group, idx, max_job_count)
+
 
 
 def main(options, args):
@@ -465,6 +529,9 @@ def main(options, args):
     if options.script_dir is not None:
         global jobsh_dir
         jobsh_dir = options.script_dir
+    if options.data_dir is not None:
+        global data_dir
+        data_dir = options.data_dir
 
     if task_name == 'segment':
         run_segment_jobs(max_job_count, n_tif_per_jobs,extent_or_id_txt=extent_shp_or_id_txt)
@@ -476,6 +543,8 @@ def main(options, args):
         run_grid_jobs(max_job_count, n_tif_per_jobs, 'dem_headwall_grid',extent_shp_or_id_txt)
     elif task_name == 'dem_headwall':
         run_extract_headwall_jobs(max_job_count, n_tif_per_jobs)
+    elif task_name == 'headwall_ripple':
+        run_headwall_ripple_jobs(max_job_count, n_tif_per_jobs,extent_or_id_txt=extent_shp_or_id_txt)
     else:
         print('unknow task name: %s'%task_name)
         pass
@@ -519,6 +588,9 @@ if __name__ == '__main__':
     parser.add_option("", "--script_dir",
                       action="store", dest="script_dir",
                       help="the directory that template scripts ")
+    parser.add_option("", "--data_dir",
+                      action="store", dest="data_dir",
+                      help="the directory for data ")
 
 
     (options, args) = parser.parse_args()
