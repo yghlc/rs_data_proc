@@ -423,7 +423,7 @@ def filter_potential_headwall_lines(lines_shp, save_path, format='ESRI Shapefile
     # save to file
     save_count = len(select_idx_list)
     if save_count < 1:
-        grid_id = get_grid_id_from_path(lines_shp)
+        grid_id = get_grid_id_from_path(os.path.dirname(lines_shp)) # for headwall shp, grid%id in the folder name
         save_id_grid_no_rippleSel_headwall_line(grid_id)
         basic.outputlogMessage('No headwall selected after filtering for grid: %d'%grid_id)
         return False
