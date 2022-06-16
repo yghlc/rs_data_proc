@@ -123,7 +123,7 @@ def calculate_headwall_move(line_list, save_path=None, prj=None):
     straight_length = cen_points[0].distance(cen_points[-1])
     if straight_length < 0.000001:
         basic.outputlogMessage('warning, zero value of straight_length: %s'%str(straight_length))
-        basic.outputlogMessage('%s'%str(cen_points))
+        [ print(item) for item in cen_points ]
         straight_length = 0.000001
     real_length = line_move.length
     sinuosity = real_length/straight_length
