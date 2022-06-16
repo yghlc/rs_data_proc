@@ -124,7 +124,9 @@ def calculate_headwall_move(line_list, save_path=None, prj=None):
     if straight_length < 0.000001:
         basic.outputlogMessage('warning, zero value of straight_length: %s'%str(straight_length))
         [ print(item) for item in cen_points ]
-        straight_length = 0.000001
+        # straight_length = 0.000001
+        # some rare cases, there are some headwall lines are the same in different years.
+        return 1, 0
     real_length = line_move.length
     sinuosity = real_length/straight_length
 
@@ -246,7 +248,8 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
         # 1. have similar length (within buffer) with the center line,
         # 2.not in the same year has been recorded.
         for idx, row in new_dataframe.iterrows():
-            if row['dem_year'] in recorded_Times:
+            # if the two lines have the same length, we assumed that have the same but in different years
+            if row['dem_year'] in recorded_Times or line.length-row['length_m'] < 0.000001 :
                 rm_index.append(idx)
                 continue
             if min_length <= row['length_m'] <= max_length:
