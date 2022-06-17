@@ -597,7 +597,6 @@ def remove_no_need_dem_files(b_remove=True):
                 for path in file_list:
                     basic.outputlogMessage('removing %s' % path)
                     io_function.delete_file_or_dir(path)
-            else:
                 strip_file_removed_list.append(strip)
 
 
@@ -613,7 +612,6 @@ def remove_no_need_dem_files(b_remove=True):
                 for path in file_list:
                     basic.outputlogMessage('removing %s' % path)
                     io_function.delete_file_or_dir(path)
-            else:
                 tile_file_removed_list.append(tile)
 
         # save
