@@ -558,14 +558,28 @@ def remove_no_need_dem_files(b_remove=True):
         return True
 
     completed_id_set = set(completed_id_list)
+    # the dem file has been removed previously
+    strip_file_removed_list = []
+    strip_file_removed_txt = 'ArcticDEM_strip_file_removed.txt'
+    tile_file_removed_list = []
+    tile_file_removed_txt = 'ArcticDEM_tile_file_removed.txt'
+    if os.path.isfile(strip_file_removed_txt):
+        strip_file_removed_list = io_function.read_list_from_txt(strip_file_removed_txt)
+    if os.path.isfile(tile_file_removed_txt):
+        tile_file_removed_list = io_function.read_list_from_txt(tile_file_removed_txt)
+
 
     # check four folders: arcticDEM_tile_tarball_dir,arcticDEM_tile_reg_tif_dir,tarball_dir,arcticDEM_reg_tif_dir
     strip_dem_cover_grids = io_function.read_dict_from_txt_json(strip_dem_cover_grids_txt)
+    for item in strip_file_removed_list:
+        del strip_dem_cover_grids[item]
 
     strip_no_need_list = [strip for strip in strip_dem_cover_grids.keys()
                           if set(strip_dem_cover_grids[strip]).issubset(completed_id_set) ]
 
     tile_dem_cover_grids = io_function.read_dict_from_txt_json(tile_dem_cover_grids_txt)
+    for item in tile_file_removed_list:
+        del tile_dem_cover_grids[item]
     tile_no_need_list = [tile for tile in tile_dem_cover_grids.keys() if
                          set(tile_dem_cover_grids[tile]).issubset(completed_id_set)]
 
@@ -583,6 +597,8 @@ def remove_no_need_dem_files(b_remove=True):
                 for path in file_list:
                     basic.outputlogMessage('removing %s' % path)
                     io_function.delete_file_or_dir(path)
+            else:
+                strip_file_removed_list.append(strip)
 
 
         basic.outputlogMessage('there are %d no need tile DEM, downloaded files will be or have been removed'%len(tile_no_need_list))
@@ -597,6 +613,15 @@ def remove_no_need_dem_files(b_remove=True):
                 for path in file_list:
                     basic.outputlogMessage('removing %s' % path)
                     io_function.delete_file_or_dir(path)
+            else:
+                tile_file_removed_list.append(tile)
+
+        # save
+        if len(strip_file_removed_list) > 0:
+            io_function.save_list_to_txt(strip_file_removed_txt,strip_file_removed_list)
+        if len(tile_file_removed_list) > 0:
+            io_function.save_list_to_txt(tile_file_removed_txt,tile_file_removed_list)
+
 
 no_subset_to_proc = 0
 def produce_dem_products(tasks,b_remove_job_folder=True,b_remove_dem=True,no_slurm=False,message_dir='./'):
