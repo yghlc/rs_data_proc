@@ -850,7 +850,6 @@ def main(options, args):
                     subset_id = 999999
                     select_grids_shp = os.path.join(subset_shp_dir, io_function.get_name_no_ext(extent_shp) + '_sub%d' % subset_id + '.shp')
                     save_selected_girds_and_ids(selected_gird_ids, select_grid_polys, gird_prj, select_grids_shp)
-                    break
 
                 else:
                     select_grids_shp = os.path.join(subset_shp_dir, io_function.get_name_no_ext(extent_shp) + '_sub%d' % subset_id + '.shp')
@@ -869,6 +868,8 @@ def main(options, args):
                                        key_list=['id', 'createTime', 'shp', 'pre_status', 'pre_node','proc_status'],
                                        info_list=[subset_id, str(datetime.now()), os.path.basename(select_grids_shp),
                                                   'notYet', 'unknown' ,'notYet'])
+                if b_divide_to_subsets is False:
+                    break
 
     b_preProc_complete = False
     while True:
