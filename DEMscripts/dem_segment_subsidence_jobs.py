@@ -135,7 +135,7 @@ def produce_products_dem_subsidence(b_remove_job_folder=True):
         if res != 0:
             sys.exit(1)
 
-        # copy_segment_result_to_curc(save_ids)
+        copy_segment_result_to_curc(save_ids)
 
         if b_remove_job_folder:
             os.system('rm -r seg_dem_diff_*')
