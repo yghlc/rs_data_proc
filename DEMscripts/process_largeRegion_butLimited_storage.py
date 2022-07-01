@@ -90,23 +90,28 @@ def update_subset_info(txt_path, key_list=None, info_list=None):
         info_dict[key] = info
     io_function.save_dict_to_txt_json(txt_path,info_dict)
 
-def get_subset_info(txt_path):
+def get_subset_info(txt_path,dir=None):
     info_dict = io_function.read_dict_from_txt_json(txt_path)
     # change file name to absolute path depending on machine
-    info_dict['shp'] = os.path.join(subset_shp_dir,info_dict['shp'])
+    if dir is None:
+        info_dict['shp'] = os.path.join(subset_shp_dir,info_dict['shp'])
+    else:
+        info_dict['shp'] = os.path.join(dir,info_dict['shp'])
     return info_dict
 
-def get_subset_info_txt_list(key,values,remote_node=None, remote_folder=None, local_folder='./'):
+def get_subset_info_txt_list(key,values,remote_node=None, remote_folder=None, local_folder='./',msg_pre=None):
     # get subset info with specific key and values
     # 'subset%d.txt' % subset_id
     # sync 'subset%d.txt' files from remote node
+    if msg_pre is None:
+        msg_pre = msg_file_pre
     if remote_node is not None:
         # this will overwrite 'subset%d.txt' in local
-        scp_communicate.copy_file_folder_from_remote_machine(remote_node,os.path.join(remote_folder,msg_file_pre+'*.txt'),
+        scp_communicate.copy_file_folder_from_remote_machine(remote_node,os.path.join(remote_folder,msg_pre+'*.txt'),
                                                              os.path.join(local_folder,'.'))
 
     select_txt_list = []
-    subinfo_txt_list = io_function.get_file_list_by_pattern(local_folder,msg_file_pre+'*.txt')
+    subinfo_txt_list = io_function.get_file_list_by_pattern(local_folder,msg_pre+'*.txt')
     for txt in subinfo_txt_list:
         info_dict = get_subset_info(txt)
         if info_dict[key] in values:

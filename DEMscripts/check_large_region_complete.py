@@ -23,7 +23,9 @@ from process_largeRegion_butLimited_storage import update_complete_grid_list
 from process_largeRegion_butLimited_storage import get_subset_info_txt_list
 from process_largeRegion_butLimited_storage import get_subset_info
 from process_largeRegion_butLimited_storage import subset_shp_dir
+from process_largeRegion_butLimited_storage import msg_file_pre
 from dem_common import subset_message_dir
+
 
 from dem_segment_subsidence_jobs import curc_node
 
@@ -32,13 +34,18 @@ r_working_dir = '/scratch/summit/lihu9680/Arctic/dem_processing'  #if options.re
 
 def find_fail_grids_in_complete_subsets(extent_shp, grid_ids_to_process_txt):
 
+
+    msg_file_pre_name = io_function.get_name_no_ext(extent_shp) + '_' + msg_file_pre
+    print('msg_file_pre_name:', msg_file_pre_name)
+
     # subset shp dir
     subset_shp_txt_dir = subset_shp_dir + '_' + io_function.get_name_no_ext(extent_shp)
     subset_shp_txt_dir = os.path.join(subset_message_dir, subset_shp_txt_dir)
+    print('subset_shp_txt_dir:',subset_shp_txt_dir)
 
     # subset_txt_list = get_subset_info_txt_list('proc_status', ['done'], local_folder='./')
     remote_sub_done_list = get_subset_info_txt_list('proc_status', ['done'], remote_node=process_node,
-                                              remote_folder=r_working_dir)
+                                              remote_folder=r_working_dir, msg_pre=msg_file_pre_name)
     to_process_grids = io_function.read_list_from_txt(grid_ids_to_process_txt)
     all_fail_grids = []
     for done_subset in remote_sub_done_list:
@@ -46,14 +53,16 @@ def find_fail_grids_in_complete_subsets(extent_shp, grid_ids_to_process_txt):
         fail_grids = []
 
         subset_info_txt_path = os.path.join(subset_message_dir,done_subset)
-        subset_info = get_subset_info(subset_info_txt_path)
+        print('subset_info_txt_path:',subset_info_txt_path)
+        subset_info = get_subset_info(subset_info_txt_path,dir='./')
         sub_ext_shp = subset_info['shp']
+        print('sub_ext_shp:',sub_ext_shp)
         subset_grid_txt = os.path.join(subset_shp_txt_dir, os.path.splitext(sub_ext_shp)[0] + '_grid_ids.txt')
-        print(subset_grid_txt)
+        print('subset_grid_txt:',subset_grid_txt)
         subset_grid_ids = io_function.read_list_from_txt(subset_grid_txt)
         for id in subset_grid_ids:
             if id in to_process_grids:
-                print('fail grid %d of %s '%(id,sub_ext_shp))
+                print('fail grid %s of %s '%(id,sub_ext_shp))
                 fail_grids.append(id)
 
         if len(fail_grids) > 0:
