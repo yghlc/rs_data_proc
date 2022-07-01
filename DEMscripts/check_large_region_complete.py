@@ -20,8 +20,53 @@ from dem_common import get_extent_grid_id_txt_done_files
 from process_largeRegion_butLimited_storage import get_complete_ignore_grid_ids,save_grid_ids_need_to_process, make_note_all_task_done
 
 from process_largeRegion_butLimited_storage import update_complete_grid_list
+from process_largeRegion_butLimited_storage import get_subset_info_txt_list
+from process_largeRegion_butLimited_storage import get_subset_info
+from process_largeRegion_butLimited_storage import subset_shp_dir
+from dem_common import subset_message_dir
 
 from dem_segment_subsidence_jobs import curc_node
+
+process_node = '$curc_host' #if options.process_node is None else options.process_node
+r_working_dir = '/scratch/summit/lihu9680/Arctic/dem_processing'  #if options.remote_working_dir is None else options.remote_working_dir
+
+def find_fail_grids_in_complete_subsets(extent_shp, grid_ids_to_process_txt):
+
+    # subset shp dir
+    subset_shp_txt_dir = subset_shp_dir + '_' + io_function.get_name_no_ext(extent_shp)
+    subset_shp_txt_dir = os.path.join(subset_message_dir, subset_shp_txt_dir)
+
+    # subset_txt_list = get_subset_info_txt_list('proc_status', ['done'], local_folder='./')
+    remote_sub_done_list = get_subset_info_txt_list('proc_status', ['done'], remote_node=process_node,
+                                              remote_folder=r_working_dir)
+    to_process_grids = io_function.read_list_from_txt(grid_ids_to_process_txt)
+    all_fail_grids = []
+    for done_subset in remote_sub_done_list:
+
+        fail_grids = []
+
+        subset_info_txt_path = os.path.join(subset_message_dir,done_subset)
+        subset_info = get_subset_info(subset_info_txt_path)
+        sub_ext_shp = subset_info['shp']
+        subset_grid_txt = os.path.join(subset_shp_txt_dir, os.path.splitext(sub_ext_shp)[0] + '_grid_ids.txt')
+        print(subset_grid_txt)
+        subset_grid_ids = io_function.read_list_from_txt(subset_grid_txt)
+        for id in subset_grid_ids:
+            if id in to_process_grids:
+                print('fail grid %d of %s '%(id,sub_ext_shp))
+                fail_grids.append(id)
+
+        if len(fail_grids) > 0:
+            subset_fail_grid_txt = io_function.get_name_by_adding_tail(os.path.basename(subset_grid_txt),'fail')
+            io_function.save_list_to_txt(subset_fail_grid_txt,fail_grids)
+
+        all_fail_grids.extend(fail_grids)
+
+    if len(all_fail_grids) > 0:
+        fail_grid_txt = io_function.get_name_by_adding_tail(os.path.basename(grid_ids_to_process_txt), 'fail')
+        io_function.save_list_to_txt(fail_grid_txt, all_fail_grids)
+
+    return True
 
 def check_one_extent(extent_shp):
     print('start to check %s' % extent_shp)
@@ -56,6 +101,7 @@ def check_one_extent(extent_shp):
         make_note_all_task_done(extent_shp,curc_node)
     else:
         print(datetime.now(), ' %s has not completed, %d grids to process, total: %d' % (extent_shp, num_grid_ids, len(grid_ids)))
+        find_fail_grids_in_complete_subsets(extent_shp,grid_ids_to_process_txt)
 
     return True
 
