@@ -59,12 +59,13 @@ from produce_DEM_diff_ArcticDEM import get_grid_20
 
 from parallel_processing_curc import curc_username
 
+from dem_common import download_ahead_proc
+
 # scripts
 dem_download_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMscripts/download_arcticDEM.py')
 dem_unpack_reg_py = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMscripts/ArcticDEM_unpack_registration.py')
 subset_shp_dir = 'subset_grids_shp'
 msg_file_pre = 'subset'     # prename of the message file
-download_ahead_proc = 3
 from dem_common import subset_message_dir
 if os.path.isdir(subset_message_dir) is False:
     io_function.mkdir(subset_message_dir)

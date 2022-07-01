@@ -40,10 +40,15 @@ else:
     ArcticDEM_tmp_dir = './'
     data_dir = './'
 
+download_ahead_proc = 3
+
 setting_ini = 'setting.ini'
 if os.path.isfile(setting_ini):
     ArcticDEM_tmp_dir = parameters.get_directory(setting_ini,'ArcticDEM_tmp_dir')
     data_dir = parameters.get_directory(setting_ini,'data_dir')
+    tmp = parameters.get_digit_parameters_None_if_absence(setting_ini,'download_ahead_proc', 'int')
+    if tmp is not None:
+        download_ahead_proc = tmp
 
 
 # tarball_dir = os.path.join(ArcticDEM_tmp_dir,'tarballs')    # strip version of ArcticDEM
