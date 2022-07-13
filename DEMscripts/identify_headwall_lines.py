@@ -149,8 +149,16 @@ def calculate_headwall_move(line_list, save_path=None, prj=None):
         vecA = point_array[idx] - point_array[idx+1]
         vecB = point_array[idx+2] - point_array[idx+1]
 
-        cos_a = np.dot(vecA,vecB)/(np.linalg.norm(vecA)*np.linalg.norm(vecB))
-        angle_list.append(math.degrees(math.acos(cos_a)))
+        try:
+            cos_a = np.dot(vecA,vecB)/(np.linalg.norm(vecA)*np.linalg.norm(vecB))
+            angle_list.append(math.degrees(math.acos(cos_a)))
+        except ValueError:
+            # ValueError: math domain error dur to  (-1<=cos_a<=1) if False
+            basic.outputlogMessage('Warning, ValueError: math domain error, fill the value as 0')
+            angle_list.append(0)
+        finally:
+            basic.outputlogMessage('some unknow error in angle_list.append(math.degrees(math.acos(cos_a)))')
+
     # print(angle_list)
 
     # save to check
