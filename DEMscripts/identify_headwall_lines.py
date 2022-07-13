@@ -156,8 +156,6 @@ def calculate_headwall_move(line_list, save_path=None, prj=None):
             # ValueError: math domain error dur to  (-1<=cos_a<=1) if False
             basic.outputlogMessage('Warning, ValueError: math domain error, fill the value as 0')
             angle_list.append(0)
-        finally:
-            basic.outputlogMessage('some unknow error in angle_list.append(math.degrees(math.acos(cos_a)))')
 
     # print(angle_list)
 
