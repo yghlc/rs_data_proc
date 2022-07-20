@@ -41,6 +41,8 @@ warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 # object.parallel_offset
 from dem_common import grid_no_rippleSel_headwall_line_txt, save_id_grid_no_result,get_grid_id_from_path
 
+no_result = 'no_rippleSel_headwall_line.txt'
+
 def save_id_grid_no_rippleSel_headwall_line(grid_id):
     return save_id_grid_no_result(grid_id,grid_no_rippleSel_headwall_line_txt)
 
@@ -420,7 +422,7 @@ def test_line_ripple_statistics():
     line_ripple_statistics(lines_shp, delta=2, total_steps=50, max_extent=100, process_num=1)
 
 
-def filter_potential_headwall_lines(lines_shp, save_path, format='ESRI Shapefile'):
+def filter_potential_headwall_lines(lines_shp, save_path, format='ESRI Shapefile',no_result=None):
     dataframe= gpd.read_file(lines_shp)
     nrow, ncol = dataframe.shape
 
@@ -439,6 +441,8 @@ def filter_potential_headwall_lines(lines_shp, save_path, format='ESRI Shapefile
         grid_id = get_grid_id_from_path(os.path.dirname(lines_shp)) # for headwall shp, grid%id in the folder name
         save_id_grid_no_rippleSel_headwall_line(grid_id)
         basic.outputlogMessage('No headwall selected after filtering for grid: %d'%grid_id)
+        if no_result is not None:
+            io_function.save_list_to_txt(no_result,[grid_id])
         return False
     dataframe_sub = dataframe[selected_list]
     dataframe_sub.to_file(save_path, driver=format)
@@ -476,6 +480,10 @@ def main(options, args):
         if os.path.isfile(select_headwall_lines):
             basic.outputlogMessage('%s exists, skip'%select_headwall_lines)
             continue
+        no_result_txt = os.path.join(os.path.dirname(select_headwall_lines),no_result)
+        if os.path.isfile(no_result_txt):
+            basic.outputlogMessage('based on previously calculating, no_rippleSel_headwall_line for %s , skip'%lines_shp )
+            continue
 
         #  calculate attributes related to headwall movement, like a ripple in time
         if vector_gpd.is_field_name_in_shp(lines_shp, 'ri_count') is False or b_re_calculate:
@@ -486,7 +494,7 @@ def main(options, args):
                                    'please set --re_calculate if want to re-run'%lines_shp)
 
         # select lines that are highly like a headwall line
-        filter_potential_headwall_lines(lines_shp,select_headwall_lines)
+        filter_potential_headwall_lines(lines_shp,select_headwall_lines,no_result=no_result_txt)
 
         print(datetime.now(), ' time cost for processing %s'%lines_shp, time.time() - t1, 'seconds')
 
