@@ -442,7 +442,7 @@ def filter_potential_headwall_lines(lines_shp, save_path, format='ESRI Shapefile
         save_id_grid_no_rippleSel_headwall_line(grid_id)
         basic.outputlogMessage('No headwall selected after filtering for grid: %d'%grid_id)
         if no_result is not None:
-            io_function.save_list_to_txt(no_result,[grid_id])
+            io_function.save_list_to_txt(no_result,[str(grid_id)])
         return False
     dataframe_sub = dataframe[selected_list]
     dataframe_sub.to_file(save_path, driver=format)
