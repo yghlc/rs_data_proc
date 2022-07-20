@@ -21,6 +21,7 @@ from dem_common import get_grid_id_from_path
 from identify_headwall_lines import no_result
 
 from datetime import datetime
+import time
 
 def main():
     # read all no no_rippleSel_headwall_line grids
@@ -34,6 +35,13 @@ def main():
 
     for region in ext_list:
         print('checking region: ', region)
+        time.sleep(3)
+        rippleSel_list = io_function.get_file_list_by_pattern(os.path.join(region, 'dem_headwall_shp_grid'),
+                                                           'headwall_shps_grid*/*_rippleSel.shp')
+        if len(rippleSel_list) < 1:
+            print('this region may have not been completed, skip')
+            continue
+
         folder_list = io_function.get_file_list_by_pattern(os.path.join(region,'dem_headwall_shp_grid'),'headwall_shps_grid*')
         for item in folder_list:
             print('checking folder:', item)
