@@ -493,8 +493,9 @@ def main(options, args):
 
         #  calculate attributes related to headwall movement, like a ripple in time
         if vector_gpd.is_field_name_in_shp(lines_shp, 'ri_count') is False or b_re_calculate:
-            line_ripple_statistics(lines_shp, delta=buffer_delta, total_steps=total_steps, max_extent=max_extent,
-                                   sim_range=sim_range, process_num=process_num)
+            if line_ripple_statistics(lines_shp, delta=buffer_delta, total_steps=total_steps, max_extent=max_extent,
+                                   sim_range=sim_range, process_num=process_num) is False:
+                continue
         else:
             basic.outputlogMessage('the value of ripple statistics already exists: %s, '
                                    'please set --re_calculate if want to re-run'%lines_shp)
