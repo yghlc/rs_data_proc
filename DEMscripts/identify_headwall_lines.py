@@ -347,6 +347,12 @@ def line_ripple_statistics(lines_multiTemporal_path, delta=2, total_steps=50, ma
         basic.outputlogMessage('No lines in %s'%lines_multiTemporal_path)
         return False
 
+    if None in line_dataframe.geometry.values:
+        basic.outputlogMessage('Warning, None geometry in %s, skip' % lines_multiTemporal_path)
+        none_count = line_dataframe.geometry.values.tolist().count(None)
+        basic.outputlogMessage('%d of %d geometry is None' % (none_count, len(line_dataframe.geometry.values)))
+        return False
+
     ripple_count_list = []
     b_mono_increase_list = []
     b_mono_decrease_list = []
