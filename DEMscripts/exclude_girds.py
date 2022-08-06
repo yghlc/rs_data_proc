@@ -13,6 +13,8 @@ import time
 sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS'))
 import basic_src.io_function as io_function
 import basic_src.basic as basic
+import basic_src.map_projection as map_projection
+import pandas as pd
 import vector_gpd
 
 from dem_common import grid_ids_txt_dir,get_extent_grid_id_txt_done_files
@@ -34,10 +36,13 @@ def exclude_grids_extent(grid_ids_txt, ext_shp):
     #get grid within the polygon, this will create local_grid_id_txt
     grid_polys, grid_ids = get_grid_20(ext_shp, all_grid_polys, all_ids)
     exclude_ids = []
+    keep_grids = []
     for exc_poly in exclude_polys:
         for grid_p, grid_i in zip(grid_polys, grid_ids):
             if exc_poly.contains(grid_p):       # only the grid is fully inside the polygon, not touch edge
                 exclude_ids.append(grid_i)
+            else:
+                keep_grids.append(grid_p)
 
     exclude_ids_str = [str(item) for item in exclude_ids]
     org_grid_ids = io_function.read_list_from_txt(grid_ids_txt)
@@ -50,6 +55,13 @@ def exclude_grids_extent(grid_ids_txt, ext_shp):
     # copy to local folder if does not exist
     local_grid_ids_txt = os.path.basename(grid_ids_txt)
     io_function.copy_file_to_dst(grid_ids_txt,local_grid_ids_txt,overwrite=True)
+
+    # save the kept grids to file for checking
+    dataframe = pd.DataFrame({'Polygon':keep_grids})
+    wkt = map_projection.get_raster_or_vector_srs_info_proj4(grid_20_shp)
+    save_path = os.path.splitext(os.path.basename(grid_ids_txt))[0] + 'keep.shp'
+    vector_gpd.save_polygons_to_files(dataframe,'Polygon',wkt,save_path)
+
 
 
 def main():
