@@ -59,7 +59,7 @@ def exclude_grids_extent(grid_ids_txt, ext_shp):
     # save the kept grids to file for checking
     dataframe = pd.DataFrame({'Polygon':keep_grids})
     wkt = map_projection.get_raster_or_vector_srs_info_proj4(grid_20_shp)
-    save_path = os.path.splitext(os.path.basename(grid_ids_txt))[0] + 'keep.shp'
+    save_path = os.path.splitext(os.path.basename(grid_ids_txt))[0] + '_keep.shp'
     vector_gpd.save_polygons_to_files(dataframe,'Polygon',wkt,save_path)
 
 
