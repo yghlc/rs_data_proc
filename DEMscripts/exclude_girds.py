@@ -54,7 +54,7 @@ def exclude_grids_extent(grid_ids_txt, ext_shp):
     local_grid_ids_txt = os.path.basename(grid_ids_txt)
     io_function.copy_file_to_dst(grid_ids_txt,local_grid_ids_txt,overwrite=True)
 
-    keep_grids = [grid for grid, id in zip(grid_polys, grid_ids) if str(id) in modified_grid_ids]
+    keep_grids = [grid for grid, id in zip(all_grid_polys, all_ids) if str(id) in modified_grid_ids]
 
     # save the kept grids to file for checking
     dataframe = pd.DataFrame({'Polygon':keep_grids})
