@@ -49,7 +49,7 @@ def exclude_grids_extent(grid_ids_txt, ext_shp):
 
     # copy to local folder if does not exist
     local_grid_ids_txt = os.path.basename(grid_ids_txt)
-    io_function.copy_file_to_dst(grid_ids_txt,local_grid_ids_txt)
+    io_function.copy_file_to_dst(grid_ids_txt,local_grid_ids_txt,overwrite=True)
 
 
 def main():
