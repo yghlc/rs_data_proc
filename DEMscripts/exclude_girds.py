@@ -36,13 +36,11 @@ def exclude_grids_extent(grid_ids_txt, ext_shp):
     #get grid within the polygon, this will create local_grid_id_txt
     grid_polys, grid_ids = get_grid_20(ext_shp, all_grid_polys, all_ids)
     exclude_ids = []
-    keep_grids = []
+
     for exc_poly in exclude_polys:
         for grid_p, grid_i in zip(grid_polys, grid_ids):
             if exc_poly.contains(grid_p):       # only the grid is fully inside the polygon, not touch edge
                 exclude_ids.append(grid_i)
-            else:
-                keep_grids.append(grid_p)
 
     exclude_ids_str = [str(item) for item in exclude_ids]
     org_grid_ids = io_function.read_list_from_txt(grid_ids_txt)
@@ -55,6 +53,8 @@ def exclude_grids_extent(grid_ids_txt, ext_shp):
     # copy to local folder if does not exist
     local_grid_ids_txt = os.path.basename(grid_ids_txt)
     io_function.copy_file_to_dst(grid_ids_txt,local_grid_ids_txt,overwrite=True)
+
+    keep_grids = [grid for grid, id in zip(grid_polys, grid_ids) if str(id) in modified_grid_ids]
 
     # save the kept grids to file for checking
     dataframe = pd.DataFrame({'Polygon':keep_grids})
