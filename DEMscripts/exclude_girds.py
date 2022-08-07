@@ -62,6 +62,10 @@ def exclude_grids_extent(grid_ids_txt, ext_shp):
     save_path = os.path.splitext(os.path.basename(grid_ids_txt))[0] + '_keep.shp'
     vector_gpd.save_polygons_to_files(dataframe,'Polygon',wkt,save_path)
 
+    # save exclude ids for checking
+    save_exc_ids_txt = io_function.get_name_by_adding_tail(local_grid_ids_txt,'excluded')
+    io_function.save_list_to_txt(save_exc_ids_txt,exclude_ids_str)
+
 
 
 def main():
