@@ -637,7 +637,7 @@ def produce_dem_products(tasks,b_remove_job_folder=True,b_remove_dem=True,no_slu
         print(datetime.now(), 'checking times: %d: No subset (%s) for processing, wait 300 seconds'%(no_subset_to_proc, msg_file_pre+'*.txt'))
         time.sleep(300)
         no_subset_to_proc += 1
-        if no_subset_to_proc > 60:   # if has continued waiting from 6o times (10 hours), then return Flase, will exit the while loop
+        if no_subset_to_proc > 120:   # if has continued waiting from 120 times (10 hours), then return Flase, will exit the while loop
             return False
         return True
 
