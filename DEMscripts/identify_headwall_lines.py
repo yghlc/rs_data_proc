@@ -236,9 +236,17 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
     line_id_list = [id]
     line_geometry_list = [line]
 
+    # ripple_polygons = []
+    # ripple_steps = []
+    # ripple_dis = []
+
     for step in range(total_steps):
         dis = buffer_dis + delta*step
         ripple_poly = line.buffer(dis)
+
+        # ripple_polygons.append(ripple_poly)
+        # ripple_steps.append(step)
+        # ripple_dis.append(dis)
 
         b_ins = select_dataframe.within(ripple_poly) # pandas.Series type, True or False
         if not b_ins.any():  # "is False" not working
@@ -282,8 +290,15 @@ def one_line_ripple(id, line, lTime, dataframe, delta=2, total_steps=50, max_ext
     # return np.sum(line_count_per_step) + 1       # +1 itself back
     # return len(recorded_Times)                     # same to the one above
 
+    # save to check
+    # ripple_pd = pd.DataFrame({'polygon': ripple_polygons,'step':ripple_steps,'ripple_dis':ripple_dis})
+    # vector_gpd.save_polygons_to_files(ripple_pd,'polygon',select_dataframe.crs,'ripple_polygons_%d.shp'%id)
+
     # calculate ripple attributes
     line_count_per_step[0] = 1  # add the started line back
+    # save to file for checking
+    # io_function.save_list_to_txt('line_count_per_step_%d.txt'%id,[str(item) for item in line_count_per_step.tolist()])
+
     # # min, max, and average distance of each ripple lines
     non_zero_idx = np.where(line_count_per_step > 0)[0]
     if len(non_zero_idx) <= 1:
@@ -426,6 +441,7 @@ def test_line_ripple_statistics():
     lines_shp = os.path.join(data_dir,'dem_headwall_shp_grid/headwall_shps_grid10741/headwall_shp_multiDates_10741_subset.shp')
 
     line_ripple_statistics(lines_shp, delta=2, total_steps=50, max_extent=100, process_num=1)
+    # line_ripple_statistics(lines_shp, delta=10, total_steps=10, max_extent=100, process_num=1)
 
 
 def filter_potential_headwall_lines(lines_shp, save_path, format='ESRI Shapefile',no_result=None):
