@@ -184,7 +184,7 @@ def getLongestPath(graph, endNodes):
                                      target=ePoints[1],
                                      weight='weight')
 
-        # dijkstra can throw if now path, but we are sure we have a path
+        # dijkstra can throw if no path, but we are sure we have a path
 
         # store maximum
         if (sL > maxLength):
