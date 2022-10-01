@@ -44,7 +44,7 @@ def main(options, args):
 
     # save the total count to file
     with open('headwall-line-count.txt', 'a') as f_obj:
-        f_obj.writelines('%s, Feature count: %d'%(dir,total_num))
+        f_obj.writelines('%s, Feature count: %d\n'%(dir,total_num))
 
 
 if __name__ == '__main__':
