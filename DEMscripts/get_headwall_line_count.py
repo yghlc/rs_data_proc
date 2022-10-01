@@ -29,8 +29,10 @@ def main(options, args):
         # shapefile = gpd.read_file(shp)
         # count = len(shapefile)
 
-        command_str = 'ogrinfo -so %s | grep Feature'%shp
+        layer_name = os.path.splitext(os.path.basename(shp))[0] 
+        command_str = 'ogrinfo -so %s %s | grep Feature'%(shp,layer_name)
         status, result = basic.exec_command_string(command_str)
+        #print('status, result',status, result)
         if status != 0:
             print(result)
             sys.exit(status)
