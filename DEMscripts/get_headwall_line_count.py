@@ -29,7 +29,7 @@ def main(options, args):
         # shapefile = gpd.read_file(shp)
         # count = len(shapefile)
 
-        command_str = 'ogrinfo -so %s | grep Feature'
+        command_str = 'ogrinfo -so %s | grep Feature'%shp
         status, result = basic.exec_command_string(command_str)
         if status != 0:
             print(result)
