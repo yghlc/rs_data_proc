@@ -23,6 +23,10 @@ from dem_common import get_grid_id_from_path
 dir1="/BhaltosMount/Bhaltos/lingcaoHuang/ArcticDEM_results"
 dir2="/Miavaig/Work/lingcaoHuang/ArcticDEM_results"
 
+def check_file_count(file_list, count):
+    if len(file_list) != count:
+        [print(item) for item in file_list]
+        raise ValueError('the count of grid_files should be %d'%count)
 
 def readme_elevation_diff(grid_files,grid_id):
 
@@ -72,6 +76,7 @@ def copy_pack_elevation_diff(ext_dir,ext_name):
 
         grid_files = io_function.get_file_list_by_pattern(diff_dir,'*grid%d.*'%id)
         grid_files.extend(io_function.get_file_list_by_pattern(diff_dir,'*grid%d_*'%id)) #oldIndex, newIndex
+        check_file_count(grid_files,5)
         # create a readme file
         readme_txt = readme_elevation_diff(grid_files,id)
         grid_files.append(readme_txt)
@@ -121,6 +126,7 @@ def copy_pack_composited_image(ext_dir,ext_name):
 
         grid_files = io_function.get_file_list_by_pattern(hillshade_HWLine_dir,'*grid%d.tif'%id)
         grid_files.extend(io_function.get_file_list_by_pattern(hillshade_HWLine_dir,'*grid%d_count.tif'%id))
+        check_file_count(grid_files,2)
         # create a readme file
         readme_txt = readme_composited_image(grid_files,id)
         grid_files.append(readme_txt)
