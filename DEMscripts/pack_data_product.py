@@ -67,7 +67,7 @@ def copy_pack_elevation_diff(ext_dir,ext_name):
         basic.outputlogMessage('elevation-differences, packing data for grid %d'%id)
         save_tar = os.path.join(save_dir, 'dem_diffs_2m_grid%d.tar.gz' % id)
         if os.path.isfile(save_tar):
-            basic.outputlogMessage('%s already exists, skip')
+            basic.outputlogMessage('%s already exists, skip'%save_tar)
             continue
 
         grid_files = io_function.get_file_list_by_pattern(diff_dir,'*grid%d*'%id)
@@ -115,7 +115,7 @@ def copy_pack_composited_image(ext_dir,ext_name):
         basic.outputlogMessage('composited-images, packing data for grid %d'%id)
         save_tar = os.path.join(save_dir, 'composited_image_2m_grid%d.tar.gz' % id)
         if os.path.isfile(save_tar):
-            basic.outputlogMessage('%s already exists, skip')
+            basic.outputlogMessage('%s already exists, skip'%save_tar)
             continue
 
         grid_files = io_function.get_file_list_by_pattern(hillshade_HWLine_dir,'*grid%d*'%id)
@@ -153,7 +153,7 @@ def copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name):
         basic.outputlogMessage('lines-of-narrow-steep-slopes-and-headwall, packing data for grid %d' % id)
         save_tar = os.path.join(save_dir, 'lines_of_narrow_steep_slope_and_headwall_grid%d.tar.gz' % id)
         if os.path.isfile(save_tar):
-            basic.outputlogMessage('%s already exists, skip')
+            basic.outputlogMessage('%s already exists, skip'%save_tar)
             continue
 
         grid_files = io_function.get_file_list_by_pattern(lines_dir, '*grid%d*/*' % id)
