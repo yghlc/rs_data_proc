@@ -70,7 +70,8 @@ def copy_pack_elevation_diff(ext_dir,ext_name):
             basic.outputlogMessage('%s already exists, skip'%save_tar)
             continue
 
-        grid_files = io_function.get_file_list_by_pattern(diff_dir,'*grid%d*'%id)
+        grid_files = io_function.get_file_list_by_pattern(diff_dir,'*grid%d.*'%id)
+        grid_files.extend(io_function.get_file_list_by_pattern(diff_dir,'*grid%d_*'%id)) #oldIndex, newIndex
         # create a readme file
         readme_txt = readme_elevation_diff(grid_files,id)
         grid_files.append(readme_txt)
@@ -118,7 +119,8 @@ def copy_pack_composited_image(ext_dir,ext_name):
             basic.outputlogMessage('%s already exists, skip'%save_tar)
             continue
 
-        grid_files = io_function.get_file_list_by_pattern(hillshade_HWLine_dir,'*grid%d*'%id)
+        grid_files = io_function.get_file_list_by_pattern(hillshade_HWLine_dir,'*grid%d.tif'%id)
+        grid_files.extend(io_function.get_file_list_by_pattern(hillshade_HWLine_dir,'*grid%d_count.tif'%id))
         # create a readme file
         readme_txt = readme_composited_image(grid_files,id)
         grid_files.append(readme_txt)
@@ -156,7 +158,7 @@ def copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name):
             basic.outputlogMessage('%s already exists, skip'%save_tar)
             continue
 
-        grid_files = io_function.get_file_list_by_pattern(lines_dir, '*grid%d*/*' % id)
+        grid_files = io_function.get_file_list_by_pattern(lines_dir, '*grid%d/*' % id)
         # create a readme file
         readme_txt = readme_lines_slope_headwall(grid_files,id)
         grid_files.append(readme_txt)
