@@ -64,7 +64,7 @@ def copy_pack_elevation_diff(ext_dir,ext_name):
 
     grid_ids = [get_grid_id_from_path(item) for item in diff_list ]
     for id in grid_ids:
-        basic.outputlogMessage('packing data for grid %d'%id)
+        basic.outputlogMessage('elevation-differences, packing data for grid %d'%id)
         save_tar = os.path.join(save_dir, 'dem_diffs_2m_grid%d.tar.gz' % id)
         if os.path.isfile(save_tar):
             basic.outputlogMessage('%s already exists, skip')
@@ -112,7 +112,7 @@ def copy_pack_composited_image(ext_dir,ext_name):
 
     grid_ids = [get_grid_id_from_path(item) for item in image_list]
     for id in grid_ids:
-        basic.outputlogMessage('packing data for grid %d'%id)
+        basic.outputlogMessage('composited-images, packing data for grid %d'%id)
         save_tar = os.path.join(save_dir, 'composited_image_2m_grid%d.tar.gz' % id)
         if os.path.isfile(save_tar):
             basic.outputlogMessage('%s already exists, skip')
@@ -127,6 +127,43 @@ def copy_pack_composited_image(ext_dir,ext_name):
             for file in grid_files:
                 tar.add(file, arcname=os.path.basename(file))
 
+def readme_lines_slope_headwall(grid_files):
+    file_names = [os.path.basename(item) for item in grid_files if item.endswith('.shp')]
+    headwall_shp_file = [item for item in file_names if '_rippleSel.shp' in item][0]
+    file_names.remove(headwall_shp_file)
+    slope_shp_file = file_names[0]
+    save_txt = os.path.abspath('readme.txt')
+    with open(save_txt,'w') as f_obj:
+        f_obj.writelines('Lines of narrow-steep slopes and potential headwalls of retrogressive thaw slumps\n\n')
+        f_obj.writelines('%s: lines representing narrow-steep slopes\n'%slope_shp_file)
+        f_obj.writelines('%s: lines reprenting potential headwalls of retrogressive thaw slumps\n'%headwall_shp_file)
+    return save_txt
+
+def copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name):
+    lines_dir = os.path.join(ext_dir, 'dem_headwall_shp_grid')
+    lines_shpDir_list = io_function.get_file_list_by_pattern(lines_dir, '*')
+    basic.outputlogMessage('count of grid with lines_of_narrow_steep_slope_and_headwall: %d' % len(lines_shpDir_list))
+
+    save_dir = os.path.join('lines-of-narrow-steep-slopes-and-headwall', ext_name)
+    if os.path.isdir(save_dir) is False:
+        io_function.mkdir(save_dir)
+
+    grid_ids = [get_grid_id_from_path(item) for item in lines_shpDir_list]
+    for id in grid_ids:
+        basic.outputlogMessage('lines-of-narrow-steep-slopes-and-headwall, packing data for grid %d' % id)
+        save_tar = os.path.join(save_dir, 'lines_of_narrow_steep_slope_and_headwall_grid%d.tar.gz' % id)
+        if os.path.isfile(save_tar):
+            basic.outputlogMessage('%s already exists, skip')
+            continue
+
+        grid_files = io_function.get_file_list_by_pattern(lines_dir, '*grid%d*/*' % id)
+        # create a readme file
+        readme_txt = readme_lines_slope_headwall(grid_files)
+        grid_files.append(readme_txt)
+
+        with tarfile.open(save_tar, 'x:gz') as tar:
+            for file in grid_files:
+                tar.add(file, arcname=os.path.basename(file))
 
 
 
@@ -143,6 +180,8 @@ def main():
             copy_pack_elevation_diff(ext_dir,ext_name)
 
             copy_pack_composited_image(ext_dir,ext_name)
+
+            copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name)
 
 
 
