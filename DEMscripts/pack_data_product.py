@@ -12,6 +12,8 @@ import os,sys
 from datetime import datetime
 import time
 
+import tarfile
+
 sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS'))
 import basic_src.io_function as io_function
 import basic_src.basic as basic
@@ -83,10 +85,14 @@ def copy_pack_elevation_diff(ext_dir,ext_name):
         readme_txt = readme_elevation_diff(grid_files)
         grid_files.append(readme_txt)
 
-        command_str = 'tar -czvf %s '%save_tar
-        for file in grid_files:
-            command_str += ' %s'%file
-        basic.os_system_exit_code(command_str)
+        # command_str = 'tar -czvf %s '%save_tar
+        # for file in grid_files:
+        #     command_str += ' %s'%file
+        # basic.os_system_exit_code(command_str)
+
+        with tarfile.open(save_tar, 'x:gz') as tar:
+            for file in grid_files:
+                tar.add(file, arcname=os.path.basename(file))
 
 
 
