@@ -73,12 +73,16 @@ def copy_pack_elevation_diff(ext_dir,ext_name):
     grid_ids = [get_grid_id_from_path(item) for item in diff_list ]
     for id in grid_ids:
         basic.outputlogMessage('packing data for grid %d'%id)
+        save_tar = os.path.join(save_dir, 'dem_diffs_2m_grid%d.tar.gz' % id)
+        if os.path.isfile(save_tar):
+            basic.outputlogMessage('%s already exists, skip')
+            continue
+
         grid_files = io_function.get_file_list_by_pattern(diff_dir,'*grid%d*'%id)
         # create a readme file
         readme_txt = readme_elevation_diff(grid_files)
         grid_files.append(readme_txt)
 
-        save_tar = os.path.join(save_dir,'dem_diffs_2m_grid%d.tar.gz'%id)
         command_str = 'tar -czvf %s '%save_tar
         for file in grid_files:
             command_str += ' %s'%file
