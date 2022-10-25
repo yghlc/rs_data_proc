@@ -23,6 +23,8 @@ from dem_common import get_grid_id_from_path
 dir1="/BhaltosMount/Bhaltos/lingcaoHuang/ArcticDEM_results"
 dir2="/Miavaig/Work/lingcaoHuang/ArcticDEM_results"
 
+readme_path = os.path.expanduser('~/readme.txt')
+
 def check_file_count(file_list, count):
     if len(file_list) != count:
         [print(item) for item in file_list]
@@ -41,7 +43,7 @@ def readme_elevation_diff(grid_files,grid_id):
     file_names.remove(oldIndex_file)
     date_diff = file_names[0]
 
-    save_txt = os.path.abspath('readme_grid%d.txt'%grid_id)
+    save_txt = readme_path #os.path.abspath('readme_grid%d.txt'%grid_id)
 
     with open(save_txt, 'w') as f_obj:
         f_obj.writelines('Pixel-wise elevation differences with a spatial resolution of 2m, derived from ArctciDEM by:\n')
@@ -96,7 +98,7 @@ def readme_composited_image(grid_files,grid_id):
     pixel_count_file = [item for item in file_names if '_count.tif' in item][0]
     file_names.remove(pixel_count_file)
     image_file = file_names[0]
-    save_txt = os.path.abspath('readme_grid%d.txt'%grid_id)
+    save_txt = readme_path #os.path.abspath('readme_grid%d.txt'%grid_id)
     with open(save_txt,'w') as f_obj:
         f_obj.writelines('composited imagery derived from ArcticDEM\n\n')
         f_obj.writelines('%s: a composited image, with lines of narrow-steep slopes on top and hillshades derived from the '
@@ -140,7 +142,7 @@ def readme_lines_slope_headwall(grid_files,grid_id):
     headwall_shp_file = [item for item in file_names if '_rippleSel.shp' in item][0]
     file_names.remove(headwall_shp_file)
     slope_shp_file = file_names[0]
-    save_txt = os.path.abspath('readme_grid%d.txt'%grid_id)
+    save_txt = readme_path # os.path.abspath('readme_grid%d.txt'%grid_id)
     with open(save_txt,'w') as f_obj:
         f_obj.writelines('Lines of narrow-steep slopes and potential headwalls of retrogressive thaw slumps\n\n')
         f_obj.writelines('%s: lines representing narrow-steep slopes\n'%slope_shp_file)
