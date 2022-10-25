@@ -97,7 +97,7 @@ def readme_composited_image(grid_files):
                          'most recent ArcticDEM in the background. '
                          'For the legend of lines in different color, please refer to '
                          'Fig. 2 at https://yghlc.github.io/validate-thaw-slump\n'%image_file)
-        f_obj.writelines('%s: the number of lines of narrow-steep slopes at each pixels\n'%pixel_count_file)
+        f_obj.writelines('%s: the number of lines of narrow-steep slopes at each pixel\n'%pixel_count_file)
     return save_txt
 
 def copy_pack_composited_image(ext_dir,ext_name):
