@@ -25,16 +25,6 @@ dir2="/Miavaig/Work/lingcaoHuang/ArcticDEM_results"
 
 
 def readme_elevation_diff(grid_files):
-    # Pixel-wise elevation differences with a spatial resolution of 2m, derived from ArctciDEM by:
-    #
-    # "the most recent elevation - the oldest elevation".
-    #
-    # grid_ids_DEM_diff_grid10741.tif: the elevation differences. The pixel value/ 100.0 is the difference (unit:  meters).
-    #
-    # grid_ids_date_diff_grid10741.txt : the indices and ArcticDEM files for producing the elevation differences, we can tell the acquisition dates from the file name.
-    #
-    # grid_ids_date_diff_grid10741_newIndex.tif: the index of the most recent ArcticDEM file at each pixel (grid_ids_date_diff_grid10741.txt)
-    # grid_ids_date_diff_grid10741_oldIndex.tif: the index of the oldest ArcticDEM file at each pixel (grid_ids_date_diff_grid10741.txt)
 
     file_names = [ os.path.basename(item) for item in grid_files ]
     dem_diff_file = [item for item in file_names if 'DEM_diff' in item][0]
@@ -94,6 +84,50 @@ def copy_pack_elevation_diff(ext_dir,ext_name):
             for file in grid_files:
                 tar.add(file, arcname=os.path.basename(file))
 
+def readme_composited_image(grid_files):
+
+    file_names = [os.path.basename(item) for item in grid_files]
+    pixel_count_file = [item for item in file_names if '_count.tif' in item][0]
+    file_names.remove(pixel_count_file)
+    image_file = file_names[0]
+    save_txt = os.path.abspath('readme.txt')
+    with open(save_txt,'w') as f_obj:
+        f_obj.writelines('composited imagery derived from ArcticDEM\n\n')
+        f_obj.writelines('%s: a composited image, with lines of narrow-steep slopes on top and hillshades derived from the '
+                         'most recent ArcticDEM in the background. '
+                         'For the legend of lines in different color, please refer to '
+                         'Fig. 2 at https://yghlc.github.io/validate-thaw-slump\n'%image_file)
+        f_obj.writelines('%s: the number of lines of narrow-steep slopes at each pixels\n'%pixel_count_file)
+    return save_txt
+
+def copy_pack_composited_image(ext_dir,ext_name):
+    hillshade_HWLine_dir = os.path.join(ext_dir,'dem_hillshade_newest_HWLine_grid')
+    image_list = io_function.get_file_list_by_pattern(hillshade_HWLine_dir,'*.tif')
+    image_list = [item for item in image_list if '_count.tif' not in os.path.basename(item)]    # remove *_count.tif
+    basic.outputlogMessage('count of hillshade + HWLine image: %d' % len(image_list))
+
+    save_dir = os.path.join('composited-images',ext_name)
+    if os.path.isdir(save_dir) is False:
+        io_function.mkdir(save_dir)
+
+    grid_ids = [get_grid_id_from_path(item) for item in image_list]
+    for id in grid_ids:
+        basic.outputlogMessage('packing data for grid %d'%id)
+        save_tar = os.path.join(save_dir, 'composited_image_2m_grid%d.tar.gz' % id)
+        if os.path.isfile(save_tar):
+            basic.outputlogMessage('%s already exists, skip')
+            continue
+
+        grid_files = io_function.get_file_list_by_pattern(hillshade_HWLine_dir,'*grid%d*'%id)
+        # create a readme file
+        readme_txt = readme_composited_image(grid_files)
+        grid_files.append(readme_txt)
+
+        with tarfile.open(save_tar, 'x:gz') as tar:
+            for file in grid_files:
+                tar.add(file, arcname=os.path.basename(file))
+
+
 
 
 def main():
@@ -107,6 +141,8 @@ def main():
             basic.outputlogMessage('ext_name: %s' % ext_name)
 
             copy_pack_elevation_diff(ext_dir,ext_name)
+
+            copy_pack_composited_image(ext_dir,ext_name)
 
 
 
