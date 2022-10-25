@@ -24,7 +24,7 @@ dir1="/BhaltosMount/Bhaltos/lingcaoHuang/ArcticDEM_results"
 dir2="/Miavaig/Work/lingcaoHuang/ArcticDEM_results"
 
 
-def readme_elevation_diff(grid_files):
+def readme_elevation_diff(grid_files,grid_id):
 
     file_names = [ os.path.basename(item) for item in grid_files ]
     dem_diff_file = [item for item in file_names if 'DEM_diff' in item][0]
@@ -37,7 +37,7 @@ def readme_elevation_diff(grid_files):
     file_names.remove(oldIndex_file)
     date_diff = file_names[0]
 
-    save_txt = os.path.abspath('readme.txt')
+    save_txt = os.path.abspath('readme_grid%d.txt'%grid_id)
 
     with open(save_txt, 'w') as f_obj:
         f_obj.writelines('Pixel-wise elevation differences with a spatial resolution of 2m, derived from ArctciDEM by:\n')
@@ -72,7 +72,7 @@ def copy_pack_elevation_diff(ext_dir,ext_name):
 
         grid_files = io_function.get_file_list_by_pattern(diff_dir,'*grid%d*'%id)
         # create a readme file
-        readme_txt = readme_elevation_diff(grid_files)
+        readme_txt = readme_elevation_diff(grid_files,id)
         grid_files.append(readme_txt)
 
         # command_str = 'tar -czvf %s '%save_tar
@@ -84,13 +84,13 @@ def copy_pack_elevation_diff(ext_dir,ext_name):
             for file in grid_files:
                 tar.add(file, arcname=os.path.basename(file))
 
-def readme_composited_image(grid_files):
+def readme_composited_image(grid_files,grid_id):
 
     file_names = [os.path.basename(item) for item in grid_files]
     pixel_count_file = [item for item in file_names if '_count.tif' in item][0]
     file_names.remove(pixel_count_file)
     image_file = file_names[0]
-    save_txt = os.path.abspath('readme.txt')
+    save_txt = os.path.abspath('readme_grid%d.txt'%grid_id)
     with open(save_txt,'w') as f_obj:
         f_obj.writelines('composited imagery derived from ArcticDEM\n\n')
         f_obj.writelines('%s: a composited image, with lines of narrow-steep slopes on top and hillshades derived from the '
@@ -120,19 +120,19 @@ def copy_pack_composited_image(ext_dir,ext_name):
 
         grid_files = io_function.get_file_list_by_pattern(hillshade_HWLine_dir,'*grid%d*'%id)
         # create a readme file
-        readme_txt = readme_composited_image(grid_files)
+        readme_txt = readme_composited_image(grid_files,id)
         grid_files.append(readme_txt)
 
         with tarfile.open(save_tar, 'x:gz') as tar:
             for file in grid_files:
                 tar.add(file, arcname=os.path.basename(file))
 
-def readme_lines_slope_headwall(grid_files):
+def readme_lines_slope_headwall(grid_files,grid_id):
     file_names = [os.path.basename(item) for item in grid_files if item.endswith('.shp')]
     headwall_shp_file = [item for item in file_names if '_rippleSel.shp' in item][0]
     file_names.remove(headwall_shp_file)
     slope_shp_file = file_names[0]
-    save_txt = os.path.abspath('readme.txt')
+    save_txt = os.path.abspath('readme_grid%d.txt'%grid_id)
     with open(save_txt,'w') as f_obj:
         f_obj.writelines('Lines of narrow-steep slopes and potential headwalls of retrogressive thaw slumps\n\n')
         f_obj.writelines('%s: lines representing narrow-steep slopes\n'%slope_shp_file)
@@ -158,7 +158,7 @@ def copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name):
 
         grid_files = io_function.get_file_list_by_pattern(lines_dir, '*grid%d*/*' % id)
         # create a readme file
-        readme_txt = readme_lines_slope_headwall(grid_files)
+        readme_txt = readme_lines_slope_headwall(grid_files,id)
         grid_files.append(readme_txt)
 
         with tarfile.open(save_tar, 'x:gz') as tar:
