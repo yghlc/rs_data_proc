@@ -23,6 +23,8 @@ from dem_common import get_grid_id_from_path
 dir1="/BhaltosMount/Bhaltos/lingcaoHuang/ArcticDEM_results"
 dir2="/Miavaig/Work/lingcaoHuang/ArcticDEM_results"
 
+outdir = "/tiampostorage/results_Lingcao/products_derived_from_ArcticDEM"
+
 readme_path = os.path.expanduser('~/readme.txt')
 
 def check_file_count(file_list, count):
@@ -64,7 +66,7 @@ def copy_pack_elevation_diff(ext_dir,ext_name):
     diff_list = io_function.get_file_list_by_pattern(diff_dir,'*DEM_diff*.tif')
     basic.outputlogMessage('count of elevation difference: %d'%len(diff_list))
 
-    save_dir = os.path.join('elevation-differences',ext_name)
+    save_dir = os.path.join(outdir,'elevation-differences',ext_name)
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
 
@@ -114,7 +116,7 @@ def copy_pack_composited_image(ext_dir,ext_name):
     image_list = [item for item in image_list if '_count.tif' not in os.path.basename(item)]    # remove *_count.tif
     basic.outputlogMessage('count of hillshade + HWLine image: %d' % len(image_list))
 
-    save_dir = os.path.join('composited-images',ext_name)
+    save_dir = os.path.join(outdir,'composited-images',ext_name)
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
 
@@ -154,7 +156,7 @@ def copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name):
     lines_shpDir_list = io_function.get_file_list_by_pattern(lines_dir, '*')
     basic.outputlogMessage('count of grid with lines_of_narrow_steep_slope_and_headwall: %d' % len(lines_shpDir_list))
 
-    save_dir = os.path.join('lines-of-narrow-steep-slopes-and-headwall', ext_name)
+    save_dir = os.path.join(outdir,'lines-of-narrow-steep-slopes-and-headwall', ext_name)
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
 
