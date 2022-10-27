@@ -30,11 +30,15 @@ readme_path = os.path.expanduser('~/readme.txt')
 grid_with_issues = os.path.expanduser('~/arcticdem_product_issue_grids.txt')
 
 def check_file_count(file_list, count):
-    if len(file_list) != count:
+    if isinstance(count, list) is False:
+        num_list = [count]
+    else:
+        num_list = count
+    if len(file_list) not in num_list:
         [print(item) for item in file_list]
         # raise ValueError('the count of grid_files should be %d'%count)
         with open(grid_with_issues,'a') as f_obj:
-            f_obj.writelines('the count of grid_files should be %d, but got %d, skip\n'%(count, len(file_list)))
+            f_obj.writelines('the count of grid_files should be one of %s, but got %d, skip\n'%(str(num_list), len(file_list)))
             for item in file_list:
                 f_obj.writelines('%s\n'%item)
             f_obj.writelines('\n\n')
@@ -188,7 +192,7 @@ def copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name):
             continue
 
         grid_files = io_function.get_file_list_by_pattern(lines_dir, '*grid%d/*' % id)
-        if check_file_count(grid_files, 10) is False and check_file_count(grid_files, 5) is False:
+        if check_file_count(grid_files, [10,5]) is False:
             continue
         # create a readme file
         readme_txt = readme_lines_slope_headwall(grid_files,id)
