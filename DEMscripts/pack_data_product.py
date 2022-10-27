@@ -27,10 +27,17 @@ outdir = "/tiampostorage/results_Lingcao/products_derived_from_ArcticDEM"
 
 readme_path = os.path.expanduser('~/readme.txt')
 
+grid_with_issues = os.path.expanduser('~/arcticdem_product_issue_grids.txt')
+
 def check_file_count(file_list, count):
     if len(file_list) != count:
         [print(item) for item in file_list]
-        raise ValueError('the count of grid_files should be %d'%count)
+        # raise ValueError('the count of grid_files should be %d'%count)
+        with open(grid_with_issues,'a') as f_obj:
+            f_obj.writelines('the count of grid_files should be %d, but got %d\n'%(count, len(file_list)))
+            for item in file_list:
+                f_obj.writelines('%s'%item)
+            f_obj.writelines('\n\n')
 
 def readme_elevation_diff(grid_files,grid_id):
 
