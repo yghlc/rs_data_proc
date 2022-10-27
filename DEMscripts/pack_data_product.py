@@ -34,10 +34,13 @@ def check_file_count(file_list, count):
         [print(item) for item in file_list]
         # raise ValueError('the count of grid_files should be %d'%count)
         with open(grid_with_issues,'a') as f_obj:
-            f_obj.writelines('the count of grid_files should be %d, but got %d\n'%(count, len(file_list)))
+            f_obj.writelines('the count of grid_files should be %d, but got %d\n, skip'%(count, len(file_list)))
             for item in file_list:
-                f_obj.writelines('%s'%item)
+                f_obj.writelines('%s\n'%item)
             f_obj.writelines('\n\n')
+            return False
+
+    return True
 
 def readme_elevation_diff(grid_files,grid_id):
 
@@ -87,7 +90,8 @@ def copy_pack_elevation_diff(ext_dir,ext_name):
 
         grid_files = io_function.get_file_list_by_pattern(diff_dir,'*grid%d.*'%id)
         grid_files.extend(io_function.get_file_list_by_pattern(diff_dir,'*grid%d_*'%id)) #oldIndex, newIndex
-        check_file_count(grid_files,5)
+        if check_file_count(grid_files,5) is False:
+            continue
         # create a readme file
         readme_txt = readme_elevation_diff(grid_files,id)
         grid_files.append(readme_txt)
@@ -137,7 +141,8 @@ def copy_pack_composited_image(ext_dir,ext_name):
 
         grid_files = io_function.get_file_list_by_pattern(hillshade_HWLine_dir,'*grid%d.tif'%id)
         grid_files.extend(io_function.get_file_list_by_pattern(hillshade_HWLine_dir,'*grid%d_count.tif'%id))
-        check_file_count(grid_files,2)
+        if check_file_count(grid_files,2) is False:
+            continue
         # create a readme file
         readme_txt = readme_composited_image(grid_files,id)
         grid_files.append(readme_txt)
@@ -176,7 +181,8 @@ def copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name):
             continue
 
         grid_files = io_function.get_file_list_by_pattern(lines_dir, '*grid%d/*' % id)
-        check_file_count(grid_files, 10)
+        if check_file_count(grid_files, 10) is False:
+            continue
         # create a readme file
         readme_txt = readme_lines_slope_headwall(grid_files,id)
         grid_files.append(readme_txt)
