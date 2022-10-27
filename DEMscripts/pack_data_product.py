@@ -153,14 +153,21 @@ def copy_pack_composited_image(ext_dir,ext_name):
 
 def readme_lines_slope_headwall(grid_files,grid_id):
     file_names = [os.path.basename(item) for item in grid_files if item.endswith('.shp')]
-    headwall_shp_file = [item for item in file_names if '_rippleSel.shp' in item][0]
-    file_names.remove(headwall_shp_file)
+    rippleSep_files = [item for item in file_names if '_rippleSel.shp' in item]
+    headwall_shp_file = None
+    if len(rippleSep_files) > 0:    # if shapefile not exist after ripple statistics
+        headwall_shp_file = rippleSep_files[0]
+        file_names.remove(headwall_shp_file)
+
     slope_shp_file = file_names[0]
     save_txt = readme_path # os.path.abspath('readme_grid%d.txt'%grid_id)
     with open(save_txt,'w') as f_obj:
         f_obj.writelines('Lines of narrow-steep slopes and potential headwalls of retrogressive thaw slumps\n\n')
         f_obj.writelines('%s: lines representing narrow-steep slopes\n'%slope_shp_file)
-        f_obj.writelines('%s: lines reprenting potential headwalls of retrogressive thaw slumps\n'%headwall_shp_file)
+        if headwall_shp_file is None:
+            f_obj.writelines('Lines of potential headwalls of retrogressive thaw slumps do not exists after ripple statistics\n' )
+        else:
+            f_obj.writelines('%s: lines representing potential headwalls of retrogressive thaw slumps\n'%headwall_shp_file)
     return save_txt
 
 def copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name):
@@ -181,7 +188,7 @@ def copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name):
             continue
 
         grid_files = io_function.get_file_list_by_pattern(lines_dir, '*grid%d/*' % id)
-        if check_file_count(grid_files, 10) is False:
+        if check_file_count(grid_files, 10) is False and check_file_count(grid_files, 5) is False:
             continue
         # create a readme file
         readme_txt = readme_lines_slope_headwall(grid_files,id)
