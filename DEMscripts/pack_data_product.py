@@ -34,7 +34,7 @@ def check_file_count(file_list, count):
         [print(item) for item in file_list]
         # raise ValueError('the count of grid_files should be %d'%count)
         with open(grid_with_issues,'a') as f_obj:
-            f_obj.writelines('the count of grid_files should be %d, but got %d\n, skip'%(count, len(file_list)))
+            f_obj.writelines('the count of grid_files should be %d, but got %d, skip\n'%(count, len(file_list)))
             for item in file_list:
                 f_obj.writelines('%s\n'%item)
             f_obj.writelines('\n\n')
