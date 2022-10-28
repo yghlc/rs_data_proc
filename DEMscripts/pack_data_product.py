@@ -212,6 +212,10 @@ def main():
         for ext_dir in ext_folders:
             basic.outputlogMessage('Working on ext folder, dir: %s' % ext_dir)
             ext_name =  os.path.basename(ext_dir).split('_')[0]
+            completed_note = ext_name + '_complete.txt'
+            if os.path.isfile(completed_note):
+                basic.outputlogMessage('%s has completed'%ext_name)
+                continue
             basic.outputlogMessage('ext_name: %s' % ext_name)
 
             copy_pack_elevation_diff(ext_dir,ext_name)
@@ -219,6 +223,9 @@ def main():
             copy_pack_composited_image(ext_dir,ext_name)
 
             copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name)
+
+            with open(completed_note,'w') as f_obj:
+                f_obj.writelines('done')
 
 
 
