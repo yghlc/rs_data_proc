@@ -176,7 +176,7 @@ def readme_lines_slope_headwall(grid_files,grid_id):
 
 def copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name):
     lines_dir = os.path.join(ext_dir, 'dem_headwall_shp_grid')
-    lines_shpDir_list = io_function.get_file_list_by_pattern(lines_dir, '*')
+    lines_shpDir_list = io_function.get_file_list_by_pattern(lines_dir, 'headwall_shps_grid*')
     basic.outputlogMessage('count of grid with lines_of_narrow_steep_slope_and_headwall: %d' % len(lines_shpDir_list))
 
     save_dir = os.path.join(outdir,'lines-of-narrow-steep-slopes-and-headwall', ext_name)
