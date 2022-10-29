@@ -62,9 +62,9 @@ def create_tarball(grid_files,save_tar):
         abs_path = os.path.abspath(file_path)
         dir_filename.setdefault(os.path.dirname(abs_path), []).append(os.path.basename(abs_path))
 
-    print('\n\n')
-    print(dir_filename)
-    print('\n\n')
+    # print('\n\n')
+    # print(dir_filename)
+    # print('\n\n')
     command_str = 'tar -czvf %s '%save_tar
     for key in dir_filename:
         command_str += ' -C %s'%key
