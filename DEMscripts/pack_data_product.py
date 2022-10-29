@@ -46,6 +46,43 @@ def check_file_count(file_list, count):
 
     return True
 
+
+def create_tarball(grid_files,save_tar):
+    # create tarballs
+
+    # # using tarfile in python is too slow, 10 times slower than tar
+    # with tarfile.open(save_tar, 'x:gz') as tar:
+    #     for file in grid_files:
+    #         tar.add(file, arcname=os.path.basename(file))
+
+    ################################################################
+    # group file in different directory:
+    dir_filename = {}
+    for file_path in grid_files:
+        abs_path = os.path.abspath(file_path)
+        dir_filename.setdefault(os.path.dirname(abs_path), []).append(os.path.basename(abs_path))
+
+    print('\n\n')
+    print(dir_filename)
+    print('\n\n')
+    command_str = 'tar -czvf %s '%save_tar
+    for key in dir_filename:
+        command_str += ' -C %s'%key
+        for filename in dir_filename[key]:
+            command_str += ' %s'%filename
+    basic.os_system_exit_code(command_str)
+
+
+def test_create_tarball():
+    grid_files = ['/Users/huanglingcao/Data/dem_processing/lines_of_narrow_steep_slope_and_headwall_grid9086/headwall_shp_multiDates_9086_rippleSel.shp',
+                  '/Users/huanglingcao/Data/dem_processing/lines_of_narrow_steep_slope_and_headwall_grid9086/headwall_shp_multiDates_9086.dbf',
+                  '/Users/huanglingcao/Data/dem_processing/lines_of_narrow_steep_slope_and_headwall_grid9086/readme.txt',
+                  '/Users/huanglingcao/Data/dem_processing/tar_test/tar_test.txt']
+
+    save_tar = 'tar_test.tar.gz'
+    create_tarball(grid_files, save_tar)
+
+
 def readme_elevation_diff(grid_files,grid_id):
 
     file_names = [ os.path.basename(item) for item in grid_files ]
@@ -100,14 +137,7 @@ def copy_pack_elevation_diff(ext_dir,ext_name):
         readme_txt = readme_elevation_diff(grid_files,id)
         grid_files.append(readme_txt)
 
-        # command_str = 'tar -czvf %s '%save_tar
-        # for file in grid_files:
-        #     command_str += ' %s'%file
-        # basic.os_system_exit_code(command_str)
-
-        with tarfile.open(save_tar, 'x:gz') as tar:
-            for file in grid_files:
-                tar.add(file, arcname=os.path.basename(file))
+        create_tarball(grid_files,save_tar)
 
 def readme_composited_image(grid_files,grid_id):
 
@@ -151,9 +181,7 @@ def copy_pack_composited_image(ext_dir,ext_name):
         readme_txt = readme_composited_image(grid_files,id)
         grid_files.append(readme_txt)
 
-        with tarfile.open(save_tar, 'x:gz') as tar:
-            for file in grid_files:
-                tar.add(file, arcname=os.path.basename(file))
+        create_tarball(grid_files, save_tar)
 
 def readme_lines_slope_headwall(grid_files,grid_id):
     file_names = [os.path.basename(item) for item in grid_files if item.endswith('.shp')]
@@ -198,9 +226,7 @@ def copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name):
         readme_txt = readme_lines_slope_headwall(grid_files,id)
         grid_files.append(readme_txt)
 
-        with tarfile.open(save_tar, 'x:gz') as tar:
-            for file in grid_files:
-                tar.add(file, arcname=os.path.basename(file))
+        create_tarball(grid_files, save_tar)
 
 
 
