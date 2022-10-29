@@ -192,7 +192,7 @@ def copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name):
             continue
 
         grid_files = io_function.get_file_list_by_pattern(lines_dir, '*grid%d/*' % id)
-        if check_file_count(grid_files, [10,5]) is False:
+        if check_file_count(grid_files, [10,6,5]) is False:
             continue
         # create a readme file
         readme_txt = readme_lines_slope_headwall(grid_files,id)
