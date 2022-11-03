@@ -19,15 +19,18 @@ import basic_src.io_function as io_function
 import basic_src.basic as basic
 
 from dem_common import get_grid_id_from_path
+from optparse import OptionParser
 
 dir1="/BhaltosMount/Bhaltos/lingcaoHuang/ArcticDEM_results"
 dir2="/Miavaig/Work/lingcaoHuang/ArcticDEM_results"
 
 outdir = "/tiampostorage/results_Lingcao/products_derived_from_ArcticDEM"
 
-readme_path = os.path.expanduser('~/readme.txt')
+# readme_path = os.path.expanduser('~/readme.txt')
+readme_path = 'readme.txt'
 
-grid_with_issues = os.path.expanduser('~/arcticdem_product_issue_grids.txt')
+# grid_with_issues = os.path.expanduser('~/arcticdem_product_issue_grids.txt')
+grid_with_issues = 'arcticdem_product_issue_grids.txt'
 
 def check_file_count(file_list, count):
     if isinstance(count, list) is False:
@@ -230,7 +233,12 @@ def copy_pack_lines_of_narrow_steep_slope(ext_dir,ext_name):
 
 
 
-def main():
+def main(options, args):
+
+    ext_name_list = io_function.read_list_from_txt(args[0])
+    global outdir
+    if options.out_dir is not None:
+        outdir = options.out_dir
 
     for dir in [dir1, dir2]:
         basic.outputlogMessage('working on ArcticDEM_results, dir: %s'%dir)
@@ -242,6 +250,10 @@ def main():
             if os.path.isfile(completed_note):
                 basic.outputlogMessage('%s has completed'%ext_name)
                 continue
+            # if not in the list
+            if ext_name not in ext_name_list:
+                continue
+
             basic.outputlogMessage('ext_name: %s' % ext_name)
 
             copy_pack_elevation_diff(ext_dir,ext_name)
@@ -256,4 +268,17 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    usage = "usage: %prog [options] ext_name_list.txt "
+    parser = OptionParser(usage=usage, version="1.0 2022-11-03")
+    parser.description = 'Introduction: pack ArcticDEM results  '
+
+    parser.add_option("-d", "--out_dir",
+                      action="store", dest="out_dir",
+                      help="the folder to save tallballs")
+
+    (options, args) = parser.parse_args()
+    if len(sys.argv) < 2 or len(args) < 1:
+        parser.print_help()
+        sys.exit(2)
+
+    main(options, args)
