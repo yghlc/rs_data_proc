@@ -240,13 +240,15 @@ def main(options, args):
     if options.out_dir is not None:
         outdir = options.out_dir
 
+    complete_note_dir = os.path.expanduser('~/Data/dem_processing')
+
     for dir in [dir1, dir2]:
         basic.outputlogMessage('working on ArcticDEM_results, dir: %s'%dir)
         ext_folders = io_function.get_file_list_by_pattern(dir,'ext*')
         for ext_dir in ext_folders:
             basic.outputlogMessage('Working on ext folder, dir: %s' % ext_dir)
             ext_name =  os.path.basename(ext_dir).split('_')[0]
-            completed_note = ext_name + '_complete.txt'
+            completed_note = os.path.join(complete_note_dir, ext_name + '_complete.txt')
             if os.path.isfile(completed_note):
                 basic.outputlogMessage('%s has completed'%ext_name)
                 continue
