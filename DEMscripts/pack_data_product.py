@@ -254,6 +254,7 @@ def main(options, args):
                 continue
             # if not in the list
             if ext_name not in ext_name_list:
+                basic.outputlogMessage('%s is not in the assigned list, skip' % ext_name)
                 continue
 
             basic.outputlogMessage('ext_name: %s' % ext_name)
