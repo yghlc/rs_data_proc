@@ -34,7 +34,7 @@ def create_product_index_shp(product_dir,product_name,save_path,prj_wkt):
     product_names = []
 
     for idx, (poly, id) in enumerate(zip(polygons,grid_ids)):
-        print('checking grid %d / %d'/(idx+1, count))
+        print('checking grid %d / %d'%(idx+1, count))
         files = io_function.get_file_list_by_pattern(product_dir,'ext*/*grid%d.tar.gz'%id)
         if len(files) == 0:
             continue
