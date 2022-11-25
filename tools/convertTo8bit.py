@@ -44,8 +44,9 @@ def main(options, args):
         min_percent = options.hist_min_percent
         max_percent = options.hist_max_percent
         min_max_value = options.min_max_value
+        hist_bin_count = options.hist_bin_count
         img_array_8bit = raster_io.image_numpy_allBands_to_8bit_hist(img_np_allbands,min_max_value,per_min=min_percent,
-                                                                     per_max=max_percent,src_nodata=src_nodata,
+                                                                     per_max=max_percent, bin_count=hist_bin_count, src_nodata=src_nodata,
                                                                      dst_nodata=options.dst_nodata)
 
     # save to file
@@ -79,6 +80,10 @@ if __name__ == '__main__':
     parser.add_option("-l", "--hist_min_percent",
                       action="store", dest="hist_min_percent",type=float,
                       help="the lower percent for choosing the max pixel value")
+
+    parser.add_option("-c", "--hist_bin_count",
+                      action="store", dest="hist_bin_count",type=int,default=10000,
+                      help="the bin count for histogram when set hist_min_percent and hist_max_percent; for SAR image (float), should set > 10000")
 
     parser.add_option("-m", "--min_max_value",nargs=2, action="append",
                       dest="min_max_value",type=float,
