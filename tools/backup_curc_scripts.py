@@ -16,6 +16,7 @@ sys.path.insert(0, deeplabforRS)
 import basic_src.io_function as io_function
 
 from optparse import OptionParser
+from datetime import datetime
 
 def main(options, args):
     org_dir='/scratch/summit/lihu9680'
@@ -60,6 +61,9 @@ def main(options, args):
         for sh in changed_list:
             print(sh)
 
+    log_txt = os.path.join(bak_dir,'backupTime.txt')
+    with open(log_txt,'a') as f_obj:
+        f_obj.writelines('Backup at %s'%str(datetime.now()))
 
 
 if __name__ == '__main__':
