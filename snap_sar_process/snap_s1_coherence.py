@@ -158,6 +158,7 @@ def export_to_tiff(input, save_path):
     return save_path
 
 def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisation='VH', tmp_dir=None, wktAoi=None, dem_path=None):
+    t0 = time.time()
 
     out_name = get_granule_name_substr(ref_sar) + '_' + get_granule_name_substr(second_sar) + '_%s_Coh' % (polarisation)
     save_path = os.path.join(save_dir,out_name + '.tif')
@@ -168,9 +169,6 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
             return save_path
     snap_intermediate_files = []
 
-    io_function.write_metadata(['reference-image','second-image'], [ref_sar,second_sar], filename=save_meta)
-    io_function.write_metadata(['output_resolution_m','polarisation'], [res_meter,polarisation], filename=save_meta)
-
     subswath_list = ['IW1','IW2','IW3']
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
@@ -178,6 +176,10 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
         tmp_dir = save_dir
     if os.path.isdir(tmp_dir) is False:
         io_function.mkdir(tmp_dir)
+
+    io_function.write_metadata(['reference-image','second-image'], [ref_sar,second_sar], filename=save_meta)
+    io_function.write_metadata(['output_resolution_m','polarisation'], [res_meter,polarisation], filename=save_meta)
+    io_function.write_metadata(['wktAOI'], [wktAoi], filename=save_meta)
 
     swath_split_orb_dict = {}
     for sar_zip in [ref_sar, second_sar]:
@@ -226,14 +228,14 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
 
     # Terrain-Correction
     out_tc = run_Terrain_Correction(out_merge,tmp_dir,res_meter,dem_path)
-    io_function.write_metadata(['Terrain_Correction'], [out_tc], filename=save_meta)
+    io_function.write_metadata(['Terrain-correction'], [out_tc], filename=save_meta)
     snap_intermediate_files.append(out_tc)
 
     # export to tif
     export_to_tiff(out_tc,save_path)
-    io_function.write_metadata(['Coherence_tiff'], [save_path], filename=save_meta)
+    io_function.write_metadata(['Coherence-tiff'], [save_path], filename=save_meta)
 
-    io_function.write_metadata(['Process_time'], [str(datetime.now())], filename=save_meta)
+    io_function.write_metadata(['Process-time'], [str(datetime.now())], filename=save_meta)
 
     # clean files
     for tmp in snap_intermediate_files:
@@ -241,6 +243,9 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
         io_function.delete_file_or_dir(tmp)
         tmp = tmp.replace('.dim', '.data')
         io_function.delete_file_or_dir(tmp)
+
+    print(datetime.now(), 'Complete, took %s seconds' % (time.time() - t0))
+    io_function.write_metadata(['cost-time-second'], [time.time() - t0], filename=save_meta)
 
 
 def test_cal_coherence_from_two_s1():
@@ -260,11 +265,13 @@ def test_cal_coherence_from_two_s1():
     cal_coherence_from_two_s1(ref_sar, sec_sar, out_res, save_dir, polarisation='VH', tmp_dir=tmp_dir, wktAoi=wktAoi)
 
 def main(options, args):
-    # grd_file_list = get_grd_file_list(args[0])
-    # save_dir = options.save_dir
-    # temp_dir = options.temp_dir if options.temp_dir is not None else save_dir
-    # pixel_size = options.save_pixel_size
-    # dem_file = options.elevation_file
+    ref_sar = args[0]
+    sec_sar = args[1]
+    ext_shp = options.aoi_shp
+    save_dir = options.save_dir
+    tmp_dir = options.temp_dir if options.temp_dir is not None else save_dir
+    out_res = options.save_pixel_size
+    dem_file = options.elevation_file
     setting_json = options.env_setting
 
     global  baseSNAP, gdal_translate
@@ -282,14 +289,25 @@ def main(options, args):
         if gdal_translate is None:
             raise ValueError('GDAL_TRANSLATE_BIN is not in Environment Variables')
 
-    test_cal_coherence_from_two_s1()
+    # test_cal_coherence_from_two_s1()
+    if ext_shp is not None:
+        wktAoi = vector_gpd.shapefile_to_ROIs_wkt(ext_shp)
+        wktAoi = '\"' + wktAoi[0] + '\"'  # only use the first one
+    else:
+        wktAoi = None
 
-    pass
+    # Polarisations = ['VH', 'VV']
+    cal_coherence_from_two_s1(ref_sar, sec_sar, out_res, save_dir, polarisation='VH', tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_file)
+
 
 if __name__ == '__main__':
-    usage = "usage: %prog [options] grd_files.txt or grd_directory "
+    usage = "usage: %prog [options] reference_sar second_sar "
     parser = OptionParser(usage=usage, version="1.0 2023-3-19")
     parser.description = 'Introduction: produce coherence from Sentinel-1 using SNAP  '
+
+    parser.add_option("-a", "--aoi_shp",
+                      action="store", dest="aoi_shp",
+                      help="a shapefile containing AOI")
 
     parser.add_option("-d", "--save_dir",
                       action="store", dest="save_dir",default='asf_data',
@@ -299,12 +317,12 @@ if __name__ == '__main__':
                       action="store", dest="temp_dir",
                       help="the temporal folder for saving intermediate data ")
 
-    parser.add_option("", "--process_num",
-                      action="store", dest="process_num", type=int, default=4,
-                      help="number of processes to run the process")
+    # parser.add_option("", "--process_num",
+    #                   action="store", dest="process_num", type=int, default=4,
+    #                   help="number of processes to run the process")
 
-    parser.add_option("-o", "--out_res",
-                      action="store", dest="out_res",type=float,default=10.0,
+    parser.add_option("-r", "--save_pixel_size",
+                      action="store", dest="save_pixel_size",type=float,default=10.0,
                       help="the resolution for final output")
 
     parser.add_option("-e", "--elevation_file",
