@@ -11,6 +11,10 @@ set -eE -o functrace
 
 gpt=/Applications/snap/bin/gpt
 
+# on Ubuntu, there is a problem: org.jblas ERROR Couldn't load copied link file: java.lang.UnsatisfiedLinkError: libgfortran.so.5: cannot open shared object file: No such file or directory.
+# see more in Error of Interferogram in SNAP
+# fix that by: export LD_LIBRARY_PATH=/home/lihu9680/programs/miniconda3/envs/sar/lib:$LD_LIBRARY_PATH
+
 ref_img=S1B_IW_SLC__1SDV_20191208T163422_20191208T163449_019276_024651_E2F6.zip
 sec_img=S1B_IW_SLC__1SDV_20191220T163421_20191220T163448_019451_024BE6_79C7.zip
 
@@ -66,7 +70,7 @@ subswatch_coh IW2 VH 20191208_OB 20191220_OB
 subswatch_coh IW3 VH 20191208_OB 20191220_OB
 
 # Merge
-${gpt} TOPSAR-Merge IW1_VH_reg_stack_coh_Deb.dim IW2_VH_stack_coh_Deb.dim  IW3_VH_stack_coh_Deb.dim  -t final_VH_coh_Deb
+${gpt} TOPSAR-Merge IW1_VH_stack_coh_Deb.dim IW2_VH_stack_coh_Deb.dim  IW3_VH_stack_coh_Deb.dim  -t final_VH_coh_Deb
 
 # Terrain Correction
 #${gpt} Terrain-Correction -Ssource=IW1_VH_reg_stack_coh_Deb.dim -PpixelSpacingInMeter=10 -PdemName="SRTM 1Sec HGT" -t IW1_VH_reg_stack_coh_Deb_TC
