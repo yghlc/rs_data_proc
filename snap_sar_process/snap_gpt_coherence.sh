@@ -34,11 +34,9 @@ function subswatch_coh() {
      ${gpt} TOPSAR-Deburst -Ssource=${subswath}_${polar}_stack_coh.dim  -t ${subswath}_${polar}_stack_coh_Deb
 }
 
-#${gpt} coherence_step1_edit.xml  ${ref_img} ${sec_img}
-
 # 1
-#${gpt} Apply-Orbit-File -PcontinueOnFail=false -PorbitType="Sentinel Precise (Auto Download)" -t 20191208_OB ${ref_img}
-#${gpt} Apply-Orbit-File -PcontinueOnFail=false -PorbitType="Sentinel Precise (Auto Download)" -t 20191220_OB ${sec_img}
+${gpt} Apply-Orbit-File -PcontinueOnFail=false -PorbitType="Sentinel Precise (Auto Download)" -t 20191208_OB ${ref_img}
+${gpt} Apply-Orbit-File -PcontinueOnFail=false -PorbitType="Sentinel Precise (Auto Download)" -t 20191220_OB ${sec_img}
 
 
 # 2
@@ -57,18 +55,18 @@ function subswatch_coh() {
 # 6
 #${gpt} TOPSAR-Deburst -Ssource=IW1_VH_reg_stack_coh.dim  -t IW1_VH_reg_stack_coh_Deb
 
-# repeat 2-4 for IW2, IW3, then run TOPSAR-Merge
+# repeat 2-6 for IW2, IW3, then run TOPSAR-Merge
 
 # GoldsteinPhaseFiltering (optional)
 #${gpt} GoldsteinPhaseFiltering -SsourceProduct=IW1_VH_reg_stack_coh_Deb.dim -t IW1_VH_reg_stack_coh_Deb_fil 
 
 ## calculate coherence for each swatch
-#subswatch_coh IW1 VH 20191208_OB 20191220_OB
-#subswatch_coh IW2 VH 20191208_OB 20191220_OB
-#subswatch_coh IW3 VH 20191208_OB 20191220_OB
+subswatch_coh IW1 VH 20191208_OB 20191220_OB
+subswatch_coh IW2 VH 20191208_OB 20191220_OB
+subswatch_coh IW3 VH 20191208_OB 20191220_OB
 
 # Merge
-#${gpt} TOPSAR-Merge IW1_VH_reg_stack_coh_Deb.dim IW2_VH_stack_coh_Deb.dim  IW3_VH_stack_coh_Deb.dim  -t final_VH_coh_Deb
+${gpt} TOPSAR-Merge IW1_VH_reg_stack_coh_Deb.dim IW2_VH_stack_coh_Deb.dim  IW3_VH_stack_coh_Deb.dim  -t final_VH_coh_Deb
 
 # Terrain Correction
 #${gpt} Terrain-Correction -Ssource=IW1_VH_reg_stack_coh_Deb.dim -PpixelSpacingInMeter=10 -PdemName="SRTM 1Sec HGT" -t IW1_VH_reg_stack_coh_Deb_TC
