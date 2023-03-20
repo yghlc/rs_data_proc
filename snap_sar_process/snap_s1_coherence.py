@@ -28,7 +28,7 @@ import basic_src.RSImageProcess as RSImageProcess
 
 # ---------------------------------------------------------------------------
 # Where the Sentinel 1 Toolbox graphing tool exe and GDAL is located
-baseSNAP = '/home/rcassotto/snap/bin/gpt'
+baseSNAP = '/Applications/snap/bin/gpt'
 gdal_translate = '/usr/local/bin/gdal_translate'
 
 
