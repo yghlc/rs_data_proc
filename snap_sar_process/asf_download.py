@@ -170,11 +170,11 @@ if __name__ == "__main__":
                       action="store", dest="end_date",
                       help="the end date for inquiry, with format year-month-day, e.g., 2018-05-23")
 
-    parser.add_option("-p", "--dataset",
+    parser.add_option("", "--dataset",
                       action="store", dest="dataset_platform", default='SENTINEL1',
                       help="The dataset want to download (Satellite)")
 
-    parser.add_option("-t", "--filetype",
+    parser.add_option("", "--filetype",
                       action="store", dest="filetype_product", default='GRD_HD',
                       help="The data product want to download, such as GRD_HD or SLC")
 
