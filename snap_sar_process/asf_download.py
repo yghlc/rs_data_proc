@@ -132,7 +132,7 @@ def main(options, args):
 
     print(datetime.now(), 'download data from ASF, start_date: %s, end_date: %s, user: %s, \nwill save to %s'%(start_date,end_date,user_name,save_dir))
 
-    processingLevel = options.filetype_product
+    processingLevel = options.filetype_product.upper()
 
     platform = dataset2platform[options.dataset_platform.upper()]
 
