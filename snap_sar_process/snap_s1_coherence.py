@@ -84,7 +84,11 @@ def run_Back_Geocoding(input_ref, input_second, polarisation, subswath, save_dir
 
     cmd_str = baseSNAP + ' Back-Geocoding -PdemResamplingMethod=BILINEAR_INTERPOLATION -PresamplingType=BILINEAR_INTERPOLATION '
     if dem_path is not None:
-        cmd_str += ""   #TODO: add external DEM
+        nodata = raster_io.get_nodata(dem_path)
+        if nodata is None:
+            basic.outputlogMessage('Warning, nodata is not set in %s, use -9999'%dem_path)
+            nodata = -9999
+        cmd_str += "-PdemName=\"External DEM\"  -PexternalDEMFile=%s  -PexternalDEMNoDataValue=%s "%(dem_path, str(nodata))
     else:
         cmd_str += ' -PdemName="SRTM 1Sec HGT" '
     cmd_str += ' %s %s -t %s'%(input_ref, input_second, output)
@@ -135,7 +139,11 @@ def run_Terrain_Correction(input, save_dir, out_res_meter, dem_path):
         return output
     cmd_str = baseSNAP + ' Terrain-Correction -Ssource=%s '%input + ' -PpixelSpacingInMeter=%f'%out_res_meter
     if dem_path is not None:
-        cmd_str += ""   #TODO: add external DEM
+        nodata = raster_io.get_nodata(dem_path)
+        if nodata is None:
+            basic.outputlogMessage('Warning, nodata is not set in %s, use -9999'%dem_path)
+            nodata = -9999
+        cmd_str += " -PdemName=\"External DEM\" -PexternalDEMFile=%s  -PexternalDEMNoDataValue=%s "%(dem_path, str(nodata))
     else:
         cmd_str += ' -PdemName="SRTM 1Sec HGT" '
     cmd_str += ' -t %s'%output
@@ -158,6 +166,7 @@ def export_to_tiff(input, save_path):
     return save_path
 
 def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisation='VH', tmp_dir=None, wktAoi=None, dem_path=None):
+    # the ref_sar and second_sar should be have the same path, and frame, but don't check here.
     t0 = time.time()
 
     out_name = get_granule_name_substr(ref_sar) + '_' + get_granule_name_substr(second_sar) + '_%s_Coh' % (polarisation)
