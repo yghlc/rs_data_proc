@@ -23,7 +23,7 @@ import basic_src.timeTools as timeTools
 
 import pandas as pd
 
-from snap_s1_coherence import cal_coherence_from_two_s1
+import snap_s1_coherence
 
 def save_sar_meta_to_shape(sar_meta_list,save_shp_path):
 
@@ -160,13 +160,12 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
 
     # calculate coherence pair by pair
     for idx in range(1, total_count):
-        cal_coherence_from_two_s1(sar_meta_list_sorted[idx-1]['sar_path'], sar_meta_list_sorted[idx]['sar_path'],
+        snap_s1_coherence.cal_coherence_from_two_s1(sar_meta_list_sorted[idx-1]['sar_path'], sar_meta_list_sorted[idx]['sar_path'],
                                   res_meter,save_dir, polarisation='VH', tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_path)
 
 
 
 def multiple_SAR_coherence(sar_image_list,save_dir,res_meter, tmp_dir=None, wktAoi=None, dem_path=None):
-    # cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisation='VH', tmp_dir=None, wktAoi=None, dem_path=None)
 
     group_path_frame = organize_sar_pairs(sar_image_list, meta_data_path=None)
     # process group by group
@@ -192,22 +191,22 @@ def main(options, args):
     dem_file = options.elevation_file
     setting_json = options.env_setting
 
-    global  baseSNAP, gdal_translate
+
     if os.path.isfile(setting_json):
         env_setting = io_function.read_dict_from_txt_json(setting_json)
-        baseSNAP = env_setting['snap_bin_gpt']
-        print(datetime.now(), 'setting SNAP gpt:', baseSNAP)
-        gdal_translate = env_setting['gdal_translate_bin']
-        print(datetime.now(), 'gdal_translate:', gdal_translate)
+        snap_s1_coherence.baseSNAP = env_setting['snap_bin_gpt']
+        print(datetime.now(), 'setting SNAP gpt:', snap_s1_coherence.baseSNAP)
+        snap_s1_coherence.gdal_translate = env_setting['gdal_translate_bin']
+        print(datetime.now(), 'gdal_translate:', snap_s1_coherence.gdal_translate)
     else:
-        baseSNAP = os.getenv('SNAP_BIN_GPT')
-        if baseSNAP is None:
+        snap_s1_coherence.baseSNAP = os.getenv('SNAP_BIN_GPT')
+        if snap_s1_coherence.baseSNAP is None:
             raise ValueError('SNAP_BIN_GPT is not in Environment Variables')
-        gdal_translate = os.getenv('GDAL_TRANSLATE_BIN')
-        if gdal_translate is None:
+        snap_s1_coherence.gdal_translate = os.getenv('GDAL_TRANSLATE_BIN')
+        if snap_s1_coherence.gdal_translate is None:
             raise ValueError('GDAL_TRANSLATE_BIN is not in Environment Variables')
 
-    # test_cal_coherence_from_two_s1()
+
     if ext_shp is not None:
         wktAoi = vector_gpd.shapefile_to_ROIs_wkt(ext_shp)
         wktAoi = '\"' + wktAoi[0] + '\"'  # only use the first one
