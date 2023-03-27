@@ -229,7 +229,7 @@ if __name__ == '__main__':
                       help="a shapefile containing AOI")
 
     parser.add_option("-d", "--save_dir",
-                      action="store", dest="save_dir",default='asf_data',
+                      action="store", dest="save_dir",default='sar_coh_results',
                       help="the folder to save pre-processed results")
 
     parser.add_option("-t", "--temp_dir",
