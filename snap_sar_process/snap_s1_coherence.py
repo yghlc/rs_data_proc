@@ -255,6 +255,7 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
 
     print(datetime.now(), 'Complete, took %s seconds' % (time.time() - t0))
     io_function.write_metadata(['cost-time-second'], [time.time() - t0], filename=save_meta)
+    io_function.write_metadata(['hostname'], [os.uname()[1]], filename=save_meta)
 
 
 def test_cal_coherence_from_two_s1():
