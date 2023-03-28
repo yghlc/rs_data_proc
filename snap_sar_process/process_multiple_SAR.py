@@ -143,6 +143,9 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
         if sar_meta_list[0]['sar_meta']['properties']['flightDirection'] != sar_meta_list[idx]['sar_meta']['properties']['flightDirection']:
             [print(item['sar_meta']['properties']['flightDirection']) for item in sar_meta_list]
             raise ValueError('inconsistent flightDirection in SAR images of %s'%path_frame)
+        if sar_meta_list[0]['sar_meta']['properties']['polarization'] != sar_meta_list[idx]['sar_meta']['properties']['polarization']:
+            [print(item['sar_meta']['properties']['polarization']) for item in sar_meta_list]
+            raise ValueError('inconsistent polarization in SAR images of %s'%path_frame)
 
     # save meta data to disk for checking
     save_sar_meta_to_shape(sar_meta_list, os.path.join(save_dir,'%s_images.shp'%path_frame))
@@ -160,8 +163,10 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
 
     # calculate coherence pair by pair
     for idx in range(1, total_count):
-        snap_s1_coherence.cal_coherence_from_two_s1(sar_meta_list_sorted[idx-1]['sar_path'], sar_meta_list_sorted[idx]['sar_path'],
-                                  res_meter,save_dir, polarisation='VH', tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_path)
+        polarization_list = sar_meta_list_sorted[idx]['sar_meta']['properties']['polarization'].split('+')
+        for polari in polarization_list:
+            snap_s1_coherence.cal_coherence_from_two_s1(sar_meta_list_sorted[idx-1]['sar_path'], sar_meta_list_sorted[idx]['sar_path'],
+                                  res_meter,save_dir, polarisation=polari, tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_path)
 
 
 
