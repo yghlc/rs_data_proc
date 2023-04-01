@@ -133,7 +133,7 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
 
     total_count = len(sar_meta_list)
     if total_count < 2:
-        basic.outputlogMessage('Warning, %s have SAR imagery less than 2, cannot calculate coherence')
+        basic.outputlogMessage('Warning, %s have SAR imagery less than 2, cannot calculate coherence'%str(path_frame))
         return False
     # check platform and flightDirection be consistent
     for idx in range(1,total_count):
