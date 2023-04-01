@@ -76,7 +76,7 @@ def download_data_from_asf_list(file_list_txt, save_dir, username, password):
 
 
 def download_data_from_asf(idx,roi_count,roi_wkt, save_dir, start_date, end_date, processingLevel, username, password,
-                           beamMode='IW',platform=asf.PLATFORM.SENTINEL1 ):
+                           beamMode='IW',platform=asf.PLATFORM.SENTINEL1,flightDirection='DESCENDING'):
     ## ROI
     print(datetime.now(),'Searching... ... ...')
     if isinstance(platform, list):
@@ -86,7 +86,7 @@ def download_data_from_asf(idx,roi_count,roi_wkt, save_dir, start_date, end_date
 
     results = asf.geo_search(platform=platform_list, intersectsWith=roi_wkt, start=start_date,
                              end=end_date,
-                             beamMode=beamMode, processingLevel=processingLevel)
+                             beamMode=beamMode, processingLevel=processingLevel,flightDirection=flightDirection)
     print(datetime.now(),'Found %s results' % (len(results)))
     session = asf.ASFSession()
     session.auth_with_creds(username, password)
@@ -125,6 +125,7 @@ def main(options, args):
     end_date = options.end_date
     user_name = options.username
     password = options.password
+    flightDirection = options.flightDirection.upper()
 
     if user_name is None or password is None:
         print('Get user name and password from the .netrc file')
@@ -149,7 +150,7 @@ def main(options, args):
             # download data
             download_data_from_asf(idx, len(ROIs_wkt), roi_wkt, save_dir, start_date, end_date, processingLevel, user_name,
                                    password,
-                                   beamMode='IW', platform=platform)
+                                   beamMode='IW', platform=platform, flightDirection=flightDirection)
 
 
 
@@ -173,6 +174,10 @@ if __name__ == "__main__":
     parser.add_option("", "--dataset",
                       action="store", dest="dataset_platform", default='SENTINEL1',
                       help="The dataset want to download (Satellite)")
+
+    parser.add_option("", "--flightdirection",
+                      action="store", dest="flightdirection", default='DESCENDING',
+                      help="The flight direction of SAR imagery, Ascending or Descending")
 
     parser.add_option("", "--filetype",
                       action="store", dest="filetype_product", default='GRD_HD',
