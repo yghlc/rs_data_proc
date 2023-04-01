@@ -85,9 +85,9 @@ def download_data_from_asf(idx,roi_count,roi_wkt, save_dir, start_date, end_date
         platform_list = [platform]
 
     print(datetime.now(), 'Input search parameters:')
-    print('roi_wkt',roi_wkt)
-    print('save_dir, start_date, end_date', save_dir, start_date, end_date)
-    print('processingLevel (filetype), beamMode, platform, flightDirection', processingLevel, beamMode, platform,flightDirection)
+    print('roi_wkt:',roi_wkt)
+    print('save_dir, start_date, end_date:', save_dir, start_date, end_date)
+    print('processingLevel (filetype), beamMode, platform, flightDirection:', processingLevel, beamMode, platform,flightDirection)
 
     results = asf.geo_search(platform=platform_list, intersectsWith=roi_wkt, start=start_date,
                              end=end_date,
