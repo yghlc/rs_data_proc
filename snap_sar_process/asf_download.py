@@ -125,7 +125,7 @@ def main(options, args):
     end_date = options.end_date
     user_name = options.username
     password = options.password
-    flightDirection = options.flightDirection.upper()
+    flightDirection = options.flightdirection.upper()
 
     if user_name is None or password is None:
         print('Get user name and password from the .netrc file')
