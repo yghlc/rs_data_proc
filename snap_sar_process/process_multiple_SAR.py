@@ -131,6 +131,9 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
 
+    # save meta data to disk for checking
+    save_sar_meta_to_shape(sar_meta_list, os.path.join(save_dir,'%s_images.shp'%path_frame))
+
     total_count = len(sar_meta_list)
     if total_count < 2:
         basic.outputlogMessage('Warning, %s have SAR imagery less than 2, cannot calculate coherence'%str(path_frame))
@@ -146,9 +149,6 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
         if sar_meta_list[0]['sar_meta']['properties']['polarization'] != sar_meta_list[idx]['sar_meta']['properties']['polarization']:
             [print(item['sar_meta']['properties']['polarization']) for item in sar_meta_list]
             raise ValueError('inconsistent polarization in SAR images of %s'%path_frame)
-
-    # save meta data to disk for checking
-    save_sar_meta_to_shape(sar_meta_list, os.path.join(save_dir,'%s_images.shp'%path_frame))
 
     # add date
     for item in sar_meta_list:
