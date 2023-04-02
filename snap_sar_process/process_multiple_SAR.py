@@ -109,7 +109,7 @@ def organize_sar_pairs(sar_image_list, meta_data_path=None):
     for s_img, s_meta in zip(sar_image_list,sar_meta_list):
         s_img_meta = {'sar_path':s_img,
                       'sar_meta':s_meta}
-        path_frame_str = '%d-%d'%(s_meta['properties']['pathNumber'],s_meta['properties']['frameNumber'])
+        path_frame_str = '%d_%d'%(s_meta['properties']['pathNumber'],s_meta['properties']['frameNumber'])
         group_path_frame.setdefault(path_frame_str, []).append(s_img_meta)
 
     # print(sar_metas[0])
