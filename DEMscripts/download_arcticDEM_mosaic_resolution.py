@@ -96,7 +96,7 @@ def main(options, args):
     if mosaic_res not in mosaic_res_to_name.keys():
         raise ValueError('Only accept resolutions in %s'%str([item for item in mosaic_res_to_name.keys()]))
 
-    save_folder = options.save_dir + mosaic_res_to_name[mosaic_res]
+    save_folder = options.save_dir + '_' +mosaic_res_to_name[mosaic_res]
     if os.path.isdir(save_folder) is False:
         io_function.mkdir(save_folder)
     save_folder = os.path.abspath(save_folder)  # change to absolute path
