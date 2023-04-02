@@ -160,8 +160,8 @@ def export_to_tiff(input, save_path):
     else:
         raise ValueError('multiple img file in %s' % input_dir)
 
-    # cmd_str = gdal_translate + ' -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer ' + img_path + ' ' + save_path
-    cmd_str = gdal_translate + ' -of GTiff ' + img_path + ' ' + save_path
+    cmd_str = gdal_translate + ' -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer ' + img_path + ' ' + save_path
+    # cmd_str = gdal_translate + ' -of GTiff ' + img_path + ' ' + save_path
     basic.os_system_exit_code(cmd_str)
     return save_path
 
