@@ -102,7 +102,7 @@ def main(options, args):
     save_folder = os.path.abspath(save_folder)  # change to absolute path
 
     tarball_dir = os.path.expanduser('ArcticDEM_tile_tarball')
-    dem_tif_dir = os.path.expanduser('rcticDEM_tile_geotiff')
+    dem_tif_dir = os.path.expanduser('ArcticDEM_tile_geotiff')
     if os.path.isdir(tarball_dir) is False:
         io_function.mkdir(tarball_dir)
     if os.path.isdir(dem_tif_dir) is False:
