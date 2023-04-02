@@ -114,7 +114,7 @@ def organize_sar_pairs(sar_image_list, meta_data_path=None):
 
     # print(sar_metas[0])
     for key in group_path_frame.keys():
-        print('path-frame:',key)
+        print('path_frame:',key)
         for item in group_path_frame[key]:
             print(item['sar_path'])
         # print(group_path_frame[key][0]['sar_path'])
