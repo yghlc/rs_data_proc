@@ -140,9 +140,10 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
         return False
     # check platform and flightDirection be consistent
     for idx in range(1,total_count):
-        if sar_meta_list[0]['sar_meta']['properties']['platform'] != sar_meta_list[idx]['sar_meta']['properties']['platform']:
-            [print(item['sar_meta']['properties']['platform']) for item in sar_meta_list]
-            raise ValueError('inconsistent platform in SAR images of %s'%path_frame)
+        # we can treat sentinel-1A and 1B as the same, so, no need to check.
+        # if sar_meta_list[0]['sar_meta']['properties']['platform'] != sar_meta_list[idx]['sar_meta']['properties']['platform']:
+        #     [print(item['sar_meta']['properties']['platform']) for item in sar_meta_list]
+        #     raise ValueError('inconsistent platform in SAR images of %s'%path_frame)
         if sar_meta_list[0]['sar_meta']['properties']['flightDirection'] != sar_meta_list[idx]['sar_meta']['properties']['flightDirection']:
             [print(item['sar_meta']['properties']['flightDirection']) for item in sar_meta_list]
             raise ValueError('inconsistent flightDirection in SAR images of %s'%path_frame)
