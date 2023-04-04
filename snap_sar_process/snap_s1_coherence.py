@@ -32,12 +32,12 @@ baseSNAP = '/Applications/snap/bin/gpt'
 gdal_translate = '/usr/local/bin/gdal_translate'
 
 
-def run_TOPSAR_Split(input_sar_zip, granule_name, Polarisations, subswath, save_dir, awk_aoi):
+def run_TOPSAR_Split(input_sar_zip, granule_name, Polarisations, subswath, save_dir, awk_aoi,thread_num=16):
     output = os.path.join(save_dir,granule_name + '_%s_%s.dim'%(subswath,Polarisations))
     if os.path.isfile(output):
         print(output +' already exists, skip')
         return output
-    cmd_str = baseSNAP + ' TOPSAR-Split ' + ' -Ssource=%s '%input_sar_zip + ' -PfirstBurstIndex=1 -PlastBurstIndex=9999 ' + \
+    cmd_str = baseSNAP + ' TOPSAR-Split -q %d '%thread_num + ' -Ssource=%s '%input_sar_zip + ' -PfirstBurstIndex=1 -PlastBurstIndex=9999 ' + \
             ' -PselectedPolarisations=%s -Psubswath=%s -t %s '%(Polarisations,subswath,output)
     if awk_aoi is not None:
         cmd_str +=  '  -PwktAoi=%s '%awk_aoi
@@ -54,7 +54,7 @@ def run_TOPSAR_Split(input_sar_zip, granule_name, Polarisations, subswath, save_
             sys.exit(res)
     return output
 
-def run_Apply_Orbit_File(input, granule_name, save_dir):
+def run_Apply_Orbit_File(input, granule_name, save_dir,thread_num=16):
     if input.endswith('.dim'):
         output = io_function.get_name_by_adding_tail(input,'Orb')
     else:
@@ -63,7 +63,7 @@ def run_Apply_Orbit_File(input, granule_name, save_dir):
         print(output +' already exists, skip')
         return output
 
-    cmd_str = baseSNAP + ' Apply-Orbit-File -PcontinueOnFail=false -PorbitType="Sentinel Precise (Auto Download)" ' + \
+    cmd_str = baseSNAP + ' Apply-Orbit-File -q %d -PcontinueOnFail=false -PorbitType="Sentinel Precise (Auto Download)" '%thread_num + \
               '  -t %s %s'%(output, input)
 
     basic.os_system_exit_code(cmd_str)
@@ -75,14 +75,14 @@ def get_granule_name_substr(file_path):
     out_str = date_str + '_' + name_strs[9]
     return out_str
 
-def run_Back_Geocoding(input_ref, input_second, polarisation, subswath, save_dir, dem_path):
+def run_Back_Geocoding(input_ref, input_second, polarisation, subswath, save_dir, dem_path,thread_num=16):
     out_name = get_granule_name_substr(input_ref) + '_' + get_granule_name_substr(input_second) + '_%s_%s_Orb_Stack.dim'%(subswath,polarisation)
     output = os.path.join(save_dir, out_name)
     if os.path.isfile(output):
         print(output +' already exists, skip')
         return output
 
-    cmd_str = baseSNAP + ' Back-Geocoding -PdemResamplingMethod=BILINEAR_INTERPOLATION -PresamplingType=BILINEAR_INTERPOLATION '
+    cmd_str = baseSNAP + ' Back-Geocoding -q %d -PdemResamplingMethod=BILINEAR_INTERPOLATION -PresamplingType=BILINEAR_INTERPOLATION '%thread_num
     if dem_path is not None:
         nodata = raster_io.get_nodata(dem_path)
         if nodata is None:
@@ -95,28 +95,28 @@ def run_Back_Geocoding(input_ref, input_second, polarisation, subswath, save_dir
     basic.os_system_exit_code(cmd_str)
     return output
 
-def run_Coherence(input_stack,save_dir, cohWinAz=3,cohWinRg=10):
+def run_Coherence(input_stack,save_dir, cohWinAz=3,cohWinRg=10,thread_num=16):
     output = io_function.get_name_by_adding_tail(input_stack, 'Coh')
     output = os.path.join(save_dir, os.path.basename(output))
     if os.path.isfile(output):
         print(output +' already exists, skip')
         return output
-    cmd_str = baseSNAP + ' Coherence -SsourceProduct=%s '%input_stack + ' -PsubtractFlatEarthPhase=true -PsquarePixel=true ' + \
+    cmd_str = baseSNAP + ' Coherence -q %d -SsourceProduct=%s '%(thread_num,input_stack) + ' -PsubtractFlatEarthPhase=true -PsquarePixel=true ' + \
             ' -PcohWinAz=%d -PcohWinRg=%d '%(cohWinAz,cohWinRg) + ' -t %s '%output
     basic.os_system_exit_code(cmd_str)
     return output
 
-def run_TOPSAR_Deburst(input, save_dir):
+def run_TOPSAR_Deburst(input, save_dir,thread_num=16):
     output = io_function.get_name_by_adding_tail(input, 'Deb')
     output = os.path.join(save_dir, os.path.basename(output))
     if os.path.isfile(output):
         print(output +' already exists, skip')
         return output
-    cmd_str = baseSNAP + ' TOPSAR-Deburst -Ssource=%s -t %s'%(input, output)
+    cmd_str = baseSNAP + ' TOPSAR-Deburst -q %d -Ssource=%s -t %s'%(thread_num,input, output)
     basic.os_system_exit_code(cmd_str)
     return output
 
-def run_TOPSAR_Merge(ref_sar, second_sar, polarisation, subswatch_list, save_dir):
+def run_TOPSAR_Merge(ref_sar, second_sar, polarisation, subswatch_list, save_dir,thread_num=16):
     out_name = get_granule_name_substr(ref_sar) + '_' + get_granule_name_substr(second_sar) + '_%s_Orb_Stack_Coh_Deb_merge.dim'%(polarisation)
     output = os.path.join(save_dir, out_name)
     if os.path.isfile(output):
@@ -127,17 +127,17 @@ def run_TOPSAR_Merge(ref_sar, second_sar, polarisation, subswatch_list, save_dir
     #     pass
 
     subswatch_strs = ' '.join(subswatch_list)
-    cmd_str = baseSNAP + ' TOPSAR-Merge ' + subswatch_strs + ' -t %s'%output
+    cmd_str = baseSNAP + ' TOPSAR-Merge -q %d '%thread_num + subswatch_strs + ' -t %s'%output
     basic.os_system_exit_code(cmd_str)
     return output
 
-def run_Terrain_Correction(input, save_dir, out_res_meter, dem_path):
+def run_Terrain_Correction(input, save_dir, out_res_meter, dem_path,thread_num=16):
     output = io_function.get_name_by_adding_tail(input, 'TC')
     output = os.path.join(save_dir, os.path.basename(output))
     if os.path.isfile(output):
         print(output +' already exists, skip')
         return output
-    cmd_str = baseSNAP + ' Terrain-Correction -Ssource=%s '%input + ' -PpixelSpacingInMeter=%f'%out_res_meter
+    cmd_str = baseSNAP + ' Terrain-Correction -q %d -Ssource=%s '%(thread_num,input) + ' -PpixelSpacingInMeter=%f'%out_res_meter
     if dem_path is not None:
         nodata = raster_io.get_nodata(dem_path)
         if nodata is None:
@@ -165,7 +165,8 @@ def export_to_tiff(input, save_path):
     basic.os_system_exit_code(cmd_str)
     return save_path
 
-def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisation='VH', tmp_dir=None, wktAoi=None, dem_path=None):
+def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisation='VH', tmp_dir=None, wktAoi=None, dem_path=None,
+                              thread_num=16):
     # the ref_sar and second_sar should be have the same path, and frame, but don't check here.
     t0 = time.time()
 
@@ -195,13 +196,13 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
         granule_name = os.path.basename(sar_zip).split('.')[0]
         for swatch in subswath_list:
             # TOPSAR-Split
-            split = run_TOPSAR_Split(sar_zip, granule_name, polarisation, swatch, tmp_dir, wktAoi)
+            split = run_TOPSAR_Split(sar_zip, granule_name, polarisation, swatch, tmp_dir, wktAoi,thread_num=thread_num)
             if split is None:
                 continue
             io_function.write_metadata([swatch + '-' + 'split'], [split], filename=save_meta)
             snap_intermediate_files.append(split)
             # Apply-Orbit-File
-            split_orb = run_Apply_Orbit_File(split, granule_name, tmp_dir)
+            split_orb = run_Apply_Orbit_File(split, granule_name, tmp_dir,thread_num=thread_num)
             io_function.write_metadata([swatch + '-' + 'Orb'], [split_orb], filename=save_meta)
             snap_intermediate_files.append(split_orb)
             swath_split_orb_dict.setdefault(swatch, []).append(split_orb)
@@ -213,17 +214,18 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
         if swatch not in swath_split_orb_dict.keys():
             continue
         # Back-Geocoding
-        out_stack = run_Back_Geocoding(swath_split_orb_dict[swatch][0],swath_split_orb_dict[swatch][1],polarisation,swatch,tmp_dir,dem_path)
+        out_stack = run_Back_Geocoding(swath_split_orb_dict[swatch][0],swath_split_orb_dict[swatch][1],polarisation,swatch,tmp_dir,
+                                       dem_path,thread_num=thread_num)
         io_function.write_metadata([swatch + '-' + 'co-registration'], [out_stack], filename=save_meta)
         snap_intermediate_files.append(out_stack)
 
         # Coherence
-        out_coherence = run_Coherence(out_stack,tmp_dir)
+        out_coherence = run_Coherence(out_stack,tmp_dir,thread_num=thread_num)
         io_function.write_metadata([swatch + '-' + 'coherence'], [out_coherence], filename=save_meta)
         snap_intermediate_files.append(out_coherence)
 
         # TOPSAR-Deburst
-        out_deb = run_TOPSAR_Deburst(out_coherence, tmp_dir)
+        out_deb = run_TOPSAR_Deburst(out_coherence, tmp_dir,thread_num=thread_num)
         io_function.write_metadata([swatch + '-' + 'deburst'], [out_deb], filename=save_meta)
         snap_intermediate_files.append(out_deb)
 
@@ -231,12 +233,12 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
 
     ########################################
     # TOPSAR-Merge
-    out_merge = run_TOPSAR_Merge(ref_sar, second_sar,polarisation,coh_res_list,tmp_dir)
+    out_merge = run_TOPSAR_Merge(ref_sar, second_sar,polarisation,coh_res_list,tmp_dir,thread_num=thread_num)
     io_function.write_metadata(['TOPSAR-Merge'], [out_merge], filename=save_meta)
     snap_intermediate_files.append(out_merge)
 
     # Terrain-Correction
-    out_tc = run_Terrain_Correction(out_merge,tmp_dir,res_meter,dem_path)
+    out_tc = run_Terrain_Correction(out_merge,tmp_dir,res_meter,dem_path,thread_num=thread_num)
     io_function.write_metadata(['Terrain-correction'], [out_tc], filename=save_meta)
     snap_intermediate_files.append(out_tc)
 
@@ -254,7 +256,7 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
         io_function.delete_file_or_dir(tmp)
 
     print(datetime.now(), 'Complete, took %s seconds' % (time.time() - t0))
-    io_function.write_metadata(['cost-time-second'], [time.time() - t0], filename=save_meta)
+    io_function.write_metadata(['cost-time-second','thread-number'], [time.time() - t0, thread_num], filename=save_meta)
     io_function.write_metadata(['hostname'], [os.uname()[1]], filename=save_meta)
 
 
@@ -284,6 +286,9 @@ def main(options, args):
     dem_file = options.elevation_file
     setting_json = options.env_setting
 
+    process_num = options.process_num
+    thread_num = options.thread_num
+
     global  baseSNAP, gdal_translate
     if os.path.isfile(setting_json):
         env_setting = io_function.read_dict_from_txt_json(setting_json)
@@ -307,7 +312,8 @@ def main(options, args):
         wktAoi = None
 
     # Polarisations = ['VH', 'VV']
-    cal_coherence_from_two_s1(ref_sar, sec_sar, out_res, save_dir, polarisation='VH', tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_file)
+    cal_coherence_from_two_s1(ref_sar, sec_sar, out_res, save_dir, polarisation='VH', tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_file,
+                              thread_num=thread_num)
 
 
 if __name__ == '__main__':
@@ -327,9 +333,14 @@ if __name__ == '__main__':
                       action="store", dest="temp_dir",
                       help="the temporal folder for saving intermediate data ")
 
-    # parser.add_option("", "--process_num",
-    #                   action="store", dest="process_num", type=int, default=4,
-    #                   help="number of processes to run the process")
+    parser.add_option("", "--process_num",
+                      action="store", dest="process_num", type=int, default=1,
+                      help="number of processes to run the process")
+
+    parser.add_option("", "--thread_num",
+                      action="store", dest="thread_num", type=int, default=16,
+                      help="number of SNAP thread, default is 16, we may change to others"
+                           " such as 4 on a supercomputer depending on how much resources we got ")
 
     parser.add_option("-r", "--save_pixel_size",
                       action="store", dest="save_pixel_size",type=float,default=10.0,

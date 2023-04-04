@@ -126,7 +126,7 @@ def test_organize_sar_pairs():
     sar_files = get_sar_file_list(os.path.expanduser('~/Data/sar_coherence_mapping/test1/snap_coh_run/s1_data'))
     organize_sar_pairs(sar_files)
 
-def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tmp_dir=None, wktAoi=None, dem_path=None):
+def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tmp_dir=None, wktAoi=None, dem_path=None,thread_num=16,process_num=1):
     save_dir = os.path.join(save_dir,path_frame)
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
@@ -166,11 +166,12 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
         polarization_list = sar_meta_list_sorted[idx]['sar_meta']['properties']['polarization'].split('+')
         for polari in polarization_list:
             snap_s1_coherence.cal_coherence_from_two_s1(sar_meta_list_sorted[idx-1]['sar_path'], sar_meta_list_sorted[idx]['sar_path'],
-                                  res_meter,save_dir, polarisation=polari, tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_path)
+                                  res_meter,save_dir, polarisation=polari, tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_path,
+                                                        thread_num=thread_num)
 
 
 
-def multiple_SAR_coherence(sar_image_list,save_dir,res_meter, tmp_dir=None, wktAoi=None, dem_path=None):
+def multiple_SAR_coherence(sar_image_list,save_dir,res_meter, tmp_dir=None, wktAoi=None, dem_path=None,thread_num=16,process_num=1):
 
     group_path_frame = organize_sar_pairs(sar_image_list, meta_data_path=None)
     # process group by group
@@ -178,7 +179,8 @@ def multiple_SAR_coherence(sar_image_list,save_dir,res_meter, tmp_dir=None, wktA
         # print('path-frame:',key)
         # for item in group_path_frame[key]:
         #     print(item['sar_path'])
-        SAR_coherence_samePathFrame(key,group_path_frame[key],save_dir,res_meter, tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_path)
+        SAR_coherence_samePathFrame(key,group_path_frame[key],save_dir,res_meter, tmp_dir=tmp_dir, wktAoi=wktAoi,
+                                    dem_path=dem_path,thread_num=thread_num,process_num=process_num)
 
 
 def main(options, args):
@@ -195,6 +197,9 @@ def main(options, args):
     out_res = options.save_pixel_size
     dem_file = options.elevation_file
     setting_json = options.env_setting
+
+    process_num = options.process_num
+    thread_num = options.thread_num
 
 
     if os.path.isfile(setting_json):
@@ -220,7 +225,8 @@ def main(options, args):
 
     # Polarisations = ['VH', 'VV']
     # read metadata
-    multiple_SAR_coherence(sar_image_list, save_dir, out_res, tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_file)
+    multiple_SAR_coherence(sar_image_list, save_dir, out_res, tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_file,
+                           thread_num=thread_num,process_num=process_num)
 
 
 
@@ -242,8 +248,13 @@ if __name__ == '__main__':
                       help="the temporal folder for saving intermediate data ")
 
     parser.add_option("", "--process_num",
-                      action="store", dest="process_num", type=int, default=4,
+                      action="store", dest="process_num", type=int, default=1,
                       help="number of processes to run the process")
+
+    parser.add_option("", "--thread_num",
+                      action="store", dest="thread_num", type=int, default=16,
+                      help="number of SNAP thread, default is 16, we may change to others"
+                           " such as 4 on a supercomputer depending on how much resources we got ")
 
     parser.add_option("-r", "--save_pixel_size",
                       action="store", dest="save_pixel_size",type=float,default=10.0,
