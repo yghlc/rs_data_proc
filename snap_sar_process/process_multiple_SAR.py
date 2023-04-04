@@ -147,9 +147,11 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
         if sar_meta_list[0]['sar_meta']['properties']['flightDirection'] != sar_meta_list[idx]['sar_meta']['properties']['flightDirection']:
             [print(item['sar_meta']['properties']['flightDirection']) for item in sar_meta_list]
             raise ValueError('inconsistent flightDirection in SAR images of %s'%path_frame)
-        if sar_meta_list[0]['sar_meta']['properties']['polarization'] != sar_meta_list[idx]['sar_meta']['properties']['polarization']:
-            [print(item['sar_meta']['properties']['polarization']) for item in sar_meta_list]
-            raise ValueError('inconsistent polarization in SAR images of %s'%path_frame)
+
+        # no need to check? SNAP will check it.
+        # if sar_meta_list[0]['sar_meta']['properties']['polarization'] != sar_meta_list[idx]['sar_meta']['properties']['polarization']:
+        #     [print(item['sar_meta']['properties']['polarization']) for item in sar_meta_list]
+        #     raise ValueError('inconsistent polarization in SAR images of %s'%path_frame)
 
     # add date
     for item in sar_meta_list:
