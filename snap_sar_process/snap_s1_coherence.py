@@ -277,17 +277,33 @@ def test_cal_coherence_from_two_s1():
     cal_coherence_from_two_s1(ref_sar, sec_sar, out_res, save_dir, polarisation='VH', tmp_dir=tmp_dir, wktAoi=wktAoi)
 
 def main(options, args):
-    ref_sar = args[0]
-    sec_sar = args[1]
-    ext_shp = options.aoi_shp
-    save_dir = options.save_dir
-    tmp_dir = options.temp_dir if options.temp_dir is not None else save_dir
-    out_res = options.save_pixel_size
-    dem_file = options.elevation_file
-    setting_json = options.env_setting
-
-    process_num = options.process_num
-    thread_num = options.thread_num
+    # if the input file is in a json file
+    if args[0].endswith('.json'):
+        input_dict = io_function.read_dict_from_txt_json(args[0])
+        ref_sar = input_dict['reference_sar']
+        sec_sar = input_dict['second_sar']
+        ext_shp = input_dict['aoi_shp']
+        save_dir = input_dict['save_dir']
+        if 'temp_dir' in input_dict.keys():
+            tmp_dir = input_dict['temp_dir']
+        else:
+            tmp_dir = save_dir
+        out_res = input_dict['save_pixel_size']
+        dem_file = input_dict['elevation_file']
+        setting_json = input_dict['env_setting']
+        # process_num = input_dict['process_num']
+        thread_num = input_dict['thread_num']
+    else:
+        ref_sar = args[0]
+        sec_sar = args[1]
+        ext_shp = options.aoi_shp
+        save_dir = options.save_dir
+        tmp_dir = options.temp_dir if options.temp_dir is not None else save_dir
+        out_res = options.save_pixel_size
+        dem_file = options.elevation_file
+        setting_json = options.env_setting
+        # process_num = options.process_num
+        thread_num = options.thread_num
 
     global  baseSNAP, gdal_translate
     if os.path.isfile(setting_json):
@@ -317,7 +333,7 @@ def main(options, args):
 
 
 if __name__ == '__main__':
-    usage = "usage: %prog [options] reference_sar second_sar "
+    usage = "usage: %prog [options] input.json OR reference_sar second_sar "
     parser = OptionParser(usage=usage, version="1.0 2023-3-19")
     parser.description = 'Introduction: produce coherence from Sentinel-1 using SNAP  '
 
