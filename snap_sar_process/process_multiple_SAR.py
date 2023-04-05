@@ -256,6 +256,7 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
         #                           res_meter,save_dir, polarisation=polari, tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_path,
         #                                                 thread_num=thread_num)
         process_one_pair(sar_meta_list_sorted,idx-1,idx,path_frame,res_meter,save_dir,tmp_dir,ext_shp,dem_path,thread_num)
+        time.sleep(1)   # wait one second, as suggested by computeCanada
 
 
 
