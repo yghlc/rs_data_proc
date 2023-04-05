@@ -20,14 +20,11 @@ import vector_gpd
 import basic_src.basic as basic
 import basic_src.io_function as io_function
 import slurm_utility
+import parallel_run_slurm
 
 import pandas as pd
 
 import snap_s1_coherence
-
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..') )
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..','DEMscripts') )
-import DEMscripts.parallel_processing_curc as parallel_processing_curc
 
 working_dir = './'
 script_dir = os.path.expanduser('~/Data/sar_coherence_mapping/scripts_sar_coh')
@@ -86,8 +83,9 @@ def save_sar_meta_to_shape(sar_meta_list,save_shp_path):
 
 def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res_meter, save_dir, tmp_dir, ext_shp, dem_path, thread_num):
 
-    parallel_processing_curc.b_run_job_local = b_run_job_local
-    parallel_processing_curc.wait_if_reach_max_jobs(max_job_count, 'coh')
+    parallel_run_slurm.b_run_job_local = b_run_job_local
+    parallel_run_slurm.slurm_username = user_name
+    parallel_run_slurm.wait_if_reach_max_jobs(max_job_count, 'coh')
     job_name = 'coh_%s_%d' % (path_frame_str,ref_idx)
     # parallel_processing_curc.check_length_jobname(job_name)   # compute canada allow longer name, no need to check.
 
@@ -124,7 +122,7 @@ def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res
 
         # bash for run
         sh_list = ['sar_coh_pair.sh', 'job_sar_coh_pair_thread.sh','env_setting.json']
-        parallel_processing_curc.copy_curc_job_files(script_dir, work_dir, sh_list)
+        parallel_run_slurm.copy_curc_job_files(script_dir, work_dir, sh_list)
         slurm_utility.modify_slurm_job_sh('job_sar_coh_pair_thread.sh', 'job-name', job_name)
 
     else:
@@ -148,7 +146,7 @@ def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res
             return
 
     # submit the job
-    parallel_processing_curc.submit_job_curc_or_run_script_local('job_sar_coh_pair_thread.sh', 'sar_coh_pair.sh')
+    parallel_run_slurm.submit_job_curc_or_run_script_local('job_sar_coh_pair_thread.sh', 'sar_coh_pair.sh')
 
     os.chdir(curr_dir_before_start)
 
