@@ -334,7 +334,7 @@ def main(options, args):
                            thread_num=thread_num,process_num=process_num)
 
     # wait all local task finished
-    while basic.b_all_process_finish(parallel_processing_curc.local_tasks) is False:
+    while basic.b_all_process_finish(parallel_run_slurm.local_tasks) is False:
         print(datetime.now(),'wait 5 minutes to let all local tasks to complete')
         time.sleep(60*5)
 
