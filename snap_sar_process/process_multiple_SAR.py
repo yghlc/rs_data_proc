@@ -92,11 +92,7 @@ def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res
     # save input parameters to json
     work_dir = os.path.join(working_dir, path_frame_str+'_%d'%ref_idx)      # work dir for a pair
 
-    SLURM_TMPDIR = os.getenv('SLURM_TMPDIR')
-    if SLURM_TMPDIR is None:
-        tmp_dir = os.path.join(tmp_dir, 'tmp_' + path_frame_str + '_%d' % ref_idx)
-    else:
-        tmp_dir = os.path.join(SLURM_TMPDIR, 'tmp_' + path_frame_str + '_%d' % ref_idx)
+    tmp_dir = os.path.join(tmp_dir, 'tmp_' + path_frame_str + '_%d' % ref_idx)
 
     json_path = os.path.join(work_dir, 'sar_pair_for_coh.json')
 

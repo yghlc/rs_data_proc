@@ -329,6 +329,13 @@ def main(options, args):
         if gdal_translate is None:
             raise ValueError('GDAL_TRANSLATE_BIN is not in Environment Variables')
 
+    # SLURM_TMPDIR only exists, after submit a SLURM job on compute canada
+    SLURM_TMPDIR = os.getenv('SLURM_TMPDIR')
+    if SLURM_TMPDIR is not None:
+        tmp_dir = os.path.join(SLURM_TMPDIR,  os.path.basename(tmp_dir))
+        basic.outputlogMessage('update tmp_dir to %s'%tmp_dir)
+
+
     # test_cal_coherence_from_two_s1()
     if ext_shp is not None:
         wktAoi = vector_gpd.shapefile_to_ROIs_wkt(ext_shp)
