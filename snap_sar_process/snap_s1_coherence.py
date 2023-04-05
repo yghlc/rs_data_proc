@@ -278,10 +278,14 @@ def test_cal_coherence_from_two_s1():
 
 def main(options, args):
     # if the input file is in a json file
+    common_polars = ['VH', 'VV']
     if args[0].endswith('.json'):
         input_dict = io_function.read_dict_from_txt_json(args[0])
         ref_sar = input_dict['reference_sar']
         sec_sar = input_dict['second_sar']
+        ref_polarisations = input_dict['ref_polarisations']
+        sec_polarisations = input_dict['sec_polarisations']
+
         ext_shp = input_dict['aoi_shp']
         save_dir = input_dict['save_dir']
         if 'temp_dir' in input_dict.keys():
@@ -293,6 +297,11 @@ def main(options, args):
         setting_json = input_dict['env_setting']
         # process_num = input_dict['process_num']
         thread_num = input_dict['thread_num']
+
+        ref_polars = ref_polarisations.split('+')
+        sec_polars = sec_polarisations.split('+')
+        common_polars = [item for item in set(ref_polars).intersection(sec_polars)]
+
     else:
         ref_sar = args[0]
         sec_sar = args[1]
@@ -328,7 +337,8 @@ def main(options, args):
         wktAoi = None
 
     # Polarisations = ['VH', 'VV']
-    cal_coherence_from_two_s1(ref_sar, sec_sar, out_res, save_dir, polarisation='VH', tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_file,
+    for polar in common_polars:
+        cal_coherence_from_two_s1(ref_sar, sec_sar, out_res, save_dir, polarisation=polar, tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_file,
                               thread_num=thread_num)
 
 

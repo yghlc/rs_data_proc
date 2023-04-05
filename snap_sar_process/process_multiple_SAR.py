@@ -19,11 +19,25 @@ sys.path.insert(0, deeplabforRS)
 import vector_gpd
 import basic_src.basic as basic
 import basic_src.io_function as io_function
-import basic_src.timeTools as timeTools
+import slurm_utility
 
 import pandas as pd
 
 import snap_s1_coherence
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..') )
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..','DEMscripts') )
+import DEMscripts.parallel_processing_curc as parallel_processing_curc
+
+working_dir = './'
+script_dir = os.path.expanduser('~/Data/sar_coherence_mapping/scripts_sar_coh')
+group_account = 'def-tlantz'    # need to set account as this on computeCanada
+user_name = 'lingcao'           # default user name on computeCanada
+b_run_job_local=False
+max_job_count=2
+
+setting_json = None
+
 
 def save_sar_meta_to_shape(sar_meta_list,save_shp_path):
 
@@ -69,6 +83,73 @@ def save_sar_meta_to_shape(sar_meta_list,save_shp_path):
     vector_gpd.save_polygons_to_files(pd_meta,'outline','EPSG:4326',save_shp_path)
     print('saved %s'%save_shp_path)
 
+
+def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res_meter, save_dir, tmp_dir, ext_shp, dem_path, thread_num):
+
+    parallel_processing_curc.b_run_job_local = b_run_job_local
+    parallel_processing_curc.wait_if_reach_max_jobs(max_job_count, 'coh')
+    job_name = 'coh_%s_%d' % (path_frame_str,ref_idx)
+    # parallel_processing_curc.check_length_jobname(job_name)   # compute canada allow longer name, no need to check.
+
+    # save input parameters to json
+    work_dir = os.path.join(working_dir, path_frame_str+'_%d'%ref_idx)      # work dir for a pair
+
+    SLURM_TMPDIR = os.getenv('SLURM_TMPDIR')
+    if SLURM_TMPDIR is None:
+        tmp_dir = os.path.join(tmp_dir, 'tmp_' + path_frame_str + '_%d' % ref_idx)
+    else:
+        tmp_dir = os.path.join(SLURM_TMPDIR, 'tmp_' + path_frame_str + '_%d' % ref_idx)
+
+    json_path = os.path.join(work_dir, 'sar_pair_for_coh.json')
+
+    if os.path.isdir(work_dir) is False:
+        io_function.mkdir(work_dir)
+        os.chdir(work_dir)
+        basic.outputlogMessage('tmp_dir is %s' % tmp_dir)
+
+        input_para_dict = {
+            'reference_sar': sar_meta_list_sorted[ref_idx]['sar_path'],
+            'second_sar': sar_meta_list_sorted[sec_idx]['sar_path'],
+            'ref_polarisations': sar_meta_list_sorted[ref_idx]['sar_meta']['properties']['polarization'],
+            'sec_polarisations': sar_meta_list_sorted[sec_idx]['sar_meta']['properties']['polarization'],
+            'aoi_shp': ext_shp,
+            'save_dir': save_dir,
+            'temp_dir': tmp_dir,
+            'save_pixel_size': res_meter,
+            'elevation_file': dem_path,
+            'env_setting': setting_json,
+            'thread_num': thread_num
+        }
+        io_function.save_dict_to_txt_json(json_path,input_para_dict)
+
+        # bash for run
+        sh_list = ['sar_coh_pair.sh', 'job_sar_coh_pair_thread.sh','env_setting.json']
+        parallel_processing_curc.copy_curc_job_files(script_dir, work_dir, sh_list)
+        slurm_utility.modify_slurm_job_sh('job_sar_coh_pair_thread.sh', 'job-name', job_name)
+
+    else:
+        os.chdir(work_dir)
+        basic.outputlogMessage('tmp_dir is %s' % tmp_dir)
+
+        # SLURM_TMPDIR may changed, need to update it
+        input_para_dict = io_function.read_dict_from_txt_json(json_path)
+        input_para_dict['temp_dir'] = tmp_dir
+        io_function.save_dict_to_txt_json(json_path,input_para_dict)
+
+        submit_job_names = slurm_utility.get_submited_job_names(user_name)
+        if job_name in submit_job_names:
+            print('The folder: %s already exist and the job has been submitted, skip submitting a new job' % work_dir)
+            return
+
+        # job is completed
+        if os.path.isfile('done.txt'):
+            print('The job in the folder: %s is Done' % work_dir)
+            return
+
+    # submit the job
+    parallel_processing_curc.submit_job_curc_or_run_script_local('job_sar_coh_pair_thread.sh', 'sar_coh_pair.sh')
+
+    os.chdir(curr_dir_before_start)
 
 
 def get_sar_file_list(file_or_dir):
@@ -126,7 +207,7 @@ def test_organize_sar_pairs():
     sar_files = get_sar_file_list(os.path.expanduser('~/Data/sar_coherence_mapping/test1/snap_coh_run/s1_data'))
     organize_sar_pairs(sar_files)
 
-def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tmp_dir=None, wktAoi=None, dem_path=None,thread_num=16,process_num=1):
+def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,thread_num=16,process_num=1):
     save_dir = os.path.join(save_dir,path_frame)
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
@@ -164,17 +245,26 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
     print('after sorting')
     [print(item['sar_path']) for item in sar_meta_list_sorted]
 
+    # if ext_shp is not None:
+    #     wktAoi = vector_gpd.shapefile_to_ROIs_wkt(ext_shp)
+    #     if len(wktAoi) != 1 :
+    #         raise ValueError('Only allow one polygon in %s, but got %d'%(ext_shp,len(wktAoi)))
+    #     wktAoi = '\"' + wktAoi[0] + '\"'  # only use the first one
+    # else:
+    #     wktAoi = None
+
     # calculate coherence pair by pair
     for idx in range(1, total_count):
-        polarization_list = sar_meta_list_sorted[idx]['sar_meta']['properties']['polarization'].split('+')
-        for polari in polarization_list:
-            snap_s1_coherence.cal_coherence_from_two_s1(sar_meta_list_sorted[idx-1]['sar_path'], sar_meta_list_sorted[idx]['sar_path'],
-                                  res_meter,save_dir, polarisation=polari, tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_path,
-                                                        thread_num=thread_num)
+        # polarization_list = sar_meta_list_sorted[idx]['sar_meta']['properties']['polarization'].split('+')
+        # for polari in polarization_list:
+        #     snap_s1_coherence.cal_coherence_from_two_s1(sar_meta_list_sorted[idx-1]['sar_path'], sar_meta_list_sorted[idx]['sar_path'],
+        #                           res_meter,save_dir, polarisation=polari, tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_path,
+        #                                                 thread_num=thread_num)
+        process_one_pair(sar_meta_list_sorted,idx-1,idx,path_frame,res_meter,save_dir,tmp_dir,ext_shp,dem_path,thread_num)
 
 
 
-def multiple_SAR_coherence(sar_image_list,save_dir,res_meter, tmp_dir=None, wktAoi=None, dem_path=None,thread_num=16,process_num=1):
+def multiple_SAR_coherence(sar_image_list,save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,thread_num=16,process_num=1):
 
     group_path_frame = organize_sar_pairs(sar_image_list, meta_data_path=None)
     # process group by group
@@ -182,7 +272,7 @@ def multiple_SAR_coherence(sar_image_list,save_dir,res_meter, tmp_dir=None, wktA
         # print('path-frame:',key)
         # for item in group_path_frame[key]:
         #     print(item['sar_path'])
-        SAR_coherence_samePathFrame(key,group_path_frame[key],save_dir,res_meter, tmp_dir=tmp_dir, wktAoi=wktAoi,
+        SAR_coherence_samePathFrame(key,group_path_frame[key],save_dir,res_meter, tmp_dir=tmp_dir, ext_shp=ext_shp,
                                     dem_path=dem_path,thread_num=thread_num,process_num=process_num)
 
 
@@ -199,10 +289,29 @@ def main(options, args):
     tmp_dir = options.temp_dir if options.temp_dir is not None else save_dir
     out_res = options.save_pixel_size
     dem_file = options.elevation_file
-    setting_json = options.env_setting
 
     process_num = options.process_num
     thread_num = options.thread_num
+
+    global setting_json
+    setting_json = options.env_setting
+    global working_dir
+    if options.working_dir is not None:
+        working_dir = options.working_dir
+    global script_dir
+    if options.script_dir is not None:
+        script_dir = options.script_dir
+    global b_run_job_local
+    b_run_job_local =  options.b_run_job_local
+    global max_job_count
+    max_job_count = options.max_job_count
+
+    print('setting_json:',setting_json)
+    print('working_dir:',working_dir)
+    print('script_dir:',script_dir)
+    print('max_job_count:', max_job_count)
+    print('b_run_job_local:',b_run_job_local)
+
 
 
     if os.path.isfile(setting_json):
@@ -220,16 +329,15 @@ def main(options, args):
             raise ValueError('GDAL_TRANSLATE_BIN is not in Environment Variables')
 
 
-    if ext_shp is not None:
-        wktAoi = vector_gpd.shapefile_to_ROIs_wkt(ext_shp)
-        wktAoi = '\"' + wktAoi[0] + '\"'  # only use the first one
-    else:
-        wktAoi = None
-
     # Polarisations = ['VH', 'VV']
     # read metadata
-    multiple_SAR_coherence(sar_image_list, save_dir, out_res, tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_file,
+    multiple_SAR_coherence(sar_image_list, save_dir, out_res, tmp_dir=tmp_dir, ext_shp=ext_shp, dem_path=dem_file,
                            thread_num=thread_num,process_num=process_num)
+
+    # wait all local task finished
+    while basic.b_all_process_finish(parallel_processing_curc.local_tasks) is False:
+        print(datetime.now(),'wait 5 minutes to let all local tasks to complete')
+        time.sleep(60*5)
 
 
 
@@ -270,6 +378,29 @@ if __name__ == '__main__':
     parser.add_option("-s", "--env_setting",
                       action="store", dest="env_setting", default='env_setting.json',
                       help=" the setting of the software environment  ")
+
+    parser.add_option("-j", "--max_job_count",
+                      action="store", dest="max_job_count", type=int, default=2,
+                      help="number of jobs to submit at the same time")
+
+    parser.add_option("", "--b_run_job_local",
+                      action="store_true", dest="b_run_job_local",default=False,
+                      help="if set (True), will run the job on the machine instead of submitting a slurm job")
+
+    parser.add_option("-u", "--user_name",
+                      action="store", dest="user_name",
+                      help="the username of the server")
+
+    parser.add_option("", "--working_dir",
+                      action="store", dest="working_dir",
+                      help="the working directory")
+    parser.add_option("", "--script_dir",
+                      action="store", dest="script_dir",
+                      help="the directory that template scripts and setting file")
+
+
+    curr_dir_before_start = os.getcwd()
+    print('\ncurrent folder before running a job: ', curr_dir_before_start, '\n')
 
 
     (options, args) = parser.parse_args()
