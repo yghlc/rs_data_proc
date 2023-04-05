@@ -1,5 +1,5 @@
 ## Downloading and pre-processing of remote sensing data 
-This repo provides scriptos for downloading and pre-processing different sources of remote sensing data
+This repo provides scripts for downloading and pre-processing different sources of remote sensing data
 
 ### Downloading and pre-processing planet images
     
