@@ -136,10 +136,11 @@ def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res
         input_para_dict['temp_dir'] = tmp_dir
         io_function.save_dict_to_txt_json(json_path,input_para_dict)
 
-        submit_job_names = slurm_utility.get_submited_job_names(user_name)
-        if job_name in submit_job_names:
-            print('The folder: %s already exist and the job has been submitted, skip submitting a new job' % work_dir)
-            return
+        if b_run_job_local is False:
+            submit_job_names = slurm_utility.get_submited_job_names(user_name)
+            if job_name in submit_job_names:
+                print('The folder: %s already exist and the job has been submitted, skip submitting a new job' % work_dir)
+                return
 
         # job is completed
         if os.path.isfile('done.txt'):
