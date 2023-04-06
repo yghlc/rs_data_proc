@@ -314,19 +314,19 @@ def main(options, args):
 
 
 
-    if os.path.isfile(setting_json):
-        env_setting = io_function.read_dict_from_txt_json(setting_json)
-        snap_s1_coherence.baseSNAP = env_setting['snap_bin_gpt']
-        print(datetime.now(), 'setting SNAP gpt:', snap_s1_coherence.baseSNAP)
-        snap_s1_coherence.gdal_translate = env_setting['gdal_translate_bin']
-        print(datetime.now(), 'gdal_translate:', snap_s1_coherence.gdal_translate)
-    else:
-        snap_s1_coherence.baseSNAP = os.getenv('SNAP_BIN_GPT')
-        if snap_s1_coherence.baseSNAP is None:
-            raise ValueError('SNAP_BIN_GPT is not in Environment Variables')
-        snap_s1_coherence.gdal_translate = os.getenv('GDAL_TRANSLATE_BIN')
-        if snap_s1_coherence.gdal_translate is None:
-            raise ValueError('GDAL_TRANSLATE_BIN is not in Environment Variables')
+    # if os.path.isfile(setting_json):
+    #     env_setting = io_function.read_dict_from_txt_json(setting_json)
+    #     snap_s1_coherence.baseSNAP = env_setting['snap_bin_gpt']
+    #     print(datetime.now(), 'setting SNAP gpt:', snap_s1_coherence.baseSNAP)
+    #     snap_s1_coherence.gdal_translate = env_setting['gdal_translate_bin']
+    #     print(datetime.now(), 'gdal_translate:', snap_s1_coherence.gdal_translate)
+    # else:
+    #     snap_s1_coherence.baseSNAP = os.getenv('SNAP_BIN_GPT')
+    #     if snap_s1_coherence.baseSNAP is None:
+    #         raise ValueError('SNAP_BIN_GPT is not in Environment Variables')
+    #     snap_s1_coherence.gdal_translate = os.getenv('GDAL_TRANSLATE_BIN')
+    #     if snap_s1_coherence.gdal_translate is None:
+    #         raise ValueError('GDAL_TRANSLATE_BIN is not in Environment Variables')
 
 
     # Polarisations = ['VH', 'VV']
