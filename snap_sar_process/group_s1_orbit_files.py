@@ -27,6 +27,8 @@ def move_a_eof_file(file_path):
     year = info_list[7][:4]
     month = info_list[7][4:6]
     dst_dir = os.path.join(orbit_folder,info_list[3], info_list[0], year,month) # POEORB, S1B,
+    if os.path.isdir(dst_dir) is False:
+        io_function.mkdir(dst_dir)
 
     # io_function.movefiletodir(file_path,dst_dir)
     # zip it, instead of moving it
