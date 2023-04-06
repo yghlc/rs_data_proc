@@ -12,6 +12,7 @@ This folder provides scripts for downloading and pre-processing SAR data
    conda install -c conda-forge rasterio
    conda install -c conda-forge psutil
    conda install -c conda-forge scikit-image
+   conda install -c conda-forge sentineleof  # download orbit files https://github.com/scottstanie/sentineleof
    
 
    
