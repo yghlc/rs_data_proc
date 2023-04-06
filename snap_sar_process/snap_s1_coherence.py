@@ -238,10 +238,13 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
 
     ########################################
     # TOPSAR-Merge
-    t1 = time.time()
-    out_merge = run_TOPSAR_Merge(ref_sar, second_sar,polarisation,coh_res_list,tmp_dir,thread_num=thread_num)
-    io_function.write_metadata(['TOPSAR-Merge','TOPSAR-Merge-cost-time'], [out_merge, time.time() - t1], filename=save_meta)
-    snap_intermediate_files.append(out_merge)
+    if len(coh_res_list) > 1:
+        t1 = time.time()
+        out_merge = run_TOPSAR_Merge(ref_sar, second_sar,polarisation,coh_res_list,tmp_dir,thread_num=thread_num)
+        io_function.write_metadata(['TOPSAR-Merge','TOPSAR-Merge-cost-time'], [out_merge, time.time() - t1], filename=save_meta)
+        snap_intermediate_files.append(out_merge)
+    else:
+        out_merge = coh_res_list[0]
 
     # Terrain-Correction
     out_tc = run_Terrain_Correction(out_merge,tmp_dir,res_meter,dem_path,thread_num=thread_num)
