@@ -91,7 +91,7 @@ def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res
 
     # save input parameters to json
     flight_direction= sar_meta_list_sorted[ref_idx]['sar_meta']['properties']['flightDirection'][:3]
-    work_dir = os.path.join(working_dir, path_frame_str+'%s_%d'%(flight_direction,ref_idx))      # work dir for a pair
+    work_dir = os.path.join(working_dir, path_frame_str+'_%s_%d'%(flight_direction,ref_idx))      # work dir for a pair
 
     tmp_dir = os.path.join(tmp_dir, 'tmp_' + path_frame_str + '_%d' % ref_idx)
 
