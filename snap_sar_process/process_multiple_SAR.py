@@ -86,14 +86,15 @@ def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res
     parallel_run_slurm.b_run_job_local = b_run_job_local
     parallel_run_slurm.slurm_username = user_name
     parallel_run_slurm.wait_if_reach_max_jobs(max_job_count, 'coh')
-    job_name = 'coh_%s_%d' % (path_frame_str,ref_idx)
+
+    flight_direction = sar_meta_list_sorted[ref_idx]['sar_meta']['properties']['flightDirection'][:1] # A or D
+    job_name = 'coh%s%s%d' % (path_frame_str,flight_direction,ref_idx)
     parallel_run_slurm.check_length_jobname(job_name,length=14)   # compute canada allow longer name (14 characters)
 
     # save input parameters to json
-    flight_direction= sar_meta_list_sorted[ref_idx]['sar_meta']['properties']['flightDirection'][:3]
-    work_dir = os.path.join(working_dir, path_frame_str+'_%s_%d'%(flight_direction,ref_idx))      # work dir for a pair
 
-    tmp_dir = os.path.join(tmp_dir, 'tmp_' + path_frame_str + '_%d' % ref_idx)
+    work_dir = os.path.join(working_dir, job_name)      # work dir for a pair
+    tmp_dir = os.path.join(tmp_dir, 'tmp_' + job_name)
 
     json_path = os.path.join(work_dir, 'sar_pair_for_coh.json')
 
