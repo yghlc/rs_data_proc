@@ -83,7 +83,7 @@ def create_a_mosaic(pre_name,extent_id,save_dir,extent_poly,tile_list,tile_tif_d
     if os.path.isfile(output_crop) is False:
         RSImageProcess.subset_image_by_polygon_box_image_min(output_crop, output_mosaic, extent_poly, resample_m='average',
                                                          o_format='GTiff',
-                                                         xres=32, yres=32, compress='lzw', tiled='yes',
+                                                         xres=mosaic_res, yres=mosaic_res, compress='lzw', tiled='yes',
                                                          bigtiff='if_safer', thread_num=thread_num)
     else:
         print('Crop: %s exist, skip'%output_crop)
