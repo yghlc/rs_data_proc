@@ -203,7 +203,9 @@ def test_organize_sar_pairs():
     organize_sar_pairs(sar_files)
 
 def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,thread_num=16,process_num=1):
-    save_dir = os.path.join(save_dir,path_frame+'_'+sar_meta_list[0]['sar_meta']['properties']['flightDirection'][:3])
+    # add decending or ascending to path_frame
+    path_frame = path_frame+'_'+sar_meta_list[0]['sar_meta']['properties']['flightDirection'][:3]
+    save_dir = os.path.join(save_dir,path_frame)
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
 
