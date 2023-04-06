@@ -31,6 +31,9 @@ def move_a_eof_file(file_path):
     # io_function.movefiletodir(file_path,dst_dir)
     # zip it, instead of moving it
     zip_path = os.path.join(dst_dir,os.path.basename(file_path)+'.zip')
+    if os.path.isfile(zip_path):
+        print('%s already exist, skip'%zip_path)
+        return
     cmd_str = 'zip %s %s'%(zip_path,file_path)
     basic.os_system_exit_code(cmd_str)
     print(datetime.now(),'compress a EOF file into %s'%zip_path)
