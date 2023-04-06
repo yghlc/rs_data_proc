@@ -87,10 +87,11 @@ def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res
     parallel_run_slurm.slurm_username = user_name
     parallel_run_slurm.wait_if_reach_max_jobs(max_job_count, 'coh')
     job_name = 'coh_%s_%d' % (path_frame_str,ref_idx)
-    # parallel_processing_curc.check_length_jobname(job_name)   # compute canada allow longer name, no need to check.
+    parallel_run_slurm.check_length_jobname(job_name,length=14)   # compute canada allow longer name (14 characters)
 
     # save input parameters to json
-    work_dir = os.path.join(working_dir, path_frame_str+'_%d'%ref_idx)      # work dir for a pair
+    flight_direction= sar_meta_list_sorted[ref_idx]['sar_meta']['properties']['flightDirection'][:3]
+    work_dir = os.path.join(working_dir, path_frame_str+'%s_%d'%(flight_direction,ref_idx))      # work dir for a pair
 
     tmp_dir = os.path.join(tmp_dir, 'tmp_' + path_frame_str + '_%d' % ref_idx)
 
@@ -204,8 +205,8 @@ def test_organize_sar_pairs():
 
 def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,thread_num=16,process_num=1):
     # add decending or ascending to path_frame
-    path_frame = path_frame+'_'+sar_meta_list[0]['sar_meta']['properties']['flightDirection'][:3]
-    save_dir = os.path.join(save_dir,path_frame)
+    path_frame_direction = path_frame+'_'+sar_meta_list[0]['sar_meta']['properties']['flightDirection'][:3]
+    save_dir = os.path.join(save_dir,path_frame_direction)
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
 
