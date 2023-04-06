@@ -196,14 +196,16 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
         granule_name = os.path.basename(sar_zip).split('.')[0]
         for swatch in subswath_list:
             # TOPSAR-Split
+            t1 = time.time()
             split = run_TOPSAR_Split(sar_zip, granule_name, polarisation, swatch, tmp_dir, wktAoi,thread_num=thread_num)
             if split is None:
                 continue
-            io_function.write_metadata([swatch + '-' + 'split'], [split], filename=save_meta)
+            io_function.write_metadata([swatch + '-' + 'split', 'Split-cost-time'], [split, time.time() - t1], filename=save_meta)
             snap_intermediate_files.append(split)
             # Apply-Orbit-File
+            t1 = time.time()
             split_orb = run_Apply_Orbit_File(split, granule_name, tmp_dir,thread_num=thread_num)
-            io_function.write_metadata([swatch + '-' + 'Orb'], [split_orb], filename=save_meta)
+            io_function.write_metadata([swatch + '-' + 'Orb', 'Apply_Orbit-cost-time'], [split_orb,time.time() - t1], filename=save_meta)
             snap_intermediate_files.append(split_orb)
             swath_split_orb_dict.setdefault(swatch, []).append(split_orb)
 
@@ -214,37 +216,42 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
         if swatch not in swath_split_orb_dict.keys():
             continue
         # Back-Geocoding
+        t1 = time.time()
         out_stack = run_Back_Geocoding(swath_split_orb_dict[swatch][0],swath_split_orb_dict[swatch][1],polarisation,swatch,tmp_dir,
                                        dem_path,thread_num=thread_num)
-        io_function.write_metadata([swatch + '-' + 'co-registration'], [out_stack], filename=save_meta)
+        io_function.write_metadata([swatch + '-' + 'co-registration', 'Back_Geocoding-cost-time' ], [out_stack, time.time()-t1], filename=save_meta)
         snap_intermediate_files.append(out_stack)
 
         # Coherence
+        t1 = time.time()
         out_coherence = run_Coherence(out_stack,tmp_dir,thread_num=thread_num)
-        io_function.write_metadata([swatch + '-' + 'coherence'], [out_coherence], filename=save_meta)
+        io_function.write_metadata([swatch + '-' + 'coherence', 'Coherence-cost-time'], [out_coherence, time.time() - t1], filename=save_meta)
         snap_intermediate_files.append(out_coherence)
 
         # TOPSAR-Deburst
+        t1 = time.time()
         out_deb = run_TOPSAR_Deburst(out_coherence, tmp_dir,thread_num=thread_num)
-        io_function.write_metadata([swatch + '-' + 'deburst'], [out_deb], filename=save_meta)
+        io_function.write_metadata([swatch + '-' + 'deburst', 'TOPSAR-Deburst-cost-time'], [out_deb, time.time() - t1], filename=save_meta)
         snap_intermediate_files.append(out_deb)
 
         coh_res_list.append(out_deb)
 
     ########################################
     # TOPSAR-Merge
+    t1 = time.time()
     out_merge = run_TOPSAR_Merge(ref_sar, second_sar,polarisation,coh_res_list,tmp_dir,thread_num=thread_num)
-    io_function.write_metadata(['TOPSAR-Merge'], [out_merge], filename=save_meta)
+    io_function.write_metadata(['TOPSAR-Merge','TOPSAR-Merge-cost-time'], [out_merge, time.time() - t1], filename=save_meta)
     snap_intermediate_files.append(out_merge)
 
     # Terrain-Correction
     out_tc = run_Terrain_Correction(out_merge,tmp_dir,res_meter,dem_path,thread_num=thread_num)
-    io_function.write_metadata(['Terrain-correction'], [out_tc], filename=save_meta)
+    io_function.write_metadata(['Terrain-correction', 'Terrain_Correction-cost-time'], [out_tc, time.time() - t1], filename=save_meta)
     snap_intermediate_files.append(out_tc)
 
     # export to tif
+    t1 = time.time()
     export_to_tiff(out_tc,save_path)
-    io_function.write_metadata(['Coherence-tiff'], [save_path], filename=save_meta)
+    io_function.write_metadata(['Coherence-tiff', 'export_tif-cost-time'], [save_path, time.time() - t1], filename=save_meta)
 
     io_function.write_metadata(['Process-time'], [str(datetime.now())], filename=save_meta)
 
