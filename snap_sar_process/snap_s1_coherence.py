@@ -266,8 +266,8 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
     io_function.write_metadata(['Coherence-tiff', 'export_tif-cost-time'], [save_path, time.time() - t1], filename=save_meta)
 
     t1 = time.time()
-    sar_coh_to_8bit(save_path)
-    io_function.write_metadata(['Coherence-tiff-8bit', 'to_8bit-cost-time'], [save_path, time.time() - t1], ilename=save_meta)
+    tif_8bit = sar_coh_to_8bit(save_path)
+    io_function.write_metadata(['Coherence-tiff-8bit', 'to_8bit-cost-time'], [tif_8bit, time.time() - t1], filename=save_meta)
 
     io_function.write_metadata(['Process-time'], [str(datetime.now())], filename=save_meta)
 
