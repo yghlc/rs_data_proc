@@ -165,6 +165,14 @@ def export_to_tiff(input, save_path):
     basic.os_system_exit_code(cmd_str)
     return save_path
 
+def sar_coh_to_8bit(input,save_path=None):
+    if save_path is None:
+        save_path = io_function.get_name_by_adding_tail(input,'8bit')
+    py_8bit = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/tools/convertTo8bit.py')
+    cmd_str = py_8bit + ' -u 0.99 -l 0.01 %s %s '%(input, save_path)
+    basic.os_system_exit_code(cmd_str)
+    return save_path
+
 def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisation='VH', tmp_dir=None, wktAoi=None, dem_path=None,
                               thread_num=16):
     # the ref_sar and second_sar should be have the same path, and frame, but don't check here.
@@ -247,6 +255,7 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
         out_merge = coh_res_list[0]
 
     # Terrain-Correction
+    t1 = time.time()
     out_tc = run_Terrain_Correction(out_merge,tmp_dir,res_meter,dem_path,thread_num=thread_num)
     io_function.write_metadata(['Terrain-correction', 'Terrain_Correction-cost-time'], [out_tc, time.time() - t1], filename=save_meta)
     snap_intermediate_files.append(out_tc)
@@ -255,6 +264,10 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
     t1 = time.time()
     export_to_tiff(out_tc,save_path)
     io_function.write_metadata(['Coherence-tiff', 'export_tif-cost-time'], [save_path, time.time() - t1], filename=save_meta)
+
+    t1 = time.time()
+    sar_coh_to_8bit(save_path)
+    io_function.write_metadata(['Coherence-tiff-8bit', 'to_8bit-cost-time'], [save_path, time.time() - t1], ilename=save_meta)
 
     io_function.write_metadata(['Process-time'], [str(datetime.now())], filename=save_meta)
 
