@@ -93,6 +93,14 @@ def arcticDEM_strip_registration(strip_dir):
     if os.path.isfile(reg_tif):
         return reg_tif
     else:
+        # in new verion (s2s041), Registration of strip DEM elevatio have not been calculated, PGC plan to calculate this and relase them in the future
+        # just use the data without co-registration 14-April-2023  hlc
+        end = '_dem.tif'
+        reg_tif = os.path.join(strip_dir, os.path.basename(strip_dir) + end)
+        print(reg_tif)
+        if os.path.isfile(reg_tif):
+            return reg_tif
+
         # with open('no_registration_strips.txt','a') as f_obj:
         #     f_obj.writelines('%s\n'%strip_dir)
         f_obj=open('no_registration_strips.txt','a')
