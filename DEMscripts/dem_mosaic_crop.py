@@ -719,7 +719,7 @@ def main(options, args):
                                 o_format='GTiff')
 
         # merge DEM with close acquisition date
-        mosaic_yeardate_dir = os.path.join(save_dir, 'dem_date_mosaic_sub')
+        mosaic_yeardate_dir = os.path.join(save_dir, 'dem_date_mosaic')
         # groups DEM with original images acquired at the same year months
         dem_groups_date = group_demTif_yearmonthDay(dem_tif_list, diff_days=0)
         # sort based on yeardate in accending order : operator.itemgetter(0)
