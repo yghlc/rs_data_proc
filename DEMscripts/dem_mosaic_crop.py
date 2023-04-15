@@ -200,7 +200,7 @@ def mosaic_dem_list_gdal_merge(key, dem_list, save_tif_dir,save_source):
 
 
 def mosaic_dem_same_stripID(demTif_groups,save_tif_dir, resample_method, process_num=1, save_source=False, o_format='GTiff'):
-    if os.path.isdir(save_tif_dir):
+    if os.path.isdir(save_tif_dir) is False:
         io_function.mkdir(save_tif_dir)
 
     # when run in parallel, it has "Finalize object, dead" after a while,  cannot figure out why?, so temporal set process_num = 1
