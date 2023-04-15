@@ -715,8 +715,24 @@ def main(options, args):
         dem_groups = group_demTif_strip_pair_ID(dem_list)
         # mosaic them direclty without consider the extent
         mosaic_dir = os.path.join(save_dir, 'dem_stripID_mosaic' )
-        mosaic_dem_same_stripID(dem_groups, mosaic_dir, resample_method, process_num=process_num, save_source=True,
+        dem_tif_list = mosaic_dem_same_stripID(dem_groups, mosaic_dir, resample_method, process_num=process_num, save_source=True,
                                 o_format='GTiff')
+
+        # merge DEM with close acquisition date
+        mosaic_yeardate_dir = os.path.join(save_dir, 'dem_date_mosaic_sub')
+        # groups DEM with original images acquired at the same year months
+        dem_groups_date = group_demTif_yearmonthDay(dem_tif_list, diff_days=0)
+        # sort based on yeardate in accending order : operator.itemgetter(0)
+        dem_groups_date = dict(sorted(dem_groups_date.items(), key=operator.itemgetter(0)))
+        # save to txt (json format)
+        year_date_txt = os.path.join(mosaic_dir, 'year_date_tif.txt')
+        io_function.save_dict_to_txt_json(year_date_txt, dem_groups_date)
+
+        io_function.mkdir(mosaic_yeardate_dir)
+        # this is the output of mosaic, save to 'GTiff' format.
+        dem_tif_list = mosaic_dem_date(dem_groups_date, mosaic_yeardate_dir, resample_method,
+                                      process_num=process_num, save_source=True, o_format='GTiff')
+
     else:
         extent_shp_base = os.path.splitext(os.path.basename(extent_shp))[0]
         dem_prj = map_projection.get_raster_or_vector_srs_info_epsg(dem_list[0])
