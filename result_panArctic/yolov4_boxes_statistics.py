@@ -123,6 +123,11 @@ def calculate_width_height_of_boxes(boxes, box_ids):
 
         width = point1.distance(point2)
         height = point2.distance(point3)
+
+        if width < 10 or height < 10:
+            print('id:',id, 'extreme small? width (%.4f), height (%.4f), skip'%(width, height))
+            # continue
+
         # assume height >= width
         if width > height:
             width, height = height, width
@@ -136,7 +141,8 @@ def calculate_width_height_of_boxes(boxes, box_ids):
 
 
 def main():
-    boxes_shp = os.path.expanduser('~/Data/labelearth.colorado.edu/data/thawslump_boxes/pan_arctic_thawslump_after_webValidation_thr0.5.shp')
+    # boxes_shp = os.path.expanduser('~/Data/labelearth.colorado.edu/data/thawslump_boxes/pan_arctic_thawslump_after_webValidation_thr0.5.shp')
+    boxes_shp = os.path.expanduser('~/Data/labelearth.colorado.edu/data/thawslump_boxes/pan_arctic_thawslump_after_webValidation_thr0.5_edit.shp')
 
     # polygons = vector_gpd.read_polygons_gpd(boxes_shp,b_fix_invalid_polygon=False)
     polygons = vector_gpd.read_shape_gpd_to_NewPrj(boxes_shp,'EPSG:3413')
@@ -144,6 +150,7 @@ def main():
     print('read %d polygons'%len(polygons))
 
     box_width_list, box_height_list = calculate_width_height_of_boxes(polygons, poly_ids)
+    vector_gpd.add_attributes_to_shp(boxes_shp,{'boxWidth':box_width_list, 'boxHeight':box_height_list})
 
     # calculate length and width
     # print(poly_ids[0],'height:',height, 'width',width)
