@@ -17,6 +17,7 @@ import basic_src.basic as basic
 import basic_src.io_function as io_function
 import raster_io
 
+import xml.etree.ElementTree as ET
 
 # ---------------------------------------------------------------------------
 # Where the Sentinel 1 Toolbox graphing tool exe and GDAL is located
@@ -65,6 +66,12 @@ def get_granule_name_substr(file_path):
     name_strs = os.path.splitext(os.path.basename(file_path))[0].split('_')
     date_str = name_strs[5][:8]
     out_str = date_str + '_' + name_strs[9]
+    return out_str
+
+def get_ESA_ERS_granule_name_substr(file_path):
+    name_strs = os.path.splitext(os.path.basename(file_path))[0].split('_')
+    date_str = name_strs[2][6:]
+    out_str = date_str
     return out_str
 
 def run_Back_Geocoding(input_ref, input_second, polarisation, subswath, save_dir, dem_path,thread_num=16):
@@ -141,6 +148,38 @@ def run_Terrain_Correction(input, save_dir, out_res_meter, dem_path,thread_num=1
     cmd_str += ' -t %s'%output
     basic.os_system_exit_code(cmd_str)
     return output
+
+def CoregistrationGraph_ERS(input_ref, input_second, save_dir,org_graph='CoregistrationGraph.xml', thread_num=16):
+
+    out_name = io_function.get_name_no_ext(input_ref) + '_' + io_function.get_name_no_ext(input_second) + '_Stack.dim'
+    output = os.path.join(save_dir, out_name)
+    if os.path.isfile(output):
+        print(output +' already exists, skip')
+        return output
+
+    # copy and modify the graphy file (xml) based on input and output
+    copy_graph = os.path.join(save_dir, 'CoregistrationGraph_%s.xml'%io_function.get_name_no_ext(out_name))
+    io_function.copy_file_to_dst(org_graph,copy_graph,overwrite=True)
+
+
+    tree = ET.parse(org_graph)
+    root = tree.getroot()
+    # modify the input
+    filelist_elem = root.find(".//node[@id='ProductSet-Reader']/parameters/fileList")
+    filelist_elem.text = '%s,%s'%(input_ref,input_second)
+    # modify the output
+    file_elem = root.find(".//node[@id='Write']/parameters/file")
+    file_elem.text = output
+
+    # save to xml
+    tree.write(copy_graph)
+
+    # run SNAP
+    # ${gpt} CoregistrationGraph_edit.xml
+    cmd_str = baseSNAP + ' %s '%copy_graph
+    basic.os_system_exit_code(cmd_str)
+    return output, copy_graph
+
 
 def export_to_tiff(input, save_path):
     input_dir = input.replace('.dim', '.data')
