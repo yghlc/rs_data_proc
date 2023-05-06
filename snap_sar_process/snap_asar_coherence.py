@@ -155,6 +155,8 @@ def main(options, args):
         sec_polars = sec_polarisations.split('+')
         common_polars = [item for item in set(ref_polars).intersection(sec_polars)]
 
+        coregister_graph = input_dict['coregister_graph'] if 'coregister_graph' in input_dict.keys() else None
+
     else:
         ref_sar = args[0]
         sec_sar = args[1]
@@ -166,6 +168,7 @@ def main(options, args):
         setting_json = options.env_setting
         # process_num = options.process_num
         thread_num = options.thread_num
+        coregister_graph = options.coregister_graph
 
     # global  baseSNAP, gdal_translate
     if os.path.isfile(setting_json):
@@ -199,7 +202,7 @@ def main(options, args):
     # Polarisations = ['VH', 'VV']
     for polar in common_polars:
         cal_coherence_from_two_ERS(ref_sar, sec_sar, out_res, save_dir, polarisation=polar, tmp_dir=tmp_dir, ext_shp=ext_shp, dem_path=dem_file,
-                              thread_num=thread_num)
+                              thread_num=thread_num,coregister_graph=coregister_graph)
 
 
 if __name__ == '__main__':
@@ -221,6 +224,10 @@ if __name__ == '__main__':
     parser.add_option("-t", "--temp_dir",
                       action="store", dest="temp_dir",
                       help="the temporal folder for saving intermediate data ")
+
+    parser.add_option("", "--coregister_graph",
+                      action="store", dest="coregister_graph", default='CoregistrationGraph.xml',
+                      help="the template graph file for ERS co-registration ")
 
     parser.add_option("", "--process_num",
                       action="store", dest="process_num", type=int, default=1,
