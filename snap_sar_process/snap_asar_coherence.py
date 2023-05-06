@@ -28,7 +28,7 @@ import basic_src.RSImageProcess as RSImageProcess
 import cmd_snap
 
 def cal_coherence_from_two_ERS(ref_sar, second_sar, res_meter,save_dir, polarisation='VV', tmp_dir=None, ext_shp=None, dem_path=None,
-                              thread_num=16,coregister_graph='CoregistrationGraph.xml',):
+                              thread_num=16,coregister_graph='CoregistrationGraph.xml',rm_tmp_files=True):
     # the ref_sar and second_sar should be have the same path, and frame, but don't check here.
     t0 = time.time()
 
@@ -101,11 +101,12 @@ def cal_coherence_from_two_ERS(ref_sar, second_sar, res_meter,save_dir, polarisa
     io_function.write_metadata(['Process-time'], [str(datetime.now())], filename=save_meta)
 
     # clean files
-    for tmp in snap_intermediate_files:
-        print('removing %s'%tmp)
-        io_function.delete_file_or_dir(tmp)
-        tmp = tmp.replace('.dim', '.data')
-        io_function.delete_file_or_dir(tmp)
+    if rm_tmp_files:
+        for tmp in snap_intermediate_files:
+            print('removing %s'%tmp)
+            io_function.delete_file_or_dir(tmp)
+            tmp = tmp.replace('.dim', '.data')
+            io_function.delete_file_or_dir(tmp)
 
     print(datetime.now(), 'Complete, took %s seconds' % (time.time() - t0))
     io_function.write_metadata(['cost-time-second','thread-number'], [time.time() - t0, thread_num], filename=save_meta)
@@ -157,6 +158,8 @@ def main(options, args):
 
         coregister_graph = input_dict['coregister_graph'] if 'coregister_graph' in input_dict.keys() else None
 
+        b_rm_tmp_files = input_dict['b_dont_remove_tmp_files'] if 'b_dont_remove_tmp_files' in input_dict.keys() else True
+
     else:
         ref_sar = args[0]
         sec_sar = args[1]
@@ -169,6 +172,7 @@ def main(options, args):
         # process_num = options.process_num
         thread_num = options.thread_num
         coregister_graph = options.coregister_graph
+        b_rm_tmp_files = options.b_dont_remove_tmp_files
 
     # global  baseSNAP, gdal_translate
     if os.path.isfile(setting_json):
@@ -192,17 +196,10 @@ def main(options, args):
         basic.outputlogMessage('update tmp_dir to %s'%tmp_dir)
 
 
-    # test_cal_coherence_from_two_s1()
-    if ext_shp is not None:
-        wktAoi = vector_gpd.shapefile_to_ROIs_wkt(ext_shp)
-        wktAoi = '\"' + wktAoi[0] + '\"'  # only use the first one
-    else:
-        wktAoi = None
-
     # Polarisations = ['VH', 'VV']
     for polar in common_polars:
         cal_coherence_from_two_ERS(ref_sar, sec_sar, out_res, save_dir, polarisation=polar, tmp_dir=tmp_dir, ext_shp=ext_shp, dem_path=dem_file,
-                              thread_num=thread_num,coregister_graph=coregister_graph)
+                              thread_num=thread_num,coregister_graph=coregister_graph,rm_tmp_files=b_rm_tmp_files)
 
 
 if __name__ == '__main__':
@@ -249,6 +246,10 @@ if __name__ == '__main__':
     parser.add_option("-s", "--env_setting",
                       action="store", dest="env_setting", default='env_setting.json',
                       help=" the setting of the software environment  ")
+
+    parser.add_option("", "--b_dont_remove_tmp_files",
+                      action="store_false", dest="b_dont_remove_tmp_files",default=True,
+                      help="if set, then dont remove intermediate files created by SNAP")
 
 
     (options, args) = parser.parse_args()
