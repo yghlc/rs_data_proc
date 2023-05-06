@@ -74,7 +74,7 @@ def cal_coherence_from_two_ERS(ref_sar, second_sar, res_meter,save_dir, polarisa
     io_function.write_metadata(['Co-registration', 'Co-registration-graph', 'Co-registration-cost-time'],
                                [ERS_stack, os.path.basename(graph), time.time() - t1], filename=save_meta)
     snap_intermediate_files.append(ERS_stack)
-    io_function.copyfiletodir(graph,save_dir)
+    io_function.movefiletodir(graph,save_dir)
 
     # Coherence
     t1 = time.time()
