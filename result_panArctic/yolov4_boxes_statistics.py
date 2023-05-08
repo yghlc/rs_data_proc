@@ -164,7 +164,7 @@ def main():
 
     height_bins = np.arange(min(box_height_list), max(box_height_list)+global_bin_size, global_bin_size)
     # x_tick=year_unique,
-    plot_hist(box_height_list, 'YOLOv4_boxes_height_hist.jpg', bins=height_bins, b_xtick_rotate=True, x_label='Height (m)')
+    plot_hist(box_height_list, 'YOLOv4_boxes_height_hist.jpg', bins=height_bins, b_xtick_rotate=True, x_label='Length (m)')  # Height
     histogram2logfile(box_height_list, height_bins, hist_tag='Height')
     io_function.move_file_to_dst('processLog.txt', 'YOLOv4_boxes_height_hist_log.txt', overwrite=True)
 
