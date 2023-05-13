@@ -276,7 +276,7 @@ def main(options, args):
         working_dir = os.path.abspath(options.working_dir)   # set working path as a absolute path, otherwise, can cause problem
     global script_dir
     if options.script_dir is not None:
-        script_dir = options.script_dir
+        script_dir = os.path.abspath(options.script_dir)
     global b_run_job_local
     b_run_job_local =  options.b_run_job_local
     global max_job_count
