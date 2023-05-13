@@ -26,7 +26,7 @@ import pandas as pd
 
 import snap_asar_coherence
 
-working_dir = './'
+working_dir = os.path.abspath('./')
 script_dir = os.path.expanduser('~/Data/sar_coherence_mapping/scripts_sar_coh')
 group_account = 'def-tlantz'    # need to set account as this on computeCanada
 user_name = 'lingcao'           # default user name on computeCanada
@@ -86,7 +86,7 @@ def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res
 
     # save input parameters to json
 
-    work_dir = os.path.join(working_dir, job_name)      # work dir for a pair
+    work_dir = os.path.abspath(os.path.join(working_dir, job_name))      # work dir for a pair
     tmp_dir = os.path.join(tmp_dir, 'tmp_' + job_name)
 
     json_path = os.path.join(work_dir, 'sar_pair_for_coh.json')
@@ -272,7 +272,7 @@ def main(options, args):
     setting_json = options.env_setting
     global working_dir
     if options.working_dir is not None:
-        working_dir = options.working_dir
+        working_dir = os.path.abspath(options.working_dir)   # set working path as a absolute path, otherwise, can cause problem
     global script_dir
     if options.script_dir is not None:
         script_dir = options.script_dir
