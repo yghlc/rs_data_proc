@@ -260,8 +260,9 @@ def main(options, args):
 
     ext_shp = options.aoi_shp
     sar_type = options.sar_type
-    save_dir = options.save_dir
+    save_dir = os.path.abspath(options.save_dir)
     tmp_dir = options.temp_dir if options.temp_dir is not None else save_dir
+    tmp_dir = os.path.abspath(tmp_dir)
     out_res = options.save_pixel_size
     dem_file = options.elevation_file
 
