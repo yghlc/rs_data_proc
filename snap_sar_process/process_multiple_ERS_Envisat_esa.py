@@ -24,7 +24,7 @@ import parallel_run_slurm
 
 import pandas as pd
 
-import snap_s1_coherence
+import snap_asar_coherence
 
 working_dir = './'
 script_dir = os.path.expanduser('~/Data/sar_coherence_mapping/scripts_sar_coh')
@@ -35,47 +35,40 @@ max_job_count=2
 
 setting_json = None
 
+from process_multiple_SAR import get_sar_file_list
 
 def save_sar_meta_to_shape(sar_meta_list,save_shp_path):
 
     geometry_list = []
-    beamModeType_list = []
-    file_name_list = []
+    sar_id_list = []
+    dateTime_list = []
+    platform_list = []
+    swath_list = []
     flightDirection_list = []
     frameNumber_list = []
     pathNumber_list = []
-    orbit_list = []
-    platform_list = []
     polarization_list = []
-    processingLevel_list = []
-    sensor_list = []
-    startTime_list = []
-    stopTime_list = []
     url_list = []
 
     for sar_meta in sar_meta_list:
         meta = sar_meta['sar_meta']
-        geometry_list.append(meta['geometry'])
-        beamModeType_list.append(meta['properties']['beamModeType'])
-        file_name_list.append(meta['properties']['fileName'])
-        flightDirection_list.append(meta['properties']['flightDirection'])
-        pathNumber_list.append(meta['properties']['pathNumber'])
-        frameNumber_list.append(meta['properties']['frameNumber'])
-        orbit_list.append(meta['properties']['orbit'])
-        platform_list.append(meta['properties']['platform'])
-        polarization_list.append(meta['properties']['polarization'])
-        processingLevel_list.append(meta['properties']['processingLevel'])
-        sensor_list.append(meta['properties']['sensor'])
-        startTime_list.append(meta['properties']['startTime'])
-        stopTime_list.append(meta['properties']['stopTime'])
-        url_list.append(meta['properties']['url'])
+        sar_id_list.append(meta['id'])
+        geometry_list.append(meta['footprint'])
+        flightDirection_list.append(meta['orbit'])  #  flightDirection
+        pathNumber_list.append(meta['path'])
+        frameNumber_list.append(meta['frame'])
+        swath_list.append(meta['swath'])
+        platform_list.append(meta['platform'])
+        polarization_list.append(meta['polarisation'])
+        dateTime_list.append(meta['date'])
+        url_list.append(meta['url'])
 
-    polygons = [vector_gpd.json_geometry_to_polygons(item) for item in geometry_list]
+    polygons = [vector_gpd.wkt_string_to_polygons(item) for item in geometry_list]
 
-    pd_meta = pd.DataFrame({'outline':polygons, 'beamMode':beamModeType_list, 'file_name':file_name_list, 'flightDire':flightDirection_list,
-                            'pathNum':pathNumber_list,'frameNum':frameNumber_list,'orbit':orbit_list, 'platform':platform_list,
-                            'polarizati':polarization_list,'procLevel':processingLevel_list,'sensor':sensor_list,
-                            'startTime':startTime_list, 'stopTime':stopTime_list,'url':url_list})
+    pd_meta = pd.DataFrame({'outline':polygons,  'sar_id':sar_id_list, 'flightDire':flightDirection_list,
+                            'pathNum':pathNumber_list,'frameNum':frameNumber_list, 'platform':platform_list,
+                            'polarizati':polarization_list, 'swath':swath_list,
+                            'dateTime':dateTime_list,'url':url_list})
 
     vector_gpd.save_polygons_to_files(pd_meta,'outline','EPSG:4326',save_shp_path)
     print('saved %s'%save_shp_path)
@@ -87,7 +80,7 @@ def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res
     parallel_run_slurm.slurm_username = user_name
     parallel_run_slurm.wait_if_reach_max_jobs(max_job_count, 'coh')
 
-    flight_direction = sar_meta_list_sorted[ref_idx]['sar_meta']['properties']['flightDirection'][:1] # A or D
+    flight_direction = sar_meta_list_sorted[ref_idx]['sar_meta']['orbit'][:1] # A or D
     job_name = 'coh%s%s%d' % (path_frame_str,flight_direction,ref_idx)
     parallel_run_slurm.check_length_jobname(job_name,length=14)   # compute canada allow longer name (14 characters)
 
@@ -106,8 +99,8 @@ def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res
         input_para_dict = {
             'reference_sar': sar_meta_list_sorted[ref_idx]['sar_path'],
             'second_sar': sar_meta_list_sorted[sec_idx]['sar_path'],
-            'ref_polarisations': sar_meta_list_sorted[ref_idx]['sar_meta']['properties']['polarization'],
-            'sec_polarisations': sar_meta_list_sorted[sec_idx]['sar_meta']['properties']['polarization'],
+            'ref_polarisations': sar_meta_list_sorted[ref_idx]['sar_meta']['polarisation'],
+            'sec_polarisations': sar_meta_list_sorted[sec_idx]['sar_meta']['polarisation'],
             'aoi_shp': ext_shp,
             'save_dir': save_dir,
             'temp_dir': tmp_dir,
@@ -119,9 +112,9 @@ def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res
         io_function.save_dict_to_txt_json(json_path,input_para_dict)
 
         # bash for run
-        sh_list = ['sar_coh_pair.sh', 'job_sar_coh_pair_thread.sh','env_setting.json']
+        sh_list = ['sar_coh_pair_asar.sh', 'job_sar_coh_pair_thread_asar.sh','env_setting.json']
         parallel_run_slurm.copy_curc_job_files(script_dir, work_dir, sh_list)
-        slurm_utility.modify_slurm_job_sh('job_sar_coh_pair_thread.sh', 'job-name', job_name)
+        slurm_utility.modify_slurm_job_sh('job_sar_coh_pair_thread_asar.sh', 'job-name', job_name)
 
     else:
         os.chdir(work_dir)
@@ -144,82 +137,61 @@ def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res
             return
 
     # submit the job
-    parallel_run_slurm.submit_job_curc_or_run_script_local('job_sar_coh_pair_thread.sh', 'sar_coh_pair.sh')
+    parallel_run_slurm.submit_job_curc_or_run_script_local('job_sar_coh_pair_thread_asar.sh', 'sar_coh_pair_asar.sh')
 
     os.chdir(curr_dir_before_start)
 
 
-def get_sar_file_list(file_or_dir,sar_type='sentinel-1'):
-    if os.path.isdir(file_or_dir):
-        # ERS, Envisat, Sentinel-1
-        if sar_type.lower() == 'sentinel-1':
-            sar_files = io_function.get_file_list_by_ext('.zip',file_or_dir,bsub_folder=False)   # Process VV files
-        elif sar_type.lower() == 'ers':
-            sar_files = io_function.get_file_list_by_ext('.E2', file_or_dir,bsub_folder=False)
-            sar_files_2 = io_function.get_file_list_by_ext('.E1', file_or_dir, bsub_folder=False)
-            sar_files.extend(sar_files_2)
-        elif sar_type.lower() =='envisat':
-            sar_files = io_function.get_file_list_by_ext('.N1',file_or_dir, bsub_folder=False)
-        else:
-            raise ValueError('unknown sar_type %s'%str(sar_type))
-    else:
-        with open(file_or_dir,'r') as f_obj:
-            sar_files = [line.strip() for line in f_obj.readlines()]
-            sar_files = [ os.path.expanduser(item) for item in sar_files]
-    if len(sar_files) == 0:
-        raise ValueError("No SAR granules in %s"%file_or_dir)
-    return sar_files
-
-def organize_sar_pairs_s1(sar_image_list, meta_data_path=None):
-    # read sar metadata
+def organize_sar_pairs_ERS_Envisat_esa(sar_image_list, meta_data_path=None):
+    # organize the sar data download from ESA
+    if len(sar_image_list) < 1:
+        return None
     sar_dir = os.path.dirname(sar_image_list[0])
     if meta_data_path is None:
-        meta_data_path = os.path.join(sar_dir,'download_data.json') # the default meta when download using ASF API
+        meta_data_path = os.path.join(sar_dir, 'download_data.json')  # the default filename of metadata when downloading
     else:
         if os.path.isfile(meta_data_path) is False:
-            meta_data_path = os.path.join(sar_dir,meta_data_path)
+            meta_data_path = os.path.join(sar_dir, meta_data_path)
 
-    file_name_list = [ os.path.basename(item) for item in sar_image_list]
-    sar_metas = io_function.read_dict_from_txt_json(meta_data_path)['features']
-    # only select meta data for input list
-    sar_meta_list = []
-    for sar_path, file_name in zip(sar_image_list,file_name_list):
-        b_found = False
-        for meta in sar_metas:
-            if meta['properties']['fileName'] == file_name:
-                sar_meta_list.append(meta)
-                b_found = True
-                break
-        if b_found is False:
-            basic.outputlogMessage('warning, %s dont have meta data'%file_name)
+    file_name_list = [os.path.splitext(os.path.basename(item))[0] for item in sar_image_list]        # exclude extension
+    sar_metas = io_function.read_dict_from_txt_json(meta_data_path)
+    # only select meta data that have download data
+    sel_sar_meta_list = []
+    sel_sar_list = []
+    for meta in sar_metas:
+        if meta['id'] in file_name_list:
+            idx = file_name_list.index(meta['id'])
+            sel_sar_meta_list.append(meta)
+            sel_sar_list.append(sar_image_list[idx])
+        else:
+            basic.outputlogMessage('Warning, %s doesnt have a downloaded file' % meta['id'])
 
-        # sar_meta_list = [ item for item in sar_metas if item['properties']['fileName'] in file_name_list ]
-
-    # group then to groups with the same path and frame
+    # group them based on the same path and frame
     group_path_frame = {}
-    for s_img, s_meta in zip(sar_image_list,sar_meta_list):
-        s_img_meta = {'sar_path':s_img,
-                      'sar_meta':s_meta}
-        path_frame_str = '%d_%d'%(s_meta['properties']['pathNumber'],s_meta['properties']['frameNumber'])
+    for s_img, s_meta in zip(sel_sar_list, sel_sar_meta_list):
+        s_img_meta = {'sar_path': s_img,
+                      'sar_meta': s_meta}
+        path_frame_str = '%d_%d' % (s_meta['path'], s_meta['frame'])
         group_path_frame.setdefault(path_frame_str, []).append(s_img_meta)
 
     # print(sar_metas[0])
     for key in group_path_frame.keys():
-        print('path_frame:',key)
+        print('path_frame:', key)
         for item in group_path_frame[key]:
             print(item['sar_path'])
         # print(group_path_frame[key][0]['sar_path'])
 
     return group_path_frame
 
+def test_organize_sar_pairs_ERS_Envisat_esa():
+    sar_type = 'ERS'
+    sar_files = get_sar_file_list(os.path.expanduser('~/Data/asar_ERS_Envisat/ERS'), sar_type=sar_type)
+    organize_sar_pairs_ERS_Envisat_esa(sar_files,meta_data_path='ALDs_Dawson_Yukon_Lipovsky_2004_meta.json')
 
-def test_organize_sar_pairs_s1():
-    sar_files = get_sar_file_list(os.path.expanduser('~/Data/sar_coherence_mapping/test1/snap_coh_run/s1_data'))
-    organize_sar_pairs_s1(sar_files)
 
 def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,thread_num=16,process_num=1):
     # add decending or ascending to path_frame
-    path_frame_direction = path_frame+'_'+sar_meta_list[0]['sar_meta']['properties']['flightDirection'][:3]
+    path_frame_direction = path_frame+'_'+sar_meta_list[0]['sar_meta']['orbit'][:3]
     save_dir = os.path.join(save_dir,path_frame_direction)
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
@@ -233,22 +205,14 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
         return False
     # check platform and flightDirection be consistent
     for idx in range(1,total_count):
-        # we can treat sentinel-1A and 1B as the same, so, no need to check.
-        # if sar_meta_list[0]['sar_meta']['properties']['platform'] != sar_meta_list[idx]['sar_meta']['properties']['platform']:
-        #     [print(item['sar_meta']['properties']['platform']) for item in sar_meta_list]
-        #     raise ValueError('inconsistent platform in SAR images of %s'%path_frame)
-        if sar_meta_list[0]['sar_meta']['properties']['flightDirection'] != sar_meta_list[idx]['sar_meta']['properties']['flightDirection']:
-            [print(item['sar_meta']['properties']['flightDirection']) for item in sar_meta_list]
+        if sar_meta_list[0]['sar_meta']['orbit'] != sar_meta_list[idx]['sar_meta']['orbit']:
+            [print(item['sar_meta']['orbit']) for item in sar_meta_list]
             raise ValueError('inconsistent flightDirection in SAR images of %s'%path_frame)
 
-        # no need to check? SNAP will check it.
-        # if sar_meta_list[0]['sar_meta']['properties']['polarization'] != sar_meta_list[idx]['sar_meta']['properties']['polarization']:
-        #     [print(item['sar_meta']['properties']['polarization']) for item in sar_meta_list]
-        #     raise ValueError('inconsistent polarization in SAR images of %s'%path_frame)
 
     # add date
     for item in sar_meta_list:
-        item['acquire_time'] = pd.to_datetime([item['sar_meta']['properties']['startTime']])[0]
+        item['acquire_time'] = pd.to_datetime([item['sar_meta']['date']])[0]
     print('before sorting')
     [print(item['sar_path']) for item in sar_meta_list]
 
@@ -257,29 +221,24 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
     print('after sorting')
     [print(item['sar_path']) for item in sar_meta_list_sorted]
 
-    # if ext_shp is not None:
-    #     wktAoi = vector_gpd.shapefile_to_ROIs_wkt(ext_shp)
-    #     if len(wktAoi) != 1 :
-    #         raise ValueError('Only allow one polygon in %s, but got %d'%(ext_shp,len(wktAoi)))
-    #     wktAoi = '\"' + wktAoi[0] + '\"'  # only use the first one
-    # else:
-    #     wktAoi = None
-
     # calculate coherence pair by pair
     for idx in range(1, total_count):
-        # polarization_list = sar_meta_list_sorted[idx]['sar_meta']['properties']['polarization'].split('+')
-        # for polari in polarization_list:
-        #     snap_s1_coherence.cal_coherence_from_two_s1(sar_meta_list_sorted[idx-1]['sar_path'], sar_meta_list_sorted[idx]['sar_path'],
-        #                           res_meter,save_dir, polarisation=polari, tmp_dir=tmp_dir, wktAoi=wktAoi, dem_path=dem_path,
-        #                                                 thread_num=thread_num)
+
         process_one_pair(sar_meta_list_sorted,idx-1,idx,path_frame,res_meter,save_dir,tmp_dir,ext_shp,dem_path,thread_num)
         time.sleep(1)   # wait one second, as suggested by computeCanada
 
 
 
-def multiple_SAR_coherence(sar_image_list,save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,thread_num=16,process_num=1):
+def multiple_SAR_coherence(sar_type, sar_image_list,save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,thread_num=16,process_num=1):
 
-    group_path_frame = organize_sar_pairs_s1(sar_image_list, meta_data_path=None)
+    ext_base_name = io_function.get_name_no_ext(ext_shp)
+    if sar_type.lower() == 'ers':
+        group_path_frame = organize_sar_pairs_ERS_Envisat_esa(sar_image_list, meta_data_path='%s_meta.json'%ext_base_name)
+    elif sar_type.lower() == 'envisat':
+        group_path_frame = None  # TODO: add support for Envisat
+    else:
+        raise ValueError('unknown sar_type %s' % str(sar_type))
+
     # process group by group
     for key in group_path_frame.keys():
         # print('path-frame:',key)
@@ -290,14 +249,16 @@ def multiple_SAR_coherence(sar_image_list,save_dir,res_meter, tmp_dir=None, ext_
 
 
 def main(options, args):
-    # test_organize_sar_pairs_s1()
+    # test_organize_sar_pairs_ERS_Envisat_esa()
     # return
 
-    sar_image_list = get_sar_file_list(args[0])
+    sar_type = options.sar_type
+    sar_image_list = get_sar_file_list(args[0],sar_type=sar_type)
     sar_image_list = [os.path.abspath(item) for item in sar_image_list]
     # verbose = options.verbose
 
     ext_shp = options.aoi_shp
+    sar_type = options.sar_type
     save_dir = options.save_dir
     tmp_dir = options.temp_dir if options.temp_dir is not None else save_dir
     out_res = options.save_pixel_size
@@ -327,24 +288,9 @@ def main(options, args):
 
 
 
-    # if os.path.isfile(setting_json):
-    #     env_setting = io_function.read_dict_from_txt_json(setting_json)
-    #     snap_s1_coherence.baseSNAP = env_setting['snap_bin_gpt']
-    #     print(datetime.now(), 'setting SNAP gpt:', snap_s1_coherence.baseSNAP)
-    #     snap_s1_coherence.gdal_translate = env_setting['gdal_translate_bin']
-    #     print(datetime.now(), 'gdal_translate:', snap_s1_coherence.gdal_translate)
-    # else:
-    #     snap_s1_coherence.baseSNAP = os.getenv('SNAP_BIN_GPT')
-    #     if snap_s1_coherence.baseSNAP is None:
-    #         raise ValueError('SNAP_BIN_GPT is not in Environment Variables')
-    #     snap_s1_coherence.gdal_translate = os.getenv('GDAL_TRANSLATE_BIN')
-    #     if snap_s1_coherence.gdal_translate is None:
-    #         raise ValueError('GDAL_TRANSLATE_BIN is not in Environment Variables')
-
-
     # Polarisations = ['VH', 'VV']
     # read metadata
-    multiple_SAR_coherence(sar_image_list, save_dir, out_res, tmp_dir=tmp_dir, ext_shp=ext_shp, dem_path=dem_file,
+    multiple_SAR_coherence(sar_type, sar_image_list, save_dir, out_res, tmp_dir=tmp_dir, ext_shp=ext_shp, dem_path=dem_file,
                            thread_num=thread_num,process_num=process_num)
 
     # wait all local task finished
@@ -356,7 +302,7 @@ def main(options, args):
 
 if __name__ == '__main__':
     usage = "usage: %prog [options] sar_files.txt or image_directory "
-    parser = OptionParser(usage=usage, version="1.0 2023-3-25")
+    parser = OptionParser(usage=usage, version="1.0 2023-5-13")
     parser.description = 'Introduction: process multiple SAR granules '
 
     parser.add_option("-a", "--aoi_shp",
@@ -364,8 +310,8 @@ if __name__ == '__main__':
                       help="a shapefile containing AOI")
 
     parser.add_option("", "--sar_type",
-                      action="store", dest="sar_type", default='Sentinel-1',
-                      help="the type of SAR data: ERS, Envisat, Sentinel-1")
+                      action="store", dest="sar_type", default='ERS',
+                      help="the type of SAR data: ERS, Envisat")
 
     parser.add_option("-d", "--save_dir",
                       action="store", dest="save_dir",default='sar_coh_results',
