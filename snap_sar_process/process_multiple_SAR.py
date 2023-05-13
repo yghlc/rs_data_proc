@@ -160,7 +160,7 @@ def get_sar_file_list(file_or_dir):
         raise ValueError("No SAR granules in %s"%file_or_dir)
     return sar_files
 
-def organize_sar_pairs(sar_image_list, meta_data_path=None):
+def organize_sar_pairs_s1(sar_image_list, meta_data_path=None):
     # read sar metadata
     if meta_data_path is None:
         sar_dir = os.path.dirname(sar_image_list[0])
@@ -200,9 +200,9 @@ def organize_sar_pairs(sar_image_list, meta_data_path=None):
     return group_path_frame
 
 
-def test_organize_sar_pairs():
+def test_organize_sar_pairs_s1():
     sar_files = get_sar_file_list(os.path.expanduser('~/Data/sar_coherence_mapping/test1/snap_coh_run/s1_data'))
-    organize_sar_pairs(sar_files)
+    organize_sar_pairs_s1(sar_files)
 
 def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,thread_num=16,process_num=1):
     # add decending or ascending to path_frame
@@ -266,7 +266,7 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
 
 def multiple_SAR_coherence(sar_image_list,save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,thread_num=16,process_num=1):
 
-    group_path_frame = organize_sar_pairs(sar_image_list, meta_data_path=None)
+    group_path_frame = organize_sar_pairs_s1(sar_image_list, meta_data_path=None)
     # process group by group
     for key in group_path_frame.keys():
         # print('path-frame:',key)
@@ -277,7 +277,7 @@ def multiple_SAR_coherence(sar_image_list,save_dir,res_meter, tmp_dir=None, ext_
 
 
 def main(options, args):
-    # test_organize_sar_pairs()
+    # test_organize_sar_pairs_s1()
     # return
 
     sar_image_list = get_sar_file_list(args[0])
@@ -349,6 +349,10 @@ if __name__ == '__main__':
     parser.add_option("-a", "--aoi_shp",
                       action="store", dest="aoi_shp",
                       help="a shapefile containing AOI")
+
+    parser.add_option("", "--sar_type",
+                      action="store", dest="sar_type", default='Sentinel-1',
+                      help="the type of SAR data: ERS, Envisat, Sentinel-1")
 
     parser.add_option("-d", "--save_dir",
                       action="store", dest="save_dir",default='sar_coh_results',
