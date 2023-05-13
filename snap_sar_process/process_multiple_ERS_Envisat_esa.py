@@ -107,12 +107,13 @@ def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res
             'save_pixel_size': res_meter,
             'elevation_file': dem_path,
             'env_setting': setting_json,
-            'thread_num': thread_num
+            'thread_num': thread_num,
+            'coregister_graph':'CoregistrationGraph.xml'
         }
         io_function.save_dict_to_txt_json(json_path,input_para_dict)
 
         # bash for run
-        sh_list = ['sar_coh_pair_asar.sh', 'job_sar_coh_pair_thread_asar.sh','env_setting.json']
+        sh_list = ['sar_coh_pair_asar.sh', 'job_sar_coh_pair_thread_asar.sh','env_setting.json','CoregistrationGraph.xml']
         parallel_run_slurm.copy_curc_job_files(script_dir, work_dir, sh_list)
         slurm_utility.modify_slurm_job_sh('job_sar_coh_pair_thread_asar.sh', 'job-name', job_name)
 
