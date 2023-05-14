@@ -72,8 +72,8 @@ def download_data_from_asf_list(file_list_txt, save_dir, username, password):
         os.makedirs(save_dir)
 
     ## Save meta data to a file
-    data_meta_path = '%s_meta.json'%io_function.get_name_no_ext(file_list_txt)
-    save_search_result(results, save_dir, data_meta_path)
+    data_meta_file = '%s_meta.json'%io_function.get_name_no_ext(file_list_txt)
+    save_search_result(results, save_dir, data_meta_file)
 
     # it will skip files that have been downloaded
     results.download(path=save_dir, session=session)  # download results to a path
@@ -114,12 +114,12 @@ def download_data_from_asf(extent_shp, save_dir, start_date, end_date, processin
         print(datetime.now(),'Downloading... ... ...')
 
         if len(ROIs_wkt) == 1:
-            data_meta_path = os.path.join(save_dir,'%s_meta.json'%ext_base_name)
+            data_meta_file = '%s_meta.json'%ext_base_name
         else:
-            data_meta_path = os.path.join(save_dir, '%s_meta_%d.json' % (ext_base_name, idx))
+            data_meta_file = '%s_meta_%d.json' % (ext_base_name, idx)
 
         ## Save meta data to a file
-        save_search_result(results, save_dir, data_meta_path)
+        save_search_result(results, save_dir, data_meta_file)
 
         # it will skip files that have been downloaded
         results.download(path=save_dir, session=session)  # download results to a path
