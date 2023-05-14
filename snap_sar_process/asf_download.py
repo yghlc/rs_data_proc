@@ -20,6 +20,7 @@ sys.path.insert(0, deeplabforRS)
 
 from vector_gpd import read_shape_gpd_to_NewPrj
 from vector_gpd import shapefile_to_ROIs_wkt
+import basic_src.io_function as io_function
 
 # install by: conda install -c conda-forge asf_search (or conda activate sar)
 import asf_search as asf
@@ -59,67 +60,65 @@ def download_data_from_asf_list(file_list_txt, save_dir, username, password):
     if not os.path.isdir(download_dir):
         os.makedirs(download_dir)
 
+    ## Save meta data to a file
+    data_meta_path = '%s_meta.json'%io_function.get_name_no_ext(file_list_txt)
+    log_filename = os.path.join(save_dir, data_meta_path)
+    io_function.save_dict_to_txt_json(results, log_filename)
+    print(datetime.now(), 'Saved the metadata of downloaded data to ', log_filename)
+
     # it will skip files that have been downloaded
     results.download(path=download_dir, session=session)  # download results to a path
     print(datetime.now(),'Finished Download')
 
-    ## Save results to an output log
-    log_filename = os.path.join(download_dir, "download_data.json")
-    print(' ')
-    print(datetime.now(),'Saving log results to ', log_filename)
-    stdoutOrigin = sys.stdout
-    # sys.stdout = open (download_dir + region + "_download_log.txt", "w")
-    sys.stdout = open(log_filename, "w")
-    print(results)
-    sys.stdout.close()
-    sys.stdout = stdoutOrigin
 
 
-def download_data_from_asf(idx,roi_count,roi_wkt, save_dir, start_date, end_date, processingLevel, username, password,
+
+
+def download_data_from_asf(extent_shp, save_dir, start_date, end_date, processingLevel, username, password,
                            beamMode='IW',platform=asf.PLATFORM.SENTINEL1,flightDirection='DESCENDING'):
-    ## ROI
-    print(datetime.now(),'Searching... ... ...')
+    if not os.path.isdir(save_dir):
+        os.makedirs(save_dir)
+    ext_base_name = io_function.get_name_no_ext(extent_shp)
     if isinstance(platform, list):
         platform_list = platform
     else:
         platform_list = [platform]
 
-    print(datetime.now(), 'Input search parameters:')
-    print('roi_wkt:',roi_wkt)
-    print('save_dir, start_date, end_date:', save_dir, start_date, end_date)
-    print('processingLevel (filetype), beamMode, platform, flightDirection:', processingLevel, beamMode, platform,flightDirection)
+    # shapefile to  ROI
+    ROIs_wkt = shapefile_to_ROIs_wkt(extent_shp)
+    if len(ROIs_wkt) < 1:
+        raise ValueError('There is zero AOI')
+    for idx, roi_wkt in enumerate(ROIs_wkt):
+        ## ROI
+        print(datetime.now(),'Searching... ... ...')
+        print(datetime.now(), 'Input search parameters:')
+        print('roi_wkt:',roi_wkt)
+        print('save_dir, start_date, end_date:', save_dir, start_date, end_date)
+        print('processingLevel (filetype), beamMode, platform, flightDirection:', processingLevel, beamMode, platform,flightDirection)
 
-    results = asf.geo_search(platform=platform_list, intersectsWith=roi_wkt, start=start_date,
-                             end=end_date,
-                             beamMode=beamMode, processingLevel=processingLevel,flightDirection=flightDirection)
-    print(datetime.now(),'Found %s results' % (len(results)))
-    session = asf.ASFSession()
-    session.auth_with_creds(username, password)
-    print(datetime.now(),'Downloading... ... ...')
+        results = asf.geo_search(platform=platform_list, intersectsWith=roi_wkt, start=start_date,
+                                 end=end_date,
+                                 beamMode=beamMode, processingLevel=processingLevel,flightDirection=flightDirection)
+        print(datetime.now(),'Found %s results' % (len(results)))
+        session = asf.ASFSession()
+        session.auth_with_creds(username, password)
+        print(datetime.now(),'Downloading... ... ...')
 
-    if roi_count == 1:
-        download_dir = save_dir
-    elif roi_count > 1:
-        download_dir = os.path.join(save_dir,'roi_%d'%idx)
-    else:
-        raise ValueError('There is zero ROI')
-    if not os.path.isdir(download_dir):
-        os.makedirs(download_dir)
+        if len(ROIs_wkt) == 1:
+            data_meta_path = os.path.join(save_dir,'%s_meta.json'%ext_base_name)
+        else:
+            data_meta_path = os.path.join(save_dir, '%s_meta_%d.json' % (ext_base_name, idx))
 
-    # it will skip files that have been downloaded
-    results.download(path=download_dir, session=session)  # download results to a path
-    print(datetime.now(),'Finished Download')
+        ## Save meta data to a file
+        log_filename = os.path.join(save_dir, data_meta_path)
+        io_function.save_dict_to_txt_json(results, log_filename)
+        print(datetime.now(), 'Saved the metadata of downloaded data to ', log_filename)
 
-    ## Save results to an output log
-    log_filename = os.path.join(download_dir, "download_data.json")
-    print(' ')
-    print(datetime.now(),'Saving log results to ', log_filename)
-    stdoutOrigin = sys.stdout
-    # sys.stdout = open (download_dir + region + "_download_log.txt", "w")
-    sys.stdout = open(log_filename, "w")
-    print(results)
-    sys.stdout.close()
-    sys.stdout = stdoutOrigin
+        # it will skip files that have been downloaded
+        results.download(path=save_dir, session=session)  # download results to a path
+        print(datetime.now(),'Finished Download')
+
+
 
 def main(options, args):
     extent_shp = args[0]
@@ -149,11 +148,7 @@ def main(options, args):
         download_data_from_asf_list(file_list_txt, save_dir, user_name, password)
 
     else:
-        # shapefile to  ROI
-        ROIs_wkt = shapefile_to_ROIs_wkt(extent_shp)
-        for idx, roi_wkt in enumerate(ROIs_wkt):
-            # download data
-            download_data_from_asf(idx, len(ROIs_wkt), roi_wkt, save_dir, start_date, end_date, processingLevel, user_name,
+        download_data_from_asf(extent_shp, save_dir, start_date, end_date, processingLevel, user_name,
                                    password,
                                    beamMode='IW', platform=platform, flightDirection=flightDirection)
 
