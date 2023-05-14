@@ -42,6 +42,18 @@ def get_user_password_netrc():
     passwd = netrc(netrcDir).authenticators(urs)[2]
     return user, passwd
 
+def save_search_result(results, save_dir, file_name):
+    ## Save results to an output log
+    log_filename = os.path.join(save_dir, file_name)
+    print(' ')
+    print(datetime.now(),'Saving log results to ', log_filename)
+    stdoutOrigin = sys.stdout
+    # sys.stdout = open (download_dir + region + "_download_log.txt", "w")
+    sys.stdout = open(log_filename, "w")
+    print(results)
+    sys.stdout.close()
+    sys.stdout = stdoutOrigin
+
 def download_data_from_asf_list(file_list_txt, save_dir, username, password):
     ## ROI
     print(datetime.now(),'Searching... ... ...')
@@ -55,19 +67,16 @@ def download_data_from_asf_list(file_list_txt, save_dir, username, password):
     session.auth_with_creds(username, password)
     print(datetime.now(),'Downloading... ... ...')
 
-    download_dir = save_dir
 
-    if not os.path.isdir(download_dir):
-        os.makedirs(download_dir)
+    if not os.path.isdir(save_dir):
+        os.makedirs(save_dir)
 
     ## Save meta data to a file
     data_meta_path = '%s_meta.json'%io_function.get_name_no_ext(file_list_txt)
-    log_filename = os.path.join(save_dir, data_meta_path)
-    io_function.save_dict_to_txt_json(results, log_filename)
-    print(datetime.now(), 'Saved the metadata of downloaded data to ', log_filename)
+    save_search_result(results, save_dir, data_meta_path)
 
     # it will skip files that have been downloaded
-    results.download(path=download_dir, session=session)  # download results to a path
+    results.download(path=save_dir, session=session)  # download results to a path
     print(datetime.now(),'Finished Download')
 
 
@@ -110,9 +119,7 @@ def download_data_from_asf(extent_shp, save_dir, start_date, end_date, processin
             data_meta_path = os.path.join(save_dir, '%s_meta_%d.json' % (ext_base_name, idx))
 
         ## Save meta data to a file
-        log_filename = os.path.join(save_dir, data_meta_path)
-        io_function.save_dict_to_txt_json(results, log_filename)
-        print(datetime.now(), 'Saved the metadata of downloaded data to ', log_filename)
+        save_search_result(results, save_dir, data_meta_path)
 
         # it will skip files that have been downloaded
         results.download(path=save_dir, session=session)  # download results to a path
