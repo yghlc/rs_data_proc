@@ -236,7 +236,7 @@ def multiple_SAR_coherence(sar_type, sar_image_list,save_dir,res_meter, tmp_dir=
     if sar_type.lower() == 'ers':
         group_path_frame = organize_sar_pairs_ERS_Envisat_esa(sar_image_list, meta_data_path='%s_meta.json'%ext_base_name)
     elif sar_type.lower() == 'envisat':
-        group_path_frame = None  # TODO: add support for Envisat
+        group_path_frame = organize_sar_pairs_ERS_Envisat_esa(sar_image_list, meta_data_path='%s_meta.json'%ext_base_name)
     else:
         raise ValueError('unknown sar_type %s' % str(sar_type))
 
