@@ -36,6 +36,7 @@ def cal_coherence_from_two_ERS(ref_sar, second_sar, res_meter,save_dir, polarisa
     sec_short_name = cmd_snap.get_ESA_ERS_granule_name_substr(second_sar)
 
     extension = os.path.splitext(ref_sar)[1]        # extension: E1, E2, N1 for (ERS 1&2, Envisat)
+    extension = extension[1:]                   # remove dot
 
     out_name = ref_short_name + '_' + sec_short_name + '_%s_Coh_%s' % (polarisation, extension)
     save_path = os.path.join(save_dir,out_name + '.tif')
