@@ -32,7 +32,7 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
     # the ref_sar and second_sar should be have the same path, and frame, but don't check here.
     t0 = time.time()
 
-    out_name = cmd_snap.get_granule_name_substr(ref_sar) + '_' + cmd_snap.get_granule_name_substr(second_sar) + '_%s_Coh' % (polarisation)
+    out_name = cmd_snap.get_granule_name_substr(ref_sar) + '_' + cmd_snap.get_granule_name_substr(second_sar) + '_%s_Coh_S1' % (polarisation)
     save_path = os.path.join(save_dir,out_name + '.tif')
     save_meta = os.path.join(save_dir,out_name + '.json')
     if os.path.isfile(save_path):
