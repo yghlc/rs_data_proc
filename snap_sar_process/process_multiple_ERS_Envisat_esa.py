@@ -153,7 +153,9 @@ def organize_sar_pairs_ERS_Envisat_esa(sar_image_list, meta_data_path=None):
     else:
         if os.path.isfile(meta_data_path) is False:
             meta_data_path = os.path.join(sar_dir, meta_data_path)
-
+    if os.path.basename(meta_data_path):
+        basic.outputlogMessage('error: %s does not exists'%meta_data_path)
+        return None
     file_name_list = [os.path.splitext(os.path.basename(item))[0] for item in sar_image_list]        # exclude extension
     sar_metas = io_function.read_dict_from_txt_json(meta_data_path)
     # only select meta data that have download data
@@ -233,20 +235,32 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
 def multiple_SAR_coherence(sar_type, sar_image_list,save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,thread_num=16,process_num=1):
 
     ext_base_name = io_function.get_name_no_ext(ext_shp)
-    if sar_type.lower() == 'ers':
-        group_path_frame = organize_sar_pairs_ERS_Envisat_esa(sar_image_list, meta_data_path='%s_meta.json'%ext_base_name)
-    elif sar_type.lower() == 'envisat':
-        group_path_frame = organize_sar_pairs_ERS_Envisat_esa(sar_image_list, meta_data_path='%s_meta.json'%ext_base_name)
-    else:
-        raise ValueError('unknown sar_type %s' % str(sar_type))
+    ROIs_wkt = vector_gpd.shapefile_to_ROIs_wkt(ext_shp)
+    if len(ROIs_wkt) < 1:
+        raise ValueError('There is zero AOI')
+    for idx, roi_wkt in enumerate(ROIs_wkt):
+        if len(ROIs_wkt) == 1:
+            data_meta_file = '%s_meta.json'%ext_base_name
+        else:
+            data_meta_file = '%s_meta_%d.json' % (ext_base_name, idx)
 
-    # process group by group
-    for key in group_path_frame.keys():
-        # print('path-frame:',key)
-        # for item in group_path_frame[key]:
-        #     print(item['sar_path'])
-        SAR_coherence_samePathFrame(key,group_path_frame[key],save_dir,res_meter, tmp_dir=tmp_dir, ext_shp=ext_shp,
-                                    dem_path=dem_path,thread_num=thread_num,process_num=process_num)
+        if sar_type.lower() == 'ers':
+            group_path_frame = organize_sar_pairs_ERS_Envisat_esa(sar_image_list, meta_data_path=data_meta_file)
+        elif sar_type.lower() == 'envisat':
+            group_path_frame = organize_sar_pairs_ERS_Envisat_esa(sar_image_list, meta_data_path=data_meta_file)
+        else:
+            raise ValueError('unknown sar_type %s' % str(sar_type))
+
+        if group_path_frame is None:
+            continue
+
+        # process group by group
+        for key in group_path_frame.keys():
+            # print('path-frame:',key)
+            # for item in group_path_frame[key]:
+            #     print(item['sar_path'])
+            SAR_coherence_samePathFrame(key,group_path_frame[key],save_dir,res_meter, tmp_dir=tmp_dir, ext_shp=ext_shp,
+                                        dem_path=dem_path,thread_num=thread_num,process_num=process_num)
 
 
 def main(options, args):
