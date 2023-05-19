@@ -55,8 +55,21 @@ def run_Apply_Orbit_File(input, granule_name, save_dir,thread_num=16):
     if os.path.isfile(output):
         print(output +' already exists, skip')
         return output
+    # orbitType: if we set the wrong OrbitType, SNAP still can download correct orbit file for the input SAR data?
+    # 'Sentinel Precise (Auto Download)', 'PRARE Precise (ERS1&2) (Auto Download)','DORIS Precise VOR (ENVISAT) (Auto Download)'
+    # ERS, Envisat, Sentinel-1
+    extension = os.path.splitext(input)[1]        # extension: E1, E2, N1 for (ERS 1&2, Envisat)
+    extension = extension[1:]                   # remove dot
+    if extension.lower() == 'zip':  # Sentinel-1
+        orbitType = "Sentinel Precise (Auto Download)"
+    elif extension.lower() in ['e1', 'e2']: # ERS 1 & 2
+        orbitType = "PRARE Precise (ERS1&2) (Auto Download)"
+    elif extension.lower() == 'n1':
+        orbitType = "DORIS Precise VOR (ENVISAT) (Auto Download)"
+    else:
+        raise ValueError('unknown orbitType')
 
-    cmd_str = baseSNAP + ' Apply-Orbit-File -q %d -PcontinueOnFail=false -PorbitType="Sentinel Precise (Auto Download)" '%thread_num + \
+    cmd_str = baseSNAP + ' Apply-Orbit-File -q %d -PcontinueOnFail=false -PorbitType="%s" '%(thread_num,orbitType) + \
               '  -t %s %s'%(output, input)
 
     basic.os_system_exit_code(cmd_str)
