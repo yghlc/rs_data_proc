@@ -166,13 +166,14 @@ def CoregistrationGraph_ERS(input_ref, input_second, save_dir,org_graph='Coregis
 
     out_name = io_function.get_name_no_ext(input_ref) + '_' + io_function.get_name_no_ext(input_second) + '_Stack.dim'
     output = os.path.join(save_dir, out_name)
-    if os.path.isfile(output):
-        print(output +' already exists, skip')
-        return output
 
     # copy and modify the graphy file (xml) based on input and output
     copy_graph = os.path.join(save_dir, 'CoregistrationGraph_%s.xml'%io_function.get_name_no_ext(out_name))
     io_function.copy_file_to_dst(org_graph,copy_graph,overwrite=True)
+
+    if os.path.isfile(output):
+        print(output +' already exists, skip')
+        return output, copy_graph
 
 
     tree = ET.parse(org_graph)
