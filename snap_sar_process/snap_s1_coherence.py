@@ -66,7 +66,7 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
             snap_intermediate_files.append(split)
             # Apply-Orbit-File
             t1 = time.time()
-            split_orb = cmd_snap.run_Apply_Orbit_File(split, granule_name, tmp_dir,thread_num=thread_num)
+            split_orb = cmd_snap.run_Apply_Orbit_File(split, granule_name, tmp_dir, sar_type='sentinel-1', thread_num=thread_num)
             io_function.write_metadata([swatch + '-' + 'Orb', 'Apply_Orbit-cost-time'], [split_orb,time.time() - t1], filename=save_meta)
             snap_intermediate_files.append(split_orb)
             swath_split_orb_dict.setdefault(swatch, []).append(split_orb)

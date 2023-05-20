@@ -47,7 +47,7 @@ def run_TOPSAR_Split(input_sar_zip, granule_name, Polarisations, subswath, save_
             sys.exit(res)
     return output
 
-def run_Apply_Orbit_File(input, granule_name, save_dir,thread_num=16):
+def run_Apply_Orbit_File(input, granule_name, save_dir,sar_type=None, thread_num=16):
     if input.endswith('.dim'):
         output = io_function.get_name_by_adding_tail(input,'Orb')
     else:
@@ -58,16 +58,27 @@ def run_Apply_Orbit_File(input, granule_name, save_dir,thread_num=16):
     # orbitType: if we set the wrong OrbitType, SNAP still can download correct orbit file for the input SAR data?
     # 'Sentinel Precise (Auto Download)', 'PRARE Precise (ERS1&2) (Auto Download)','DORIS Precise VOR (ENVISAT) (Auto Download)'
     # ERS, Envisat, Sentinel-1
-    extension = os.path.splitext(input)[1]        # extension: E1, E2, N1 for (ERS 1&2, Envisat)
-    extension = extension[1:]                   # remove dot
-    if extension.lower() == 'zip':  # Sentinel-1
-        orbitType = "Sentinel Precise (Auto Download)"
-    elif extension.lower() in ['e1', 'e2']: # ERS 1 & 2
-        orbitType = "PRARE Precise (ERS1&2) (Auto Download)"
-    elif extension.lower() == 'n1':
-        orbitType = "DORIS Precise VOR (ENVISAT) (Auto Download)"
+    if sar_type is not None:
+        if sar_type.lower() == 'sentinel-1':
+            orbitType = "Sentinel Precise (Auto Download)"
+        elif sar_type.lower() == 'ers':
+            orbitType = "PRARE Precise (ERS1&2) (Auto Download)"
+        elif sar_type.lower() == 'envisat':
+            orbitType = "DORIS Precise VOR (ENVISAT) (Auto Download)"
+        else:
+            raise ValueError('unknown sar_type %s' % str(sar_type))
     else:
-        raise ValueError('unknown orbitType')
+        # guess the orbitType from filename
+        extension = os.path.splitext(input)[1]        # extension: E1, E2, N1 for (ERS 1&2, Envisat)
+        extension = extension[1:]                   # remove dot
+        if extension.lower() in ['zip', 'dim']:  # Sentinel-1,  dim: after run_TOPSAR_Split
+            orbitType = "Sentinel Precise (Auto Download)"
+        elif extension.lower() in ['e1', 'e2']: # ERS 1 & 2
+            orbitType = "PRARE Precise (ERS1&2) (Auto Download)"
+        elif extension.lower() == 'n1':
+            orbitType = "DORIS Precise VOR (ENVISAT) (Auto Download)"
+        else:
+            raise ValueError('unknown orbitType')
 
     cmd_str = baseSNAP + ' Apply-Orbit-File -q %d -PcontinueOnFail=false -PorbitType="%s" '%(thread_num,orbitType) + \
               '  -t %s %s'%(output, input)
