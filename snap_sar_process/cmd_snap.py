@@ -18,12 +18,28 @@ import basic_src.io_function as io_function
 import raster_io
 
 import xml.etree.ElementTree as ET
+from datetime import datetime
 
 # ---------------------------------------------------------------------------
 # Where the Sentinel 1 Toolbox graphing tool exe and GDAL is located
 baseSNAP = '/Applications/snap/bin/gpt'
 gdal_translate = '/usr/local/bin/gdal_translate'
 
+def update_env_setting(setting_json):
+    global baseSNAP, gdal_translate
+    if os.path.isfile(setting_json):
+        env_setting = io_function.read_dict_from_txt_json(setting_json)
+        baseSNAP = env_setting['snap_bin_gpt']
+        print(datetime.now(), 'setting  bSNAP gpt:', baseSNAP)
+        gdal_translate = env_setting['gdal_translate_bin']
+        print(datetime.now(), 'gdal_translate:', gdal_translate)
+    else:
+        baseSNAP = os.getenv('SNAP_BIN_GPT')
+        if baseSNAP is None:
+            raise ValueError('SNAP_BIN_GPT is not in Environment Variables')
+        gdal_translate = os.getenv('GDAL_TRANSLATE_BIN')
+        if gdal_translate is None:
+            raise ValueError('GDAL_TRANSLATE_BIN is not in Environment Variables')
 
 def run_TOPSAR_Split(input_sar_zip, granule_name, Polarisations, subswath, save_dir, awk_aoi,thread_num=16):
     output = os.path.join(save_dir,granule_name + '_%s_%s.dim'%(subswath,Polarisations))

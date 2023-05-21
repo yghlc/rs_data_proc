@@ -177,20 +177,7 @@ def main(options, args):
         coregister_graph = options.coregister_graph
         b_rm_tmp_files = options.b_dont_remove_tmp_files
 
-    # global  baseSNAP, gdal_translate
-    if os.path.isfile(setting_json):
-        env_setting = io_function.read_dict_from_txt_json(setting_json)
-        cmd_snap.baseSNAP = env_setting['snap_bin_gpt']
-        print(datetime.now(), 'setting  bSNAP gpt:', cmd_snap.baseSNAP)
-        cmd_snap.gdal_translate = env_setting['gdal_translate_bin']
-        print(datetime.now(), 'gdal_translate:', cmd_snap.gdal_translate)
-    else:
-        cmd_snap.baseSNAP = os.getenv('SNAP_BIN_GPT')
-        if cmd_snap.baseSNAP is None:
-            raise ValueError('SNAP_BIN_GPT is not in Environment Variables')
-        cmd_snap.gdal_translate = os.getenv('GDAL_TRANSLATE_BIN')
-        if cmd_snap.gdal_translate is None:
-            raise ValueError('GDAL_TRANSLATE_BIN is not in Environment Variables')
+    cmd_snap.update_env_setting(setting_json)
 
     # SLURM_TMPDIR only exists, after submit a SLURM job on compute canada
     SLURM_TMPDIR = os.getenv('SLURM_TMPDIR')
