@@ -216,8 +216,23 @@ def export_to_tiff(input, save_path):
     else:
         raise ValueError('multiple img file in %s' % input_dir)
 
-    cmd_str = gdal_translate + ' -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer ' + img_path + ' ' + save_path
+    ## trim nodata region
+    # calculate the valid region
+    mask_tif = os.path.join(input_dir, io_function.get_name_no_ext(img_path) +'_mask.tif')
+    cmd_str = 'gdal_calc.py --type=Byte --NoDataValue=0  --calc="A!=0" -A %s --outfile=%s'%(img_path,mask_tif)
+    basic.os_system_exit_code(cmd_str)
+    assert os.path.isfile(mask_tif)
+
+    # polygonize
+    outline_shp = os.path.join(input_dir, io_function.get_name_no_ext(img_path) +'_outline.shp')
+    cmd_str = 'gdal_polygonize.py -8  %s  -b 1 -f "ESRI Shapefile" %s'%(mask_tif,outline_shp)
+    basic.os_system_exit_code(cmd_str)
+    assert os.path.isfile(outline_shp)
+
+    # crop, and translate to Geotiff
+    # cmd_str = gdal_translate + ' -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer ' + img_path + ' ' + save_path
     # cmd_str = gdal_translate + ' -of GTiff ' + img_path + ' ' + save_path
+    cmd_str = 'gdalwarp -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer -cutline %s -crop_to_cutline '%outline_shp + img_path + ' ' + save_path
     basic.os_system_exit_code(cmd_str)
     return save_path
 
