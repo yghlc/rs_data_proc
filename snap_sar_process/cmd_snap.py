@@ -184,6 +184,8 @@ def run_Terrain_Correction(input, save_dir, out_res_meter, dem_path,thread_num=1
             nodata = -9999
         cmd_str += " -PdemName=\"External DEM\" -PexternalDEMFile=%s  -PexternalDEMNoDataValue=%s "%(dem_path, str(nodata))
     else:
+        # available DEMs: SRTM 3Sec, SRTM 1Sec HGT, GETASSE30, Copernicus 90m Global DEM, Copernicus 30m Global DEM,
+        #                   CDEM  # Copernicus 30m Global DEM is global, better,
         cmd_str += ' -PdemName="SRTM 1Sec HGT" '
     cmd_str += ' -t %s'%output
     basic.os_system_exit_code(cmd_str)
@@ -222,35 +224,99 @@ def CoregistrationGraph_ERS(input_ref, input_second, save_dir,org_graph='Coregis
     return output, copy_graph
 
 
+# remove border noise
+def run_remove_border_noise(input,granule_name, save_dir,thread_num=16):
+    if input.endswith('.dim'):
+        output = io_function.get_name_by_adding_tail(input,'GBN')
+    else:
+        output = os.path.join(save_dir, granule_name + '_GBN.dim')
+    if os.path.isfile(output):
+        print(output +' already exists, skip')
+        return output
+
+    cmd_str = baseSNAP + ' Remove-GRD-Border-Noise -q %d -SsourceProduct=%s '%(thread_num,input)
+    cmd_str += ' -t %s'%output
+    basic.os_system_exit_code(cmd_str)
+    return output
+
+def run_Calibration(input,granule_name, save_dir,thread_num=16):
+    if input.endswith('.dim'):
+        output = io_function.get_name_by_adding_tail(input,'CAL')
+    else:
+        output = os.path.join(save_dir, granule_name + '_CAL.dim')
+    if os.path.isfile(output):
+        print(output +' already exists, skip')
+        return output
+
+    cmd_str = baseSNAP + ' Calibration -q %d -PoutputBetaBand=false -PoutputSigmaBand=true '%thread_num
+    cmd_str += ' -Ssource=%s '%(input)
+    cmd_str += ' -t %s'%output
+    basic.os_system_exit_code(cmd_str)
+    return output
+
+def run_Speckle_Filter(input,granule_name, save_dir,thread_num=16):
+    if input.endswith('.dim'):
+        output = io_function.get_name_by_adding_tail(input,'SP')
+    else:
+        output = os.path.join(save_dir, granule_name + '_SP.dim')
+    if os.path.isfile(output):
+        print(output +' already exists, skip')
+        return output
+
+    cmd_str = baseSNAP + ' Speckle-Filter -q %d -Pfilter="Refined Lee" '%thread_num
+    cmd_str += ' -Ssource=%s '%(input)
+    cmd_str += ' -t %s'%output
+    basic.os_system_exit_code(cmd_str)
+    return output
+
+
 def export_to_tiff(input, save_path):
     input_dir = input.replace('.dim', '.data')
     img_paths = io_function.get_file_list_by_ext('.img',input_dir,bsub_folder=False)
+    input_list = []
+    output_list = []
     if len(img_paths) == 1:
-        img_path = img_paths[0]
+        # img_path = img_paths[0]
+        input_list.append(img_paths[0])
+        output_list.append(save_path)
     elif len(img_paths) < 1:
         raise ValueError('NO img file in %s'%input_dir)
     else:
-        raise ValueError('multiple img file in %s' % input_dir)
+        #
+        basic.outputlogMessage('warning, multiple img file in %s, will convert all of them to geotiff' % input_dir)
+        # raise ValueError('multiple img file in %s' % input_dir)
+        for idx, img_path in enumerate(img_paths):
+            input_list.append(img_path)
+            out = io_function.get_name_by_adding_tail(save_path, io_function.get_name_no_ext(img_path))
+            basic.outputlogMessage('%d: %s' % (idx+1, out))
+            output_list.append(out)
 
-    ## trim nodata region
-    # calculate the valid region
-    mask_tif = os.path.join(input_dir, io_function.get_name_no_ext(img_path) +'_mask.tif')
-    cmd_str = 'gdal_calc.py --type=Byte --NoDataValue=0  --calc="A!=0" -A %s --outfile=%s'%(img_path,mask_tif)
-    basic.os_system_exit_code(cmd_str)
-    assert os.path.isfile(mask_tif)
+    for img_path, save_path in zip(input_list, output_list):
+        ## trim nodata region
+        if os.path.isfile(save_path):
+            print('%s already exists, skip exporting to geotiff'%save_path)
+            continue
+        # calculate the valid region
+        mask_tif = os.path.join(input_dir, io_function.get_name_no_ext(img_path) +'_mask.tif')
+        cmd_str = 'gdal_calc.py --type=Byte --NoDataValue=0  --calc="A!=0" -A %s --outfile=%s'%(img_path,mask_tif)
+        basic.os_system_exit_code(cmd_str)
+        assert os.path.isfile(mask_tif)
 
-    # polygonize
-    outline_shp = os.path.join(input_dir, io_function.get_name_no_ext(img_path) +'_outline.shp')
-    cmd_str = 'gdal_polygonize.py -8  %s  -b 1 -f "ESRI Shapefile" %s'%(mask_tif,outline_shp)
-    basic.os_system_exit_code(cmd_str)
-    assert os.path.isfile(outline_shp)
+        # polygonize
+        outline_shp = os.path.join(input_dir, io_function.get_name_no_ext(img_path) +'_outline.shp')
+        cmd_str = 'gdal_polygonize.py -8  %s  -b 1 -f "ESRI Shapefile" %s'%(mask_tif,outline_shp)
+        basic.os_system_exit_code(cmd_str)
+        assert os.path.isfile(outline_shp)
 
-    # crop, and translate to Geotiff
-    # cmd_str = gdal_translate + ' -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer ' + img_path + ' ' + save_path
-    # cmd_str = gdal_translate + ' -of GTiff ' + img_path + ' ' + save_path
-    cmd_str = 'gdalwarp -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer -cutline %s -crop_to_cutline '%outline_shp + img_path + ' ' + save_path
-    basic.os_system_exit_code(cmd_str)
-    return save_path
+        # crop, and translate to Geotiff
+        # cmd_str = gdal_translate + ' -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer ' + img_path + ' ' + save_path
+        # cmd_str = gdal_translate + ' -of GTiff ' + img_path + ' ' + save_path
+        cmd_str = 'gdalwarp -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer -cutline %s -crop_to_cutline '%outline_shp + img_path + ' ' + save_path
+        basic.os_system_exit_code(cmd_str)
+    if len(output_list) > 1:
+        return output_list
+    else:
+        return save_path
 
 def sar_coh_to_8bit(input,save_path=None):
     if save_path is None:
