@@ -368,9 +368,9 @@ if __name__ == '__main__':
                       action="store", dest="aoi_shp",
                       help="a shapefile containing AOI")
 
-    parser.add_option("", "--sar_type",
-                      action="store", dest="sar_type", default='Sentinel-1',
-                      help="the type of SAR data: ERS, Envisat, Sentinel-1")
+    # parser.add_option("", "--sar_type",
+    #                   action="store", dest="sar_type", default='Sentinel-1',
+    #                   help="the type of SAR data: ERS, Envisat, Sentinel-1")
 
     parser.add_option("-d", "--save_dir",
                       action="store", dest="save_dir",default='sar_coh_results',
