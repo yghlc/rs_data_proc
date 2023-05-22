@@ -16,6 +16,7 @@ sys.path.insert(0, deeplabforRS)
 import basic_src.basic as basic
 import basic_src.io_function as io_function
 import raster_io
+import vector_gpd
 
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -308,10 +309,14 @@ def export_to_tiff(input, save_path):
         basic.os_system_exit_code(cmd_str)
         assert os.path.isfile(outline_shp)
 
+        bounding_boxes = vector_gpd.get_vector_file_bounding_box(outline_shp) # minx, miny, maxx, maxy
+        box_str = ' '.join([str(item) for item in bounding_boxes])
+
         # crop, and translate to Geotiff
         # cmd_str = gdal_translate + ' -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer ' + img_path + ' ' + save_path
         # cmd_str = gdal_translate + ' -of GTiff ' + img_path + ' ' + save_path
-        cmd_str = 'gdalwarp -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer -cutline %s -crop_to_cutline '%outline_shp + img_path + ' ' + save_path
+        # cmd_str = 'gdalwarp -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer -cutline %s -crop_to_cutline '%outline_shp + img_path + ' ' + save_path
+        cmd_str = 'gdalwarp -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer -te %s '%box_str + img_path + ' ' + save_path
         basic.os_system_exit_code(cmd_str)
     if len(output_list) > 1:
         return output_list
@@ -326,6 +331,10 @@ def sar_coh_to_8bit(input,save_path=None):
     basic.os_system_exit_code(cmd_str)
     return save_path
 
+def test_export_to_tiff():
+    input = os.path.expanduser('~/Data/sar_coherence_mapping/ALDs_Dawson_Yukon_Lipovsky_2004/tmp_coh386_2295D0/20040613_Orb_20040822_Orb_Stack_Coh_TC.dim')
+    save_path = os.path.expanduser('~/Data/sar_coherence_mapping/ALDs_Dawson_Yukon_Lipovsky_2004/crop.tif')
+    export_to_tiff(input, save_path)
 
 if __name__ == '__main__':
     pass
