@@ -80,6 +80,10 @@ def save_sar_meta_to_shape(sar_meta_list,save_shp_path):
     vector_gpd.save_polygons_to_files(pd_meta,'outline','EPSG:4326',save_shp_path)
     print('saved %s'%save_shp_path)
 
+    sar_path_list = [item['sar_path'] for item in sar_meta_list ]
+    save_path_txt = os.path.splitext(save_shp_path)[0] + '_list.txt'
+    io_function.save_list_to_txt(save_path_txt,sar_path_list)
+
 
 def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res_meter, save_dir, tmp_dir, ext_shp, dem_path, thread_num):
 
