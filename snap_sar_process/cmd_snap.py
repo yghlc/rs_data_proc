@@ -186,7 +186,7 @@ def run_Terrain_Correction(input, save_dir, out_res_meter, dem_path,thread_num=1
     else:
         # available DEMs: SRTM 3Sec, SRTM 1Sec HGT, GETASSE30, Copernicus 90m Global DEM, Copernicus 30m Global DEM,
         #                   CDEM  # Copernicus 30m Global DEM is global, better,
-        cmd_str += ' -PdemName="SRTM 1Sec HGT" '
+        cmd_str += ' -PdemName="Copernicus 30m Global DEM" '
     cmd_str += ' -t %s'%output
     basic.os_system_exit_code(cmd_str)
     return output
