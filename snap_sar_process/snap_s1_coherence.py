@@ -105,8 +105,11 @@ def cal_coherence_from_two_s1(ref_sar, second_sar, res_meter,save_dir, polarisat
         out_merge = cmd_snap.run_TOPSAR_Merge(ref_sar, second_sar,polarisation,coh_res_list,tmp_dir,thread_num=thread_num)
         io_function.write_metadata(['TOPSAR-Merge','TOPSAR-Merge-cost-time'], [out_merge, time.time() - t1], filename=save_meta)
         snap_intermediate_files.append(out_merge)
-    else:
+    elif len(coh_res_list) == 1:
         out_merge = coh_res_list[0]
+    else:
+        basic.outputlogMessage("error: the extent (%s) does not overlap the SARs (%s and %s) "%(wktAoi, ref_sar, second_sar))
+        return None
 
     # Terrain-Correction
     t1 = time.time()
