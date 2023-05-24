@@ -20,6 +20,7 @@ import vector_gpd
 
 import xml.etree.ElementTree as ET
 from datetime import datetime
+import numpy as np
 
 # ---------------------------------------------------------------------------
 # Where the Sentinel 1 Toolbox graphing tool exe and GDAL is located
@@ -310,13 +311,17 @@ def export_to_tiff(input, save_path):
         assert os.path.isfile(outline_shp)
 
         bounding_boxes = vector_gpd.get_vector_file_bounding_box(outline_shp) # minx, miny, maxx, maxy
-        box_str = ' '.join([str(item) for item in bounding_boxes])
-
-        # crop, and translate to Geotiff
-        # cmd_str = gdal_translate + ' -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer ' + img_path + ' ' + save_path
-        # cmd_str = gdal_translate + ' -of GTiff ' + img_path + ' ' + save_path
-        # cmd_str = 'gdalwarp -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer -cutline %s -crop_to_cutline '%outline_shp + img_path + ' ' + save_path
-        cmd_str = 'gdalwarp -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer -te %s '%box_str + img_path + ' ' + save_path
+        if np.any(np.isnan(bounding_boxes) == True ):  # nan
+            basic.outputlogMessage('Warning, the bounding box in %s is nan, just convert to Geotiff format')
+            # -co compress=lzw
+            cmd_str = gdal_translate + ' -of GTiff -co tiled=yes -co bigtiff=if_safer ' + img_path + ' ' + save_path
+        else:
+            box_str = ' '.join([str(item) for item in bounding_boxes])
+            # crop, and translate to Geotiff
+            # cmd_str = gdal_translate + ' -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer ' + img_path + ' ' + save_path
+            # cmd_str = gdal_translate + ' -of GTiff ' + img_path + ' ' + save_path
+            # cmd_str = 'gdalwarp -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer -cutline %s -crop_to_cutline '%outline_shp + img_path + ' ' + save_path
+            cmd_str = 'gdalwarp -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer -te %s '%box_str + img_path + ' ' + save_path
         basic.os_system_exit_code(cmd_str)
     if len(output_list) > 1:
         return output_list
