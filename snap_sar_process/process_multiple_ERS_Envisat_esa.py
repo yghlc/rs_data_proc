@@ -157,7 +157,7 @@ def organize_sar_pairs_ERS_Envisat_esa(sar_image_list, meta_data_path=None):
     else:
         if os.path.isfile(meta_data_path) is False:
             meta_data_path = os.path.join(sar_dir, meta_data_path)
-    if os.path.basename(meta_data_path) is False:
+    if os.path.isfile(meta_data_path) is False:
         basic.outputlogMessage('error: %s does not exists'%meta_data_path)
         return None
     file_name_list = [os.path.splitext(os.path.basename(item))[0] for item in sar_image_list]        # exclude extension

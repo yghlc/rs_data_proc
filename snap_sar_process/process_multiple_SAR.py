@@ -183,29 +183,52 @@ def organize_sar_pairs_s1(sar_image_list, meta_data_path=None):
         if os.path.isfile(meta_data_path) is False:
             meta_data_path = os.path.join(sar_dir,meta_data_path)
 
+    if os.path.isfile(meta_data_path) is False:
+        basic.outputlogMessage('error: %s does not exists'%meta_data_path)
+        return None
+
     file_name_list = [ os.path.basename(item) for item in sar_image_list]
     sar_metas = io_function.read_dict_from_txt_json(meta_data_path)['features']
-    # only select meta data for input list
-    sar_meta_list = []
-    for sar_path, file_name in zip(sar_image_list,file_name_list):
-        b_found = False
-        for meta in sar_metas:
-            if meta['properties']['fileName'] == file_name:
-                sar_meta_list.append(meta)
-                b_found = True
-                break
-        if b_found is False:
-            basic.outputlogMessage('warning, %s dont have meta data'%file_name)
+    # only select meta data that have download data
+    sel_sar_meta_list = []
+    sel_sar_list = []
+    for meta in sar_metas:
+        if meta['properties']['fileName'] in file_name_list:
+            idx = file_name_list.index(meta['properties']['fileName'])
+            sel_sar_meta_list.append(meta)
+            sel_sar_list.append(sar_image_list[idx])
+        else:
+            basic.outputlogMessage('Warning, %s doesnt have a downloaded file' % meta['id'])
+
+    # group them based on the same path and frame
+    group_path_frame = {}
+    for s_img, s_meta in zip(sel_sar_list, sel_sar_meta_list):
+        s_img_meta = {'sar_path': s_img,
+                      'sar_meta': s_meta}
+        path_frame_str = '%d_%d' % (s_meta['properties']['pathNumber'],s_meta['properties']['frameNumber'])
+        group_path_frame.setdefault(path_frame_str, []).append(s_img_meta)
+
+    # # only select meta data for input list
+    # sar_meta_list = []
+    # for sar_path, file_name in zip(sar_image_list,file_name_list):
+    #     b_found = False
+    #     for meta in sar_metas:
+    #         if meta['properties']['fileName'] == file_name:
+    #             sar_meta_list.append(meta)
+    #             b_found = True
+    #             break
+    #     if b_found is False:
+    #         basic.outputlogMessage('warning, %s dont have meta data'%file_name)
 
         # sar_meta_list = [ item for item in sar_metas if item['properties']['fileName'] in file_name_list ]
 
-    # group then to groups with the same path and frame
-    group_path_frame = {}
-    for s_img, s_meta in zip(sar_image_list,sar_meta_list):
-        s_img_meta = {'sar_path':s_img,
-                      'sar_meta':s_meta}
-        path_frame_str = '%d_%d'%(s_meta['properties']['pathNumber'],s_meta['properties']['frameNumber'])
-        group_path_frame.setdefault(path_frame_str, []).append(s_img_meta)
+    # # group then to groups with the same path and frame
+    # group_path_frame = {}
+    # for s_img, s_meta in zip(sar_image_list,sar_meta_list):
+    #     s_img_meta = {'sar_path':s_img,
+    #                   'sar_meta':s_meta}
+    #     path_frame_str = '%d_%d'%(s_meta['properties']['pathNumber'],s_meta['properties']['frameNumber'])
+    #     group_path_frame.setdefault(path_frame_str, []).append(s_img_meta)
 
     # print(sar_metas[0])
     for key in group_path_frame.keys():
@@ -283,14 +306,27 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
 
 def multiple_SAR_coherence(sar_image_list,save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,thread_num=16,process_num=1):
 
-    group_path_frame = organize_sar_pairs_s1(sar_image_list, meta_data_path=None)
-    # process group by group
-    for key in group_path_frame.keys():
-        # print('path-frame:',key)
-        # for item in group_path_frame[key]:
-        #     print(item['sar_path'])
-        SAR_coherence_samePathFrame(key,group_path_frame[key],save_dir,res_meter, tmp_dir=tmp_dir, ext_shp=ext_shp,
-                                    dem_path=dem_path,thread_num=thread_num,process_num=process_num)
+    ext_base_name = io_function.get_name_no_ext(ext_shp)
+    ROIs_wkt = vector_gpd.shapefile_to_ROIs_wkt(ext_shp)
+    if len(ROIs_wkt) < 1:
+        raise ValueError('There is zero AOI')
+
+    for idx, roi_wkt in enumerate(ROIs_wkt):
+        if len(ROIs_wkt) == 1:
+            data_meta_file = '%s_meta.json'%ext_base_name
+        else:
+            data_meta_file = '%s_meta_%d.json' % (ext_base_name, idx)
+
+        group_path_frame = organize_sar_pairs_s1(sar_image_list, meta_data_path=None)
+        if group_path_frame is None:
+            continue
+        # process group by group
+        for key in group_path_frame.keys():
+            # print('path-frame:',key)
+            # for item in group_path_frame[key]:
+            #     print(item['sar_path'])
+            SAR_coherence_samePathFrame(key,group_path_frame[key],save_dir,res_meter, tmp_dir=tmp_dir, ext_shp=ext_shp,
+                                        dem_path=dem_path,thread_num=thread_num,process_num=process_num)
 
 
 def main(options, args):
