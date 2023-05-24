@@ -317,7 +317,7 @@ def multiple_SAR_coherence(sar_image_list,save_dir,res_meter, tmp_dir=None, ext_
         else:
             data_meta_file = '%s_meta_%d.json' % (ext_base_name, idx)
 
-        group_path_frame = organize_sar_pairs_s1(sar_image_list, meta_data_path=None)
+        group_path_frame = organize_sar_pairs_s1(sar_image_list, meta_data_path=data_meta_file)
         if group_path_frame is None:
             continue
         # process group by group
