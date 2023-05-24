@@ -327,9 +327,9 @@ def export_to_tiff(input, save_path):
 def sar_coh_to_8bit(input,save_path=None):
     if save_path is None:
         save_path = io_function.get_name_by_adding_tail(input,'8bit')
-    py_8bit = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/tools/convertTo8bit.py')
-    cmd_str = py_8bit + ' -u 0.99 -l 0.01 %s %s '%(input, save_path)
-    basic.os_system_exit_code(cmd_str)
+    # py_8bit = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/tools/convertTo8bit.py')
+    # cmd_str = py_8bit + ' -u 0.99 -l 0.01 %s %s '%(input, save_path)
+    # basic.os_system_exit_code(cmd_str)
     return save_path
 
 def test_export_to_tiff():
