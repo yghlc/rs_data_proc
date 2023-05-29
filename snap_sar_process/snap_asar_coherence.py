@@ -28,8 +28,8 @@ import basic_src.RSImageProcess as RSImageProcess
 import cmd_snap
 
 def cal_coherence_from_two_ERS(ref_sar, second_sar, res_meter,save_dir, polarisation='VV', tmp_dir=None, ext_shp=None, dem_path=None,
-                              thread_num=16,coregister_graph='CoregistrationGraph.xml',rm_tmp_files=True):
-    # the ref_sar and second_sar should be have the same path, and frame, but don't check here.
+                              cohWinAz=3,cohWinRg=10,thread_num=16,coregister_graph='CoregistrationGraph.xml',rm_tmp_files=True):
+    # the ref_sar and second_sar should have the same path, and frame, but don't check here.
     t0 = time.time()
 
     ref_short_name = cmd_snap.get_ESA_ERS_granule_name_substr(ref_sar)
@@ -81,7 +81,7 @@ def cal_coherence_from_two_ERS(ref_sar, second_sar, res_meter,save_dir, polarisa
 
     # Coherence
     t1 = time.time()
-    out_coherence = cmd_snap.run_Coherence(ERS_stack,tmp_dir)
+    out_coherence = cmd_snap.run_Coherence(ERS_stack,tmp_dir,cohWinAz=cohWinAz,cohWinRg=cohWinRg,thread_num=thread_num)
     io_function.write_metadata(['Coherence', 'Coherence-cost-time'], [out_coherence, time.time() - t1], filename=save_meta)
     snap_intermediate_files.append(out_coherence)
 
@@ -153,6 +153,8 @@ def main(options, args):
         dem_file = input_dict['elevation_file']
         setting_json = input_dict['env_setting']
         # process_num = input_dict['process_num']
+        cohWinAz = input_dict['cohWinAz'] if 'cohWinAz' in input_dict.keys() else 3
+        cohWinRg = input_dict['cohWinRg'] if 'cohWinRg' in input_dict.keys() else 10
         thread_num = input_dict['thread_num']
 
         ref_polars = ref_polarisations.split('+')
@@ -173,6 +175,8 @@ def main(options, args):
         dem_file = options.elevation_file
         setting_json = options.env_setting
         # process_num = options.process_num
+        cohWinAz = options.cohWinAz
+        cohWinRg = options.cohWinRg
         thread_num = options.thread_num
         coregister_graph = options.coregister_graph
         b_rm_tmp_files = options.b_dont_remove_tmp_files
@@ -189,7 +193,7 @@ def main(options, args):
     # Polarisations = ['VH', 'VV']
     for polar in common_polars:
         cal_coherence_from_two_ERS(ref_sar, sec_sar, out_res, save_dir, polarisation=polar, tmp_dir=tmp_dir, ext_shp=ext_shp, dem_path=dem_file,
-                              thread_num=thread_num,coregister_graph=coregister_graph,rm_tmp_files=b_rm_tmp_files)
+                              cohWinAz=cohWinAz,cohWinRg=cohWinRg,thread_num=thread_num,coregister_graph=coregister_graph,rm_tmp_files=b_rm_tmp_files)
 
 
 if __name__ == '__main__':
@@ -219,6 +223,15 @@ if __name__ == '__main__':
     parser.add_option("", "--process_num",
                       action="store", dest="process_num", type=int, default=1,
                       help="number of processes to run the process")
+
+    parser.add_option("", "--cohWinAz",
+                      action="store", dest="cohWinAz", type=int, default=3,
+                      help="The window size (Azimuth) for calculating coherence ")
+
+    parser.add_option("", "--cohWinRg",
+                      action="store", dest="cohWinRg", type=int, default=10,
+                      help="The window size (Range) for calculating coherence ")
+
 
     parser.add_option("", "--thread_num",
                       action="store", dest="thread_num", type=int, default=16,
