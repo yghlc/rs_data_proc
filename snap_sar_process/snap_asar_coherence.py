@@ -56,6 +56,7 @@ def cal_coherence_from_two_ERS(ref_sar, second_sar, res_meter,save_dir, polarisa
 
     io_function.write_metadata(['reference-image','second-image'], [ref_sar,second_sar], filename=save_meta)
     io_function.write_metadata(['output_resolution_m','polarisation'], [res_meter,polarisation], filename=save_meta)
+    io_function.write_metadata(['cohWinAz', 'cohWinRg'], [cohWinAz, cohWinRg], filename=save_meta)
     io_function.write_metadata(['extent_shp'], [ext_shp], filename=save_meta)
 
     # Apply-Orbit-File
