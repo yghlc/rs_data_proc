@@ -78,7 +78,8 @@ def save_sar_meta_to_shape(sar_meta_list,save_shp_path):
     io_function.save_list_to_txt(save_path_txt,sar_path_list)
 
 
-def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res_meter, save_dir, tmp_dir, ext_shp, dem_path, thread_num):
+def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res_meter, save_dir, tmp_dir, ext_shp, dem_path,
+                     cohWinAz, cohWinRg, thread_num):
 
     parallel_run_slurm.b_run_job_local = b_run_job_local
     parallel_run_slurm.slurm_username = user_name
@@ -109,6 +110,8 @@ def process_one_pair(sar_meta_list_sorted, ref_idx, sec_idx, path_frame_str, res
             'save_dir': save_dir,
             'temp_dir': tmp_dir,
             'save_pixel_size': res_meter,
+            'cohWinAz':cohWinAz,
+            'cohWinRg':cohWinRg,
             'elevation_file': dem_path,
             'env_setting': setting_json,
             'thread_num': thread_num,
@@ -196,7 +199,8 @@ def test_organize_sar_pairs_ERS_Envisat_esa():
     organize_sar_pairs_ERS_Envisat_esa(sar_files,meta_data_path='ALDs_Dawson_Yukon_Lipovsky_2004_meta.json')
 
 
-def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,thread_num=16,process_num=1):
+def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,
+                                cohWinAz=3,cohWinRg=10,thread_num=16,process_num=1):
     # add decending or ascending to path_frame
     path_frame_direction = path_frame+'_'+sar_meta_list[0]['sar_meta']['orbit'][:3]
     save_dir = os.path.join(save_dir,path_frame_direction)
@@ -231,12 +235,13 @@ def SAR_coherence_samePathFrame(path_frame,sar_meta_list, save_dir,res_meter, tm
     # calculate coherence pair by pair
     for idx in range(1, total_count):
 
-        process_one_pair(sar_meta_list_sorted,idx-1,idx,path_frame,res_meter,save_dir,tmp_dir,ext_shp,dem_path,thread_num)
+        process_one_pair(sar_meta_list_sorted,idx-1,idx,path_frame,res_meter,save_dir,tmp_dir,ext_shp,dem_path,cohWinAz,cohWinRg,thread_num)
         time.sleep(1)   # wait one second, as suggested by computeCanada
 
 
 
-def multiple_SAR_coherence(sar_type, sar_image_list,save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,thread_num=16,process_num=1):
+def multiple_SAR_coherence(sar_type, sar_image_list,save_dir,res_meter, tmp_dir=None, ext_shp=None, dem_path=None,
+                           cohWinAz=3,cohWinRg=10,thread_num=16,process_num=1):
 
     ext_base_name = io_function.get_name_no_ext(ext_shp)
     ROIs_wkt = vector_gpd.shapefile_to_ROIs_wkt(ext_shp)
@@ -264,7 +269,7 @@ def multiple_SAR_coherence(sar_type, sar_image_list,save_dir,res_meter, tmp_dir=
             # for item in group_path_frame[key]:
             #     print(item['sar_path'])
             SAR_coherence_samePathFrame(key,group_path_frame[key],save_dir,res_meter, tmp_dir=tmp_dir, ext_shp=ext_shp,
-                                        dem_path=dem_path,thread_num=thread_num,process_num=process_num)
+                                        dem_path=dem_path,cohWinAz=cohWinAz,cohWinRg=cohWinRg,thread_num=thread_num,process_num=process_num)
 
 
 def main(options, args):
@@ -283,6 +288,9 @@ def main(options, args):
     tmp_dir = os.path.abspath(tmp_dir)
     out_res = options.save_pixel_size
     dem_file = options.elevation_file
+
+    cohWinAz = options.cohWinAz
+    cohWinRg = options.cohWinRg
 
     process_num = options.process_num
     thread_num = options.thread_num
@@ -311,7 +319,7 @@ def main(options, args):
     # Polarisations = ['VH', 'VV']
     # read metadata
     multiple_SAR_coherence(sar_type, sar_image_list, save_dir, out_res, tmp_dir=tmp_dir, ext_shp=ext_shp, dem_path=dem_file,
-                           thread_num=thread_num,process_num=process_num)
+                           cohWinAz=cohWinAz,cohWinRg=cohWinRg,thread_num=thread_num,process_num=process_num)
 
     # wait all local task finished
     while basic.b_all_process_finish(parallel_run_slurm.local_tasks) is False:
@@ -344,6 +352,15 @@ if __name__ == '__main__':
     parser.add_option("", "--process_num",
                       action="store", dest="process_num", type=int, default=1,
                       help="number of processes to run the process")
+
+    parser.add_option("", "--cohWinAz",
+                      action="store", dest="cohWinAz", type=int, default=3,
+                      help="The window size (Azimuth) for calculating coherence ")
+
+    parser.add_option("", "--cohWinRg",
+                      action="store", dest="cohWinRg", type=int, default=10,
+                      help="The window size (Range) for calculating coherence ")
+
 
     parser.add_option("", "--thread_num",
                       action="store", dest="thread_num", type=int, default=16,
