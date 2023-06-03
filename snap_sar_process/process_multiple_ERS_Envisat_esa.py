@@ -174,7 +174,7 @@ def organize_sar_pairs_ERS_Envisat_esa(sar_image_list, meta_data_path=None):
             sel_sar_meta_list.append(meta)
             sel_sar_list.append(sar_image_list[idx])
         else:
-            basic.outputlogMessage('Warning, %s doesnt have a downloaded file' % meta['id'])
+            basic.outputlogMessage('Warning, %s is not downloaded or ignored in the input list(txt)' % meta['id'])
 
     # group them based on the same path and frame
     group_path_frame = {}
