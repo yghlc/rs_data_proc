@@ -58,6 +58,9 @@ def calculation(idx, config, sar_type, sar_list_txt, ext_shp, dem_path):
     return save_dir, work_dir
 
 def subset_image(input,output,bound_box_str):
+    if os.path.isfile(output):
+        print('%s exists, skip cropping'%output)
+        return
     cmd_str = 'gdalwarp -of GTiff -co tiled=yes -co bigtiff=if_safer -te %s ' % bound_box_str + input + ' ' + output
     basic.os_system_exit_code(cmd_str)
 
