@@ -123,7 +123,7 @@ def main(options, args):
         time.sleep(2)       # need to wait 2 second on compute canada
 
     while True:
-        submit_job_count = slurm_utility.get_submit_job_count(user_name)
+        submit_job_count = slurm_utility.get_submit_job_count(user_name,job_name_substr='coh')
         if submit_job_count > 0:
             print(machine_name, datetime.now(),'Waiting jobs to be finished, submitted job count: %d'%submit_job_count)
             time.sleep(300)
