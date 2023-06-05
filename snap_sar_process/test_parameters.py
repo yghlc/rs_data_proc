@@ -9,6 +9,7 @@ add time: 02 June, 2023
 """
 
 import os, sys
+from optparse import OptionParser
 
 from sklearn.model_selection import ParameterGrid
 import time
@@ -92,7 +93,7 @@ def test_organize_subset_coh():
     print(save_dir_list)
     organize_subset_coh(save_dir_list, ext_shp)
 
-def main():
+def main(options, args):
     # get combination of parameters
     para_config = {
             "resolution": [10, 15, 20, 30, 40 ],
@@ -107,10 +108,10 @@ def main():
         #     continue
         print(idx, para)
 
-    sar_type = 'sentinel-1'
-    sar_list_txt = 'sar_list.txt'
-    ext_shp = os.path.expanduser('~/Data/Arctic/pan_Arctic/extent/SAR_coh_test_region/SAR_coh_test.shp')
-    dem_path = os.path.expanduser('~/Data/CopernicusDEM/SAR_coh_test_CoDEM.tif')
+    sar_list_txt = args[0]      # 'sar_list.txt'
+    sar_type = options.sar_type #'sentinel-1'
+    ext_shp = options.aoi_shp   # os.path.expanduser('~/Data/Arctic/pan_Arctic/extent/SAR_coh_test_region/SAR_coh_test.shp')
+    dem_path = options.elevation_file  # os.path.expanduser('~/Data/CopernicusDEM/SAR_coh_test_CoDEM.tif')
 
     save_dir_list = []
     work_dir_list = []
@@ -134,5 +135,31 @@ def main():
 
 
 if __name__ == '__main__':
+
+    usage = "usage: %prog [options] sar_files.txt "
+    parser = OptionParser(usage=usage, version="1.0 2023-6-4")
+    parser.description = 'Introduction: testing the parameters for calculating SAR coherence, using SNAP  '
+
     # test_organize_subset_coh()
-    main()
+    # sys.exit(0)
+
+    parser.add_option("-a", "--aoi_shp",
+                      action="store", dest="aoi_shp",
+                      help="a shapefile containing AOI")
+
+    parser.add_option("-e", "--elevation_file",
+                      action="store", dest="elevation_file",
+                      help="DEM file used for terrain correction, if not set, will use SRTM 1 sec ")
+
+    parser.add_option("", "--sar_type",
+                      action="store", dest="sar_type", default='Sentinel-1',
+                      help="the type of SAR data: Sentinel-1, ERS, Envisat")
+
+
+    (options, args) = parser.parse_args()
+
+    if len(sys.argv) < 2 or len(args) < 1:
+        parser.print_help()
+        sys.exit(2)
+
+    main(options, args)
