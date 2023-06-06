@@ -95,13 +95,19 @@ def test_organize_subset_coh():
 
 def main(options, args):
     # get combination of parameters
+    # para_config = {
+    #         "resolution": [10, 15, 20, 30, 40 ],
+    #         "cohWinAz": [3, 5, 7, 9, 11], #
+    #         "cohWinRg": [5, 10, 15, 20, 25] #
+    # }
+    # for ERS
     para_config = {
-            "resolution": [10, 15, 20, 30, 40 ],
-            "cohWinAz": [3, 5, 7, 9, 11], #
-            "cohWinRg": [5, 10, 15, 20, 25] #
+            "resolution": [20, 30, 40, 60 ],
+            "cohWinAz": [5, 15, 25,40, 60], #
+            "cohWinRg": [3, 5, 7, 9, 11, 15] #
     }
     para_com_list = get_para_list_from_grid_serach(para_config)
-    para_com_list = [item for item in para_com_list if item['cohWinAz'] <= item['cohWinRg']]   # remove cohWinAz > cohWinRg
+    # para_com_list = [item for item in para_com_list if item['cohWinAz'] <= item['cohWinRg']]   # remove cohWinAz > cohWinRg
     # print(para_list)
     for idx, para in enumerate(para_com_list):
         # if para['cohWinAz'] > para['cohWinRg']:
