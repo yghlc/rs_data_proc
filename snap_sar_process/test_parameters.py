@@ -94,30 +94,38 @@ def test_organize_subset_coh():
     organize_subset_coh(save_dir_list, ext_shp)
 
 def main(options, args):
-    # get combination of parameters
-    # para_config = {
-    #         "resolution": [10, 15, 20, 30, 40 ],
-    #         "cohWinAz": [3, 5, 7, 9, 11], #
-    #         "cohWinRg": [5, 10, 15, 20, 25] #
-    # }
-    # for ERS
-    para_config = {
-            "resolution": [20, 30, 40, 60 ],
-            "cohWinAz": [5, 15, 25,40, 60], #
-            "cohWinRg": [3, 5, 7, 9, 11, 15] #
-    }
-    para_com_list = get_para_list_from_grid_serach(para_config)
-    # para_com_list = [item for item in para_com_list if item['cohWinAz'] <= item['cohWinRg']]   # remove cohWinAz > cohWinRg
-    # print(para_list)
-    for idx, para in enumerate(para_com_list):
-        # if para['cohWinAz'] > para['cohWinRg']:
-        #     continue
-        print(idx, para)
-
     sar_list_txt = args[0]      # 'sar_list.txt'
     sar_type = options.sar_type #'sentinel-1'
     ext_shp = options.aoi_shp   # os.path.expanduser('~/Data/Arctic/pan_Arctic/extent/SAR_coh_test_region/SAR_coh_test.shp')
     dem_path = options.elevation_file  # os.path.expanduser('~/Data/CopernicusDEM/SAR_coh_test_CoDEM.tif')
+
+    # get combination of parameters
+    if sar_type.lower() == 'sentinel-1':
+        # for Sentinel-1
+        para_config = {
+                "resolution": [10, 15, 20, 30, 40 ],
+                "cohWinAz": [3, 5, 7, 9, 11], #
+                "cohWinRg": [5, 10, 15, 20, 25] #
+        }
+        para_com_list = get_para_list_from_grid_serach(para_config)
+        para_com_list = [item for item in para_com_list if item['cohWinAz'] <= item['cohWinRg']]  # remove cohWinAz > cohWinRg
+
+    elif sar_type.lower() in ['ers', 'envisat'] :
+        # for ERS, Envisat
+        para_config = {
+            "resolution": [20, 30, 40, 60],
+            "cohWinAz": [5, 15, 25, 40, 60],  #
+            "cohWinRg": [3, 5, 7, 9, 11, 15]  #
+        }
+        para_com_list = get_para_list_from_grid_serach(para_config)
+        para_com_list = [item for item in para_com_list if item['cohWinAz'] >= item['cohWinRg']]  # remove cohWinAz < cohWinRg
+    else:
+        raise ValueError('unknown sar_type %s' % str(sar_type))
+
+    for idx, para in enumerate(para_com_list):
+        # if para['cohWinAz'] > para['cohWinRg']:
+        #     continue
+        print(idx, para)
 
     save_dir_list = []
     work_dir_list = []
