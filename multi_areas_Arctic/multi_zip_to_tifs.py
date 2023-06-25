@@ -64,6 +64,8 @@ def extract_three_bands(input_tif, save_dir, bands, name_tail='rgb'):
     cmd_str += ' %s %s'%(input_tif, save_path)
     basic.os_system_exit_code(cmd_str)
 
+    raster_io.remove_nodata_from_raster_metadata(save_path)
+
 def extract_PlanetScope_rgb_bands(input_tif,save_dir):
     # https://developers.planet.com/docs/apis/data/sensors/
     extract_three_bands(input_tif,save_dir,[3,2,1],name_tail='rgb') # PlanetScope: RGB is band 3, 2, 1
