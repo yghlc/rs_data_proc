@@ -116,6 +116,7 @@ def one_zip_to_images(zip_path, save_dir):
     else:
         raise ValueError('does not find RapidEye or PlanetScope in the zip file name:'%zip_path)
 
+    return zip_folder
 
 def main():
     for reg in region_dirs:
@@ -129,8 +130,10 @@ def main():
             print('zip (%d) files:'%len(zip_list))
         [print(item) for item in zip_list]
         # print(zip_list)
+        out_folders = []
         for idx, a_zip in enumerate(zip_list):
-            one_zip_to_images(a_zip, reg_dir)
+            o_folder = one_zip_to_images(a_zip, reg_dir)
+            out_folders.append(o_folder)
             # for test
             # if idx > 3:
             #     break
@@ -138,7 +141,10 @@ def main():
         # copy and process 2020 images
 
 
-
+        # remove and clear
+        for out_dir in out_folders:
+            print('removing %s'%out_dir)
+            io_function.delete_file_or_dir(out_dir)
 
 
 if __name__ == '__main__':
