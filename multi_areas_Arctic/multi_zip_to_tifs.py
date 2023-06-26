@@ -22,7 +22,7 @@ import raster_io
 data_dir = os.path.expanduser('~/Data/Arctic/canada_arctic')
 work_dir = os.getcwd()
 # regions = ['Willow_River', 'Banks_east', 'Ellesmere_Island']
-region_dirs = ['Willow_River']
+region_dirs = ['Willow_River','Banks_east']
 
 py8bit = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/tools/convertTo8bit.py')
 
@@ -114,7 +114,7 @@ def one_zip_to_images(zip_path, save_dir):
         extract_PlanetScope_rgb_bands(mosaic_tif_8bit,save_rgb_dir)
         extract_PlanetScope_nirGB_bands(mosaic_tif_8bit,save_nirGB_dir)
     else:
-        raise ValueError('does not find RapidEye or PlanetScope in the zip file name:'%zip_path)
+        raise ValueError('does not find RapidEye or PlanetScope in the zip file name: %s'%zip_path)
 
     return zip_folder
 
@@ -141,10 +141,10 @@ def main():
         # copy and process 2020 images
 
 
-        # remove and clear
-        for out_dir in out_folders:
-            print('removing %s'%out_dir)
-            io_function.delete_file_or_dir(out_dir)
+        # # remove and clear
+        # for out_dir in out_folders:
+        #     print('removing %s'%out_dir)
+        #     io_function.delete_file_or_dir(out_dir)
 
 
 if __name__ == '__main__':
