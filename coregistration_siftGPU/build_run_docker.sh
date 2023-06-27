@@ -26,6 +26,8 @@ docker run --rm -v /data/LingcaoHuang:/data -v $HOME:/home/hlc  -it siftgpu-imag
 # on my Laptop:
 docker run --rm -v ${HOME}/Data:/data -v ${HOME}:/home/hlc  -it siftgpu-image-match 
 
+#  output contain ids
+docker ps -a | grep -v hello-world | grep -v IMAGE |  awk '{print $1}' > container_ids.txt
 
 # tag and push to docker hub
 docker tag siftgpu-image-match siftgpu-image-match:v1
