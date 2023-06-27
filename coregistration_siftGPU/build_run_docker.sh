@@ -29,9 +29,10 @@ docker run --rm -v ${HOME}/Data:/data -v ${HOME}:/home/hlc  -it siftgpu-image-ma
 #  output contain ids
 docker ps -a | grep -v hello-world | grep -v IMAGE |  awk '{print $1}' > container_ids.txt
 
-# tag and push to docker hub
-docker tag siftgpu-image-match siftgpu-image-match:v1
-docker push siftgpu-image-match siftgpu-image-match:v1
+
+# bulid with tag and ID of hub.docker.com, then push to hub.docker.com
+docker build -t yghlc/siftgpu-image-match:v1 .
+docker push yghlc/siftgpu-image-match:v1
 
 # using GPU
 # Since Docker 19.03, you need to install nvidia-container-toolkit package and then use the --gpus all flag.

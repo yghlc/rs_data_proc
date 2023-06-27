@@ -2,7 +2,7 @@
 
 I developed a program to co-registrator remote sensing images based on SIFTGPU in 2013. 
 The software environment has changed a lot. 
-Here, we built a docker container, with Ubuntu 16.04 in it, then install SIFTGPU and the program 
+Here, we built a docker container, with Ubuntu 14.04 in it, then install SIFTGPU and the program 
 I developed. 
 
 
