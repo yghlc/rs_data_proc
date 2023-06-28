@@ -2,23 +2,41 @@
 
 I developed a program to co-registrator remote sensing images based on SIFTGPU in 2013. 
 The software environment has changed a lot. 
-Here, we built a docker container, with Ubuntu 14.04 in it, then install SIFTGPU and the program 
+Here, I built a docker container, based on Ubuntu 14.04, then install SIFTGPU and the program 
 I developed. 
 
 
 
-### Install SIFTGPU
+### Install SIFTGPU and ImageMatchsiftGPU
 [SIFTGPU](https://github.com/pitzer/SiftGPU) is GPU implement of the [SIFT](https://link.springer.com/article/10.1023/B:VISI.0000029664.99615.94) 
 algorithm.
-We will build a docker container to install it. 
+We will build a docker container to install it. There is a GitHub repo about installing SiftGPU on Ubuntu 16.04: [link](https://github.com/wangq95/SiftGPU_Linux). 
 
-There is a GitHub repo about installing SiftGPU on Ubuntu 16.04: [link](https://github.com/wangq95/SiftGPU_Linux)
+For the entire installation, please see [ImageMatchsiftGPU](https://github.com/yghlc/ImageMatchsiftGPU) or
+the "Dockerfile" in this folder.
 
 
-### Build and Install ImageMatchsiftGPU
+### Running ImageMatchsiftGPU (Docker container)
 
-### Running
+```commandline
+docker run --rm -w work_dir -u $UID:$UID  -v /data/LingcaoHuang:/data -v host_work_dir:work_dir \
+-it siftgpu-image-match ImageMatchsiftGPU imagelist.txt result 2
+```
+Notes: 
+* please change work_dir and "host_work_dir:work_dir" accordingly. 
+"-w" is to set the working directory. If it's not set, the work_dir will be "/root" inside the container. "-v" will mount the working directory. 
+* Make sure all the data are inside /data folder and is mounted. 
+* "-u" is to set the user id and group id (user_id:group_id). On Ubuntu, $UID output current user id, and group id usually is the same as the user id. 
+* We may set username "$(whoami)" to "-u", but may get error if this user is not create inside the docker container: "docker: Error response from daemon: unable to find user lingcao: no matching entries in passwd file." 
 
+If "-u" is not set, the output file will be owned by "root". Please use chown to change the file ownership. 
+```commandline
+sudo chown NewUser:NewGroup filename
+sudo chown -R NewOwner:Newgroup NameOfDirectory
+```
+
+### TODO:
+add GPU support in the docker Container.
 
 
     
