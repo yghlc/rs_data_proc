@@ -42,7 +42,23 @@ add followings to allow docker container to used X server (displace) on the host
 ```commandline
 --net=host -e DISPLAY=$DISPLAY  # not test yet
 ```
+### install Python environment
+In the virtual machine (ubuntu 14.04), run the following command
+```commandline
 
+su -  # change to sudo user. in the virtual macihne, becaue the shared folder (/tranfser) need root
+wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
+    /bin/sh ~/miniconda.sh -b -p /usr/local/miniconda3  && rm ~/miniconda.sh
+/usr/local/miniconda3/bin/conda init
+
+pip install psutil 
+pip install setuptools==57.5.0 && pip install GDAL==2.0.0 
+pip install numpy
+pip install Pillow
+
+git clone https://github.com/yghlc/DeeplabforRS.git ~/codes/PycharmProjects/DeeplabforRS
+git clone https://github.com/yghlc/rs_data_proc.git ~/codes/PycharmProjects/rs_data_proc
+```
 
 ### TODO:
 add GPU support in the docker Container.
