@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y  \
 # Install library needed for building SiftGPU and others
 RUN apt-get update && apt-get install -y  \
 	libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev libdevil-dev libglew-dev  \
-	cmake vim && \
+	cmake vim libproj-dev && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
