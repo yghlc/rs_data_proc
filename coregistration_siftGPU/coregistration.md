@@ -35,6 +35,12 @@ sudo chown NewUser:NewGroup filename
 sudo chown -R NewOwner:Newgroup NameOfDirectory
 ```
 
+add followings to allow docker container to used X server (displace) on the host machine. 
+```commandline
+--net=host -e DISPLAY=$DISPLAY  # not test yet
+```
+
+
 ### TODO:
 add GPU support in the docker Container.
 
