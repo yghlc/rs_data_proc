@@ -18,7 +18,7 @@ deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
 
 import basic_src.basic as basic
-from basic_src.xml_rw import XmlClass
+from basic_src.xml_rw import OffsetMetaDataClass
 import basic_src.io_function as io_function
 import basic_src.RSImageProcess as RSImageProcess
 
@@ -28,7 +28,7 @@ def registration_two_images(ref_image, warp_image):
     ref_name = io_function.get_name_no_ext(ref_image)
     warp_name = io_function.get_name_no_ext(warp_image)
     meta_xml = 'registration' + '_' + ref_name + '_' + warp_name + '.xml'
-    meta_obj = XmlClass(meta_xml)
+    meta_obj = OffsetMetaDataClass(meta_xml)
     bkeepmidfile = True
     RSImageProcess.coregistration_siftGPU(ref_image,warp_image,bkeepmidfile, meta_obj)
 
