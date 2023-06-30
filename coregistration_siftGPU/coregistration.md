@@ -5,6 +5,9 @@ The software environment has changed a lot.
 Here, I built a docker container, based on Ubuntu 14.04, then install SIFTGPU and the program 
 I developed. 
 
+Update: The legacy opengl need display (X server) to run or CUDA to run, so the container does not work, 
+we build to Virtual machine (VirtualBox), with Ubuntu 14.04, to run this. 
+
 
 
 ### Install SIFTGPU and ImageMatchsiftGPU
