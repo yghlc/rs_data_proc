@@ -22,7 +22,7 @@ import raster_io
 data_dir = os.path.expanduser('~/Data/Arctic/canada_arctic')
 work_dir = os.getcwd()
 # regions = ['Willow_River', 'Banks_east', 'Ellesmere_Island']
-region_dirs = ['Willow_River','Banks_east']
+region_dirs = ['Willow_River','Banks_east','Ellesmere_Island','TukCoast']
 
 py8bit = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/tools/convertTo8bit.py')
 
@@ -99,6 +99,17 @@ def one_zip_to_images(zip_path, save_dir):
             raise IOError('Not tif in %s'%zip_folder)
         mosaic_tif = os.path.join(zip_folder, os.path.basename(zip_folder) + '_mosaic.tif')
         create_tif_mosaic(tif_list,mosaic_tif)
+
+    # co-registration (sometime, there is an offset between RapidEye and PlanetScope images)
+    # I built a software (ImageMatchsiftGPU) based on SiftGPU, a legacy software depending on openGL or CUDA,
+    # I built a virtual machine (Ubuntu 14.04) to run the co-registraion,
+    # need to copy data to the Virtual machine, then run the program, then copy results back,
+    # see ../coregistration_siftGPU/
+
+    # use the mosaic after co-registration if it exists
+    mosaic_tif_coreg = io_function.get_name_by_adding_tail(mosaic_tif,'coreg')
+    if os.path.isfile(mosaic_tif_coreg):
+        mosaic_tif = mosaic_tif_coreg
 
     # convert to 8bit
     mosaic_tif_8bit = convert_to_8bit(mosaic_tif,zip_folder)
