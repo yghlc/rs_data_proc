@@ -42,9 +42,25 @@ def main(options, args):
         warp_img_list = [warp]
 
     for idx, warp_img in enumerate(warp_img_list):
+        if os.path.basename(warp_img) == os.path.basename(ref_img_path):
+            basic.outputlogMessage('the reference and warp image is the same: %s, skip'%os.path.basename(warp_img))
+            continue
         basic.outputlogMessage(' (%d/%d) registration two images: %s vs %s'
               %(idx+1, len(warp_img_list), os.path.basename(ref_img_path), os.path.basename(warp_img)))
+        curr_dir = os.getcwd()
+        # working a sub-directory
+        work_dir = os.path.join(curr_dir,'coreg_%d_%s'%((idx+1),io_function.get_name_no_ext(warp_img)))
+        io_function.mkdir(work_dir)
+        os.chdir(work_dir)
+        ref_img_path = os.path.abspath(ref_img_path)
+        warp_img = os.path.abspath(warp_img)
         registration_two_images(ref_img_path, warp_img)
+        os.chdir(curr_dir)
+
+        # copy file
+        out_warp_file = os.path.join(work_dir,os.path.basename(io_function.get_name_by_adding_tail(warp_img,'new_warp')))
+        copy_dest = io_function.get_name_by_adding_tail(warp_img,'coreg')
+        io_function.copy_file_to_dst(out_warp_file,copy_dest)
 
 
 
