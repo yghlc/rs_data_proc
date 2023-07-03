@@ -107,7 +107,7 @@ def one_zip_to_images(zip_path, save_dir):
     # see ../coregistration_siftGPU/
 
     # use the mosaic after co-registration if it exists
-    mosaic_tif_coreg = io_function.get_name_by_adding_tail(mosaic_tif,'coreg')
+    mosaic_tif_coreg = io_function.get_name_by_adding_tail(mosaic_tif,'new_warp')
     if os.path.isfile(mosaic_tif_coreg):
         mosaic_tif = mosaic_tif_coreg
 
