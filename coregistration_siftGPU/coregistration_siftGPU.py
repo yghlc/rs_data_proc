@@ -54,13 +54,13 @@ def main(options, args):
               %(idx+1, len(warp_img_list), os.path.basename(ref_img_path), os.path.basename(warp_img)))
 
         curr_dir = os.getcwd()
+        ref_img_path = os.path.abspath(ref_img_path)
+        warp_img = os.path.abspath(warp_img)
         # working a sub-directory
         work_dir = os.path.join(curr_dir,'coreg_%d_%s'%((idx+1),io_function.get_name_no_ext(warp_img)))
         io_function.mkdir(work_dir)
         io_function.copyfiletodir('para_default.ini',work_dir)
         os.chdir(work_dir)
-        ref_img_path = os.path.abspath(ref_img_path)
-        warp_img = os.path.abspath(warp_img)
         registration_two_images(ref_img_path, warp_img)
         os.chdir(curr_dir)
 
