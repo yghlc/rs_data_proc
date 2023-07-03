@@ -47,7 +47,7 @@ def main(options, args):
             continue
         out_warp_file = io_function.get_name_by_adding_tail(warp_img, 'new_warp')
         if os.path.isfile(out_warp_file):
-            basic.outputlogMessage('The co-registration result exists, skip')
+            basic.outputlogMessage('The co-registration result exists: %s, skip'%out_warp_file)
             continue
 
         basic.outputlogMessage(' (%d/%d) registration two images: %s vs %s'
