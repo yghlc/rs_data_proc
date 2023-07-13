@@ -85,7 +85,16 @@ def wait_all_task_finished(all_tasks):
     print('%s: Done with the Export to the Drive'%datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     return True
 
-
+def shapely_polygon_to_gee_polygon(polygon):
+    x, y = polygon.exterior.coords.xy
+    # # extent
+    # x = extent_4points[0]
+    # y = extent_4points[1]
+    # polygon_bound = ee.Geometry.Polygon([[x[0],y[0]],
+    #                                      [x[1], y[1]],
+    #                                      [x[2], y[2]],
+    #                                      [x[3], y[3]]])
+    return ee.Geometry.Polygon([ item for item in zip(x, y)])
 
 # // reproject Polar stere
 # function reproject(image) {
