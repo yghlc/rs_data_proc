@@ -33,7 +33,7 @@ img_speci = {'sentinel2_rgb_sr': {'product': 'COPERNICUS/S2_SR', 'bands': ['B4',
             }
 
 def gee_download_images(region_name,start_date, end_date, ext_id, extent, product, resolution, projection,
-                        band_names, cloud_cover_thr=0.3, crop=False, wait_all_finished=True):
+                        band_names, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True):
 
     start = ee.Date(start_date)  # '%Y-%m-%d'
     finish = ee.Date(end_date)
@@ -80,7 +80,10 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
     # Error: Image.visualize: Expected a string or list of strings for field 'bands'. (Error code: 3)
     # rgbVis = {'min': 0, 'max': 2000, 'bands': band_names }
     # s2_mosaic_rgb_8bit = mosaic.visualize(rgbVis)
-    s2_mosaic_rgb_8bit = mosaic.visualize(bands=band_names, min=0, max=2000)
+    if b_vis:
+        # s2_mosaic_rgb_8bit = mosaic.visualize(bands=band_names, min=0, max=2000)
+        mosaic = mosaic.visualize(bands=band_names, min=0, max=2000)
+        save_file_name = save_file_name + '_8bit'
 
     local_record = os.path.join(os.path.join(export_dir, save_file_name+'.submit'))
     if os.path.isfile(local_record):
@@ -89,8 +92,8 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
 
     # only export first image
     # export_one_imagetoDrive(first_image,export_dir,polygon_idx,crop_region, img_speci['res'])
-    # task = export_one_imagetoDrive(mosaic, export_dir, save_file_name, extent, resolution, wait2finished=wait_all_finished)
-    task = export_one_imagetoDrive(s2_mosaic_rgb_8bit, export_dir, save_file_name+'_8bit', extent, resolution, wait2finished=wait_all_finished)
+    task = export_one_imagetoDrive(mosaic, export_dir, save_file_name, extent, resolution, wait2finished=wait_all_finished)
+    # task = export_one_imagetoDrive(s2_mosaic_rgb_8bit, export_dir, save_file_name+'_8bit', extent, resolution, wait2finished=wait_all_finished)
 
     # save a record in the local dir
     with open(local_record, 'w') as f_obj:
@@ -108,6 +111,7 @@ def gee_download_sentinel2_image(extent_shp, region_name, start_date, end_date,c
     bands = img_speci['sentinel2_rgb_sr']['bands']
 
     b_crop = True  # crop images to input extent
+    b_visualize = True   # to 8bit, for visualization
 
     extent_polygons = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp, 'EPSG:4326')
     extent_ids = vector_gpd.read_attribute_values_list(extent_shp, 'id')
@@ -117,9 +121,9 @@ def gee_download_sentinel2_image(extent_shp, region_name, start_date, end_date,c
 
     for idx, (extent, ext_id) in enumerate(zip(extent_polygons, extent_ids)):
 
-        # for test (two grids cover Willow River)
-        if ext_id not in [1166,1241]: # 1241
-            continue
+        # # for test (two grids cover Willow River)
+        # if ext_id not in [1166,1241]: # 1241
+        #     continue
 
         active_tasks = active_task_count(all_task_list)
         while active_tasks > maximum_submit_tasks:
@@ -134,7 +138,7 @@ def gee_download_sentinel2_image(extent_shp, region_name, start_date, end_date,c
 
         task = gee_download_images(region_name, start_date, end_date, ext_id, extent_gee, product, resolution,
                                    projection, bands, cloud_cover_thr=cloud_cover_thr,
-                                   crop=b_crop, wait_all_finished=False)
+                                   crop=b_crop, b_vis=b_visualize, wait_all_finished=False)
 
         if task is False:
             continue
