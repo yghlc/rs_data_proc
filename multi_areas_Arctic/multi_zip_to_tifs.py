@@ -10,6 +10,7 @@ add time: 24 June, 2023
 
 import os, sys
 import time
+from optparse import OptionParser
 from datetime import datetime
 
 deeplabforRS = os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
@@ -129,7 +130,21 @@ def one_zip_to_images(zip_path, save_dir):
 
     return zip_folder
 
-def main():
+def main(options, args):
+    global data_dir
+    if len(args)==1:
+        data_dir = args[0]
+        # region_dirs = options.region_name
+        zip_list = io_function.get_file_list_by_pattern(data_dir, '*.zip')
+        if len(zip_list)< 1:
+            print('No download zip files in %s/*download_images'%data_dir)
+            return
+        [print(item) for item in zip_list]
+        out_folders = []
+        for idx, a_zip in enumerate(zip_list):
+            o_folder = one_zip_to_images(a_zip, data_dir)
+            out_folders.append(o_folder)
+
     for reg in region_dirs:
         print(datetime.now(), 'working on the region: %s'%reg)
         reg_dir = os.path.join(data_dir, reg)
@@ -159,5 +174,25 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    usage = "usage: %prog [options] data_dir "
+    parser = OptionParser(usage=usage, version="1.0 2023-6-24")
+    parser.description = 'Introduction: unzip and organize Rapid and PlanetScope imagery  '
+
+    parser.add_option('-n',"--region_name",
+                      action="store", dest="region_name",
+                      help="region name")
+
+    # parser.add_option("-p", "--process_num",
+    #                   action="store", dest="process_num", type=int, default=8,
+    #                   help="number of processes to checking invalid tifs")
+
+    (options, args) = parser.parse_args()
+    # print(options.create_mosaic)
+
+    # if len(sys.argv) < 2 or len(args) < 1:
+    #     parser.print_help()
+    #     sys.exit(2)
+
+    main(options, args)
+
 
