@@ -145,24 +145,25 @@ def main(options, args):
             o_folder = one_zip_to_images(a_zip, data_dir)
             out_folders.append(o_folder)
 
-    for reg in region_dirs:
-        print(datetime.now(), 'working on the region: %s'%reg)
-        reg_dir = os.path.join(data_dir, reg)
-        zip_list = io_function.get_file_list_by_pattern(reg_dir,'*download_images/*.zip')
-        if len(zip_list)< 1:
-            print('No download zip files in %s/*download_images'%reg_dir)
-            continue
-        else:
-            print('zip (%d) files:'%len(zip_list))
-        [print(item) for item in zip_list]
-        # print(zip_list)
-        out_folders = []
-        for idx, a_zip in enumerate(zip_list):
-            o_folder = one_zip_to_images(a_zip, reg_dir)
-            out_folders.append(o_folder)
-            # for test
-            # if idx > 3:
-            #     break
+    else:
+        for reg in region_dirs:
+            print(datetime.now(), 'working on the region: %s'%reg)
+            reg_dir = os.path.join(data_dir, reg)
+            zip_list = io_function.get_file_list_by_pattern(reg_dir,'*download_images/*.zip')
+            if len(zip_list)< 1:
+                print('No download zip files in %s/*download_images'%reg_dir)
+                continue
+            else:
+                print('zip (%d) files:'%len(zip_list))
+            [print(item) for item in zip_list]
+            # print(zip_list)
+            out_folders = []
+            for idx, a_zip in enumerate(zip_list):
+                o_folder = one_zip_to_images(a_zip, reg_dir)
+                out_folders.append(o_folder)
+                # for test
+                # if idx > 3:
+                #     break
 
         # copy and process 2020 images
 
