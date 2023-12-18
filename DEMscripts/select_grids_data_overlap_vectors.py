@@ -19,19 +19,33 @@ import pandas as pd
 import vector_gpd
 
 
-def find_grids_overlap_vector_shp():
+def find_grids_overlap_vector_shp(grid_polys, grid_attributes,vector_shp):
+
+    overlap_grids = []
+    cell_ids = []
+    fileurl_list = []
+    shapes = vector_gpd.read_polygons_gpd(vector_shp,b_fix_invalid_polygon=False)
+
+
     pass
 
 def main(options, args):
     grid_indexes_shp= args[0]
     vector_shp_list = args[1:]
+    if len(vector_shp_list) < 1:
+        raise ValueError("No input vector files")
 
-   # read the grid index file
+    #   cell_id (Integer64) = 58601
+    #   tarball (String) = dem_diffs_2m_grid58601.tar.gz
+    #   fileurl (String) = elevation-differences/ext11/dem_diffs_2m_grid58601.tar.gz
+    #   POLYGON ((3320000 -120000,3340000 -120000,3340000 -140000,3320000 -140000,3320000 -120000))
+    # read the grid index file
+    grid_polys, grid_attributes = vector_gpd.read_polygons_attributes_list(grid_indexes_shp,['cell_id','fileurl'],
+                                                                           b_fix_invalid_polygon=False)
 
-
-   # go through each vector shp file
-   for vector_shp in vector_shp_list:
-       pass
+    # go through each vector shp file
+    for vector_shp in vector_shp_list:
+        print(vector_shp)
    
 
 
