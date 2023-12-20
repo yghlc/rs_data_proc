@@ -54,7 +54,7 @@ def save_grids_fileurl_to_txt(sel_grids_gpd, save_txt_path):
 
 
 
-def find_dem_difference_data(sel_grids_gpd, save_txt_path):
+def find_dem_difference_raster(sel_grids_gpd, save_txt_path):
     grid_id_list = sel_grids_gpd['cell_id'].to_list()
     fileurl_list = sel_grids_gpd['fileurl'].to_list()
     ext_num_list = [item.split('/')[1] for item in fileurl_list]
@@ -104,7 +104,7 @@ def main(options, args):
     sel_grids_gpd = find_grids_overlap_vector_shp(grid_indexes_shp, vector_shp_list)
     save_grids_ids_to_txt(sel_grids_gpd,'select_grids_ids.txt')
     save_grids_fileurl_to_txt(sel_grids_gpd,'select_grids_fileurls.txt')
-    find_dem_difference_data(sel_grids_gpd, 'select_dem_diff_file_list.txt')
+    find_dem_difference_raster(sel_grids_gpd, 'select_dem_diff_raster_list.txt')
 
 
 
