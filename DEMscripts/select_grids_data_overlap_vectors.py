@@ -120,10 +120,11 @@ def find_copy_dem_diff_polygons(sel_grids_gpd, save_folder):
 
         io_function.mkdir(save_folder)
         # crop and save polygons in each grid
+        gpd_dataframe = gpd.read_file(gpkg_path)    # this is a big file, only read once
         for g_id, g_poly in zip(ext_grid_id_list, ext_grid_list):
             print(datetime.now(), 'crop polygons for grid: %d'%g_id)
             save_poly_path = os.path.join(save_folder,"dem_diffs_polygons_grid%d.gpkg"%g_id)
-            vector_gpd.clip_geometries(gpkg_path,save_poly_path,g_poly,format='GPKG')
+            vector_gpd.clip_geometries(gpd_dataframe,save_poly_path,g_poly,format='GPKG')
 
         # remove the gpkg
         io_function.delete_file_or_dir(gpkg_folder)
