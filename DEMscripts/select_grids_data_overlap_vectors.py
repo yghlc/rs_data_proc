@@ -126,8 +126,8 @@ def find_copy_dem_diff_polygons(sel_grids_gpd, save_folder):
             # save_poly_path = os.path.join(save_folder,"dem_diffs_polygons_grid%d.gpkg"%g_id)
             # vector_gpd.clip_geometries(gpd_dataframe,save_poly_path,g_poly,format='GPKG')
 
-            save_poly_path = os.path.join(save_folder, "dem_diffs_polygons_grid%d.geojson" % g_id)
-            vector_gpd.clip_geometries_ogr2ogr(gpkg_path,save_poly_path,g_poly.bounds,format='GeoJSON')
+            save_poly_path = os.path.join(save_folder, "dem_diffs_polygons_grid%d.gpkg" % g_id)
+            vector_gpd.clip_geometries_ogr2ogr(gpkg_path,save_poly_path,g_poly.bounds,format='GPKG')
 
         # remove the gpkg
         io_function.delete_file_or_dir(gpkg_folder)
