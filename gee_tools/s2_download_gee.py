@@ -115,7 +115,10 @@ def gee_download_sentinel2_image(extent_shp, region_name, start_date, end_date,c
 
     extent_polygons = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp, 'EPSG:4326')
     extent_ids = vector_gpd.read_attribute_values_list(extent_shp, 'id')
-    extent_ids = [int(item) for item in extent_ids]
+    if extent_ids is None:
+        extent_ids = [ item for item in range(len(extent_polygons))]
+    else:
+        extent_ids = [int(item) for item in extent_ids]
 
     all_task_list = []
 
