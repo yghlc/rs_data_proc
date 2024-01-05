@@ -101,7 +101,7 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
 
     return task
 
-def gee_download_sentinel2_image(extent_shp, region_name, start_date, end_date,cloud_cover_thr):
+def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_date, end_date,cloud_cover_thr):
 
     # checking input shapefile
     projection = map_projection.get_raster_or_vector_srs_info_epsg(extent_shp)
@@ -114,7 +114,7 @@ def gee_download_sentinel2_image(extent_shp, region_name, start_date, end_date,c
     b_visualize = True   # to 8bit, for visualization
 
     extent_polygons = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp, 'EPSG:4326')
-    extent_ids = vector_gpd.read_attribute_values_list(extent_shp, 'id')
+    extent_ids = vector_gpd.read_attribute_values_list(extent_shp, id_column_name)
     if extent_ids is None:
         extent_ids = [ item for item in range(len(extent_polygons))]
     else:
@@ -168,8 +168,10 @@ def main(options, args):
         region_name = os.path.splitext(os.path.basename(extent_shp))[0]
     cloud_cover_thr = options.cloud_cover
 
+    id_column_name = options.id_column
+
     start_date, end_date = options.start_date, options.end_date
-    gee_download_sentinel2_image(extent_shp,region_name,start_date, end_date,cloud_cover_thr)
+    gee_download_sentinel2_image(extent_shp,region_name, id_column_name,start_date, end_date,cloud_cover_thr)
 
 
 
@@ -197,6 +199,10 @@ if __name__ == '__main__':
     parser.add_option("-n", "--region_name",
                       action="store", dest="region_name",
                       help="the name of the area, which we download SAR data for")
+
+    parser.add_option("-i", "--id_column",
+                      action="store", dest="id_column",default='id',
+                      help="the name of unique ID column")
 
     parser.add_option('-r',"--resolution", action='store', dest='resolution',default=10, type=float,
                       help='the resolution of output raster')
