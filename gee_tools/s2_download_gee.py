@@ -45,7 +45,7 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
         filterBounds(polygon_bound). \
         filterDate(start, finish). \
         filter(ee.Filter.lt(cloud_cover, cloud_cover_thr * 100)). \
-        sort('CLOUD_COVER', True)
+        sort(cloud_cover, True)
 
     # # map(cloud_mask). \
     # filter(ee.Filter.calendarRange(month_range[0], month_range[1], 'month')). \
