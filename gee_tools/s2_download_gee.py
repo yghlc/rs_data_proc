@@ -13,6 +13,11 @@ import time
 from datetime import datetime
 from datetime import timedelta
 
+import multiprocessing
+from multiprocessing import Pool
+# import numpy.array_api
+import numpy as np
+
 # path for DeeplabforRS
 sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS/'))
 import vector_gpd
@@ -25,15 +30,17 @@ import basic_src.timeTools as timeTools
 # need shapely, geopandas, gdal
 import ee
 
+parameters_list = None
+
 from gee_common import export_one_imagetoDrive,wait_all_task_finished, maximum_submit_tasks, active_task_count, \
-    shapely_polygon_to_gee_polygon, reproject
+    shapely_polygon_to_gee_polygon, reproject,directly_save_image_to_local
 
 # image specification (more in ChangeDet_DL/dataTools/get_timelapse_img_gee.py)
 img_speci = {'sentinel2_rgb_sr': {'product': 'COPERNICUS/S2_SR', 'bands': ['B4', 'B3', 'B2'], 'res': 10}
             }
 
 def gee_download_images(region_name,start_date, end_date, ext_id, extent, product, resolution, projection,
-                        band_names, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True):
+                        band_names, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True,b_save2local=False):
 
     start = ee.Date(start_date)  # '%Y-%m-%d'
     finish = ee.Date(end_date)
@@ -75,6 +82,7 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
     # first_image = reproject(first_image,projection,resolution)
 
     # if omit "toUint16()" , it output float64
+    dtype = np.uint16
     mosaic = filtercollection.select(band_names,band_names).median().toUint16()  # create mosaic using median values
     mosaic = reproject(mosaic, projection, resolution)
     # Error: Image.visualize: Expected a string or list of strings for field 'bands'. (Error code: 3)
@@ -84,24 +92,60 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
         # s2_mosaic_rgb_8bit = mosaic.visualize(bands=band_names, min=0, max=2000)
         mosaic = mosaic.visualize(bands=band_names, min=0, max=2000)
         save_file_name = save_file_name + '_8bit'
+        dtype = np.uint8
 
-    local_record = os.path.join(os.path.join(export_dir, save_file_name+'.submit'))
-    if os.path.isfile(local_record):
-        print('task %s already be submitted to GEE, skip' % local_record)
-        return False
 
-    # only export first image
-    # export_one_imagetoDrive(first_image,export_dir,polygon_idx,crop_region, img_speci['res'])
-    task = export_one_imagetoDrive(mosaic, export_dir, save_file_name, extent, resolution, wait2finished=wait_all_finished)
-    # task = export_one_imagetoDrive(s2_mosaic_rgb_8bit, export_dir, save_file_name+'_8bit', extent, resolution, wait2finished=wait_all_finished)
+    if b_save2local:
+        save_file_path = os.path.join(export_dir,save_file_name+'.tif')
+        if os.path.isfile(save_file_path):
+            print('%s already exists, skipping downloading' % save_file_path)
+            return False
+        mosaic_array = mosaic.sampleRectangle(extent, defaultValue=0)
+        mosaic_features = mosaic_array.getInfo()  # the actual download
+        directly_save_image_to_local(save_file_path,dtype,mosaic,mosaic_features)
+    else:
 
-    # save a record in the local dir
-    with open(local_record, 'w') as f_obj:
-        f_obj.writelines('submitted to GEE on %s\n' % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        local_record = os.path.join(os.path.join(export_dir, save_file_name+'.submit'))
+        if os.path.isfile(local_record):
+            print('task %s already be submitted to GEE, skip' % local_record)
+            return False
 
-    return task
+        # only export first image
+        # export_one_imagetoDrive(first_image,export_dir,polygon_idx,crop_region, img_speci['res'])
+        task = export_one_imagetoDrive(mosaic, export_dir, save_file_name, extent, resolution, wait2finished=wait_all_finished)
+        # task = export_one_imagetoDrive(s2_mosaic_rgb_8bit, export_dir, save_file_name+'_8bit', extent, resolution, wait2finished=wait_all_finished)
 
-def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_date, end_date,cloud_cover_thr):
+        # save a record in the local dir
+        with open(local_record, 'w') as f_obj:
+            f_obj.writelines('submitted to GEE on %s\n' % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+        return task
+
+
+# def worker(para_ii):
+#     idx, total_count, region_name, start_date, end_date, ext_id, extent, product, resolution, projection, \
+#                 bands, cloud_cover_thr, crop, b_vis , wait_all_finished, b_save2local = parameters_list[para_ii]
+#
+#     parallel_gee_download_images_to_local(idx, total_count, region_name, start_date, end_date, ext_id, extent, product,
+#                                           resolution, projection,
+#         bands, cloud_cover_thr, crop, b_vis , wait_all_finished, b_save2local)
+
+# def initialize_ee():
+#     ee.Initialize()
+
+def parallel_gee_download_images_to_local(idx, total_count, region_name,start_date, end_date, ext_id, extent, product, resolution, projection,
+                        bands, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True,b_save2local=True):
+    ee.Initialize()
+    print('%d/%d Downloading Sentinel-2 for a polygon (id: %d ) ' % (idx + 1, total_count, ext_id))
+
+    extent_gee = shapely_polygon_to_gee_polygon(extent)
+
+    gee_download_images(region_name, start_date, end_date, ext_id, extent_gee, product, resolution,
+                               projection, bands, cloud_cover_thr=cloud_cover_thr,
+                               crop=crop, b_vis=b_vis, wait_all_finished=wait_all_finished,b_save2local=b_save2local)
+
+def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_date, end_date,cloud_cover_thr,
+                                 b_save2local=False, process_num=8):
 
     # checking input shapefile
     projection = map_projection.get_raster_or_vector_srs_info_epsg(extent_shp)
@@ -121,35 +165,60 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
         extent_ids = [int(item) for item in extent_ids]
 
     all_task_list = []
+    if b_save2local:
+        # save to local disks
+        theadPool = Pool(process_num)  # multi processes ,initializer=initialize_ee()
 
-    for idx, (extent, ext_id) in enumerate(zip(extent_polygons, extent_ids)):
+        # idx, total_count, region_name,start_date, end_date, ext_id, extent, product, resolution, projection,
+        #                         bands, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True,b_save2local=True
+        # global parameters_list
+        parameters_list = [(idx,len(extent_polygons), region_name,start_date, end_date,ext_id, extent,product, resolution, projection,
+                            bands,cloud_cover_thr,b_crop,b_visualize, True, True)
+                           for idx, (extent, ext_id) in enumerate(zip(extent_polygons, extent_ids))]
+        results = theadPool.starmap(parallel_gee_download_images_to_local, parameters_list)  # need python3
+        # results = theadPool.map(parallel_gee_download_images_to_local, parameters_list)  # need python3
+        # for para in parameters_list:
+        #     idx, total_count, region_name, start_date, end_date, ext_id, extent, product, resolution, projection,\
+        #         bands, cloud_cover_thr, crop, b_vis , wait_all_finished, b_save2local = para
+        #     parallel_gee_download_images_to_local(idx, total_count, region_name, start_date, end_date, ext_id, extent, product, resolution, projection,
+        #     bands, cloud_cover_thr, crop, b_vis , wait_all_finished, b_save2local)
+        theadPool.close()
 
-        # # for test (two grids cover Willow River)
-        # if ext_id not in [1166,1241]: # 1241
-        #     continue
+        # indices = [item for item in range(len(parameters_list))]
+        #
+        # with Pool(processes=process_num) as p:
+        #     p.map(worker, indices)
 
-        active_tasks = active_task_count(all_task_list)
-        while active_tasks > maximum_submit_tasks:
-            print('%s : %d (>%d) tasks already in the queue, wait 60 seconds' % (
-                datetime.now().strftime('%Y-%m-%d %H:%M:%S'), active_tasks, maximum_submit_tasks))
-            time.sleep(60)
+    else:
+        # exporting to Google Drive
+        for idx, (extent, ext_id) in enumerate(zip(extent_polygons, extent_ids)):
+
+            # # for test (two grids cover Willow River)
+            # if ext_id not in [1166,1241]: # 1241
+            #     continue
+
             active_tasks = active_task_count(all_task_list)
+            while active_tasks > maximum_submit_tasks:
+                print('%s : %d (>%d) tasks already in the queue, wait 60 seconds' % (
+                    datetime.now().strftime('%Y-%m-%d %H:%M:%S'), active_tasks, maximum_submit_tasks))
+                time.sleep(60)
+                active_tasks = active_task_count(all_task_list)
 
-        print('%d/%d Downloading Sentinel-2 for a polygon (id: %d ) ' % (idx+1, len(extent_polygons), ext_id))
+            print('%d/%d Downloading Sentinel-2 for a polygon (id: %d ) ' % (idx+1, len(extent_polygons), ext_id))
 
-        extent_gee = shapely_polygon_to_gee_polygon(extent)
+            extent_gee = shapely_polygon_to_gee_polygon(extent)
 
-        task = gee_download_images(region_name, start_date, end_date, ext_id, extent_gee, product, resolution,
-                                   projection, bands, cloud_cover_thr=cloud_cover_thr,
-                                   crop=b_crop, b_vis=b_visualize, wait_all_finished=False)
+            task = gee_download_images(region_name, start_date, end_date, ext_id, extent_gee, product, resolution,
+                                       projection, bands, cloud_cover_thr=cloud_cover_thr,
+                                       crop=b_crop, b_vis=b_visualize, wait_all_finished=False)
 
-        if task is False:
-            continue
+            if task is False:
+                continue
 
-        all_task_list.append(task)
+            all_task_list.append(task)
 
-    # wait until all finished
-    wait_all_task_finished(all_task_list)
+        # wait until all finished
+        wait_all_task_finished(all_task_list)
 
 def main(options, args):
 
@@ -169,9 +238,13 @@ def main(options, args):
     cloud_cover_thr = options.cloud_cover
 
     id_column_name = options.id_column
+    b_save2local = options.b_save2local
+    process_num = options.process_num
+
 
     start_date, end_date = options.start_date, options.end_date
-    gee_download_sentinel2_image(extent_shp,region_name, id_column_name,start_date, end_date,cloud_cover_thr)
+    gee_download_sentinel2_image(extent_shp,region_name, id_column_name,start_date, end_date,cloud_cover_thr,
+                                 b_save2local=b_save2local, process_num=process_num)
 
 
 
@@ -210,7 +283,15 @@ if __name__ == '__main__':
     parser.add_option('-p',"--projection_epsg", action='store', dest='projection_epsg',
                       help='the projection of output raster')
 
+    parser.add_option("", "--b_save2local",
+                      action="store_true", dest="b_save2local", default=False,
+                      help="if set, will save images to local disk, not exporting to Google Drive (for small images less than 30 MB)")
 
+    parser.add_option("", "--process_num",
+                      action="store", dest="process_num", type=int, default=8,
+                      help="number of processes to download images to local disks")
+
+    # multiprocessing.set_start_method('spawn')
     (options, args) = parser.parse_args()
     if len(sys.argv) < 2 or len(args) < 1:
         parser.print_help()

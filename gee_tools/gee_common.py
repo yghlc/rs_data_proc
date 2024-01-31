@@ -13,6 +13,12 @@ import time
 from datetime import datetime
 import ee
 
+from collections import OrderedDict
+import numpy as np
+import rasterio
+from rasterio.transform import Affine
+from rasterio.enums import ColorInterp
+import pyproj
 
 # if submit too many task, it will end in errors, like the
 # ee.ee_exception.EEException: Too many tasks already in the queue (3000). Please wait for some of them to complete.
@@ -108,3 +114,68 @@ def shapely_polygon_to_gee_polygon(polygon):
 #   // rename to the band description to date of snow cover
 #   return reprojected.rename(dateString);//.rename('ndsi'.concat(dateString)); //
 # }
+
+def directly_save_image_to_local(save_file_path, dtype, image, image_features):
+    # for small image < 32M ? we can save it directly to local file
+
+    # outside this function, download data by:
+    # patch = image.select(*bands).sampleRectangle(region, defaultValue=0)
+    # features = patch.getInfo()  # the actual download
+    file_name = save_file_path
+    if os.path.isfile(file_name):
+        print('%s already exists, skipping downloading'%file_name)
+        return
+
+    metadata = image.getInfo()
+
+    coords0 = np.array(image_features["geometry"]["coordinates"][0])    # these are lat/lon?
+    # Define the source and target coordinate reference systems
+    src_crs = pyproj.CRS.from_string('EPSG:4326')  # Source CRS: WGS84 (latitude and longitude)
+    dst_crs_str = metadata['bands'][0]['crs']
+    dst_crs = pyproj.CRS.from_string(dst_crs_str)  # Target CRS
+    dst_res = metadata['bands'][0]['crs_transform'][0]  # Target resolution
+    # Create a Proj transformer to convert coordinates
+    transformer = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=True)
+    # Reproject the point array to EPSG:3413
+    lon = coords0[:, 0]
+    lat = coords0[:, 1]
+    x_new, y_new = transformer.transform(lon, lat)
+    # points_news = np.column_stack((x_new, y_new))
+
+
+    # raster data
+    raster = OrderedDict()
+    for meta in metadata['bands']:
+        band = meta['id']
+        img = np.atleast_3d(image_features["properties"][band])
+        raster[band] = img.astype(dtype)
+
+
+    img_all = np.concatenate( [raster[key] for key in raster.keys()] , axis=2)
+    height, width, channels = img_all.shape
+
+    transform = (dst_res, 0, min(x_new)-dst_res/2.0, 0, -dst_res, max(y_new) + dst_res/2.0) # # (resX, 0, X_min, 0, -resY, Y_max)
+    # transform = (dst_res, 0, x_new[0], 0, -dst_res, y_new[0]) # # (resX, 0, X_min, 0, -resY, Y_max)
+    profile = {
+        "driver": "GTiff",
+        "width": width,
+        "height": height,
+        "count": channels,
+        "crs": dst_crs_str,
+        "transform": transform,
+        "dtype": img_all.dtype,
+        "compress": "lzw",
+        "predictor": 2,
+        # "tiled": True,  # Set tile size
+        # "blockxsize": 256,  # Set block size in X direction
+        # "blockysize": 256,  # Set block size in Y direction
+    }
+
+    with rasterio.open(file_name, "w", **profile) as f:
+        f.write(img_all.transpose(2, 0, 1))
+        for i, key in enumerate(raster.keys()):
+            f.set_band_description(i+1, key)
+
+
+
+
