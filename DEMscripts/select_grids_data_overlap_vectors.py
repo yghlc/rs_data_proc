@@ -224,10 +224,10 @@ def main(options, args):
     save_arcticdata_url_dem_diff_raster(sel_grids_gpd,'select_grids_arcticdata_urls_DEMdiff.txt')
     save_arcticdata_url_composited_images(sel_grids_gpd,'select_grids_arcticdata_urls_compositedImages.txt')
 
-    # find_dem_difference_raster(sel_grids_gpd, 'select_dem_diff_raster_list.txt')
-    #
-    # save_folder = 'ele_dem_polygons'
-    # find_copy_dem_diff_polygons(sel_grids_gpd, save_folder)
+    find_dem_difference_raster(sel_grids_gpd, 'select_dem_diff_raster_list.txt')
+
+    save_folder = 'ele_dem_polygons'
+    find_copy_dem_diff_polygons(sel_grids_gpd, save_folder)
 
 
 if __name__ == '__main__':
