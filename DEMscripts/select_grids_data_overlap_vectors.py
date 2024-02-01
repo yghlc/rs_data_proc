@@ -22,6 +22,7 @@ import vector_gpd
 from datetime import datetime
 
 arcticDEM_res_dir ="/Volumes/Seagate8T/ArcticDEM_results"
+arcticdata_root="https://arcticdata.io/data/10.18739/A2ZS2KF4B/Lingcao-output"
 
 def find_grids_overlap_vector_shp(grid_indexes_shp,vector_shp_list):
 
@@ -47,13 +48,67 @@ def save_grids_ids_to_txt(sel_grids_gpd, save_txt_path):
     io_function.save_list_to_txt(save_txt_path,grid_id_list)
 
 def save_grids_fileurl_to_txt(sel_grids_gpd, save_txt_path):
-    grid_id_list = sel_grids_gpd['fileurl'].to_list()
-    io_function.save_list_to_txt(save_txt_path, grid_id_list)
+    fileurl_list = sel_grids_gpd['fileurl'].to_list()
+    io_function.save_list_to_txt(save_txt_path, fileurl_list)
 
-    ext_num_list = [ item.split('/')[1] for item in grid_id_list]
+    ext_num_list = [ item.split('/')[1] for item in fileurl_list]
     ext_num_list = list(set(ext_num_list))
     io_function.save_list_to_txt('ext_num_list.txt', ext_num_list)
 
+def save_arcticdata_url_dem_diff_raster(sel_grids_gpd, save_path):
+    fileurl_list = sel_grids_gpd['fileurl'].to_list()
+    if 'elevation-differences' in fileurl_list[0]:
+        pass
+    else:
+        print('Warning, no elevation difference in the fireurl, skip saving the arcticdata url')
+        return
+
+    tmp_url_strs = [ item[:-7] for item in fileurl_list] # remove .tar.gz
+    grid_strs = [ os.path.basename(item).split('_')[-1] for item in tmp_url_strs]
+
+    all_urls = []
+    # grid_ids_DEM_diff_grid9205.tif
+    # grid_ids_date_diff_grid9205.tif
+    # grid_ids_date_diff_grid9205.txt
+    # grid_ids_date_diff_grid9205_newIndex.tif
+    # grid_ids_date_diff_grid9205_oldIndex.tif
+    # readme.txt
+    for grid_str, m_url in zip(grid_strs, tmp_url_strs):
+        file1 = 'grid_ids_DEM_diff_%s.tif'%grid_str
+        file2 = 'grid_ids_date_diff_%s.tif'%grid_str
+        file3 = 'grid_ids_date_diff_%s.txt'%grid_str
+        file4 = 'grid_ids_date_diff_%s_newIndex.tif'%grid_str
+        file5 = 'grid_ids_date_diff_%s_oldIndex.tif'%grid_str
+        file6 = 'readme.txt'
+        for filename in [file1, file2, file3, file4, file5, file6]:
+            tmp_url = os.path.join(arcticdata_root,m_url,filename)
+            all_urls.append(tmp_url)
+    io_function.save_list_to_txt(save_path, all_urls)
+
+
+def save_arcticdata_url_composited_images(sel_grids_gpd, save_path):
+    fileurl_list = sel_grids_gpd['fileurl'].to_list()
+    if 'composited-images' in fileurl_list[0]:
+        pass
+    else:
+        print('Warning, no composited-images in the fireurl, skip saving the arcticdata url')
+        return
+
+    tmp_url_strs = [ item[:-7] for item in fileurl_list] # remove .tar.gz
+    grid_strs = [ os.path.basename(item).split('_')[-1] for item in tmp_url_strs]
+
+    all_urls = []
+    # hillshade_HDLine_grid4574.tif
+    # hillshade_HDLine_grid4574_count.tif
+    # readme.txt
+    for grid_str, m_url in zip(grid_strs, tmp_url_strs):
+        file1 = 'hillshade_HDLine_%s.tif'%grid_str
+        file2 = 'hillshade_HDLine_%s_count.tif'%grid_str
+        file3 = 'readme.txt'
+        for filename in [file1, file2, file3]:
+            tmp_url = os.path.join(arcticdata_root,m_url,filename)
+            all_urls.append(tmp_url)
+    io_function.save_list_to_txt(save_path, all_urls)
 
 
 def find_dem_difference_raster(sel_grids_gpd, save_txt_path):
@@ -166,10 +221,13 @@ def main(options, args):
     sel_grids_gpd = find_grids_overlap_vector_shp(grid_indexes_shp, vector_shp_list)
     save_grids_ids_to_txt(sel_grids_gpd,'select_grids_ids.txt')
     save_grids_fileurl_to_txt(sel_grids_gpd,'select_grids_fileurls.txt')
-    find_dem_difference_raster(sel_grids_gpd, 'select_dem_diff_raster_list.txt')
+    save_arcticdata_url_dem_diff_raster(sel_grids_gpd,'select_grids_arcticdata_urls_DEMdiff.txt')
+    save_arcticdata_url_composited_images(sel_grids_gpd,'select_grids_arcticdata_urls_compositedImages.txt')
 
-    save_folder = 'ele_dem_polygons'
-    find_copy_dem_diff_polygons(sel_grids_gpd, save_folder)
+    # find_dem_difference_raster(sel_grids_gpd, 'select_dem_diff_raster_list.txt')
+    #
+    # save_folder = 'ele_dem_polygons'
+    # find_copy_dem_diff_polygons(sel_grids_gpd, save_folder)
 
 
 if __name__ == '__main__':
