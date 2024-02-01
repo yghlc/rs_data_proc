@@ -17,6 +17,7 @@ import multiprocessing
 from multiprocessing import Pool
 # import numpy.array_api
 import numpy as np
+import re
 
 # path for DeeplabforRS
 sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS/'))
@@ -65,9 +66,10 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
 
     print('Find %d image for the polygon (id: %d )' %(count, ext_id))
     # cannot have a sub folder in Google Drive.
+    date_range_str = re.sub(r'\D','',start_date) + '_' + re.sub(r'\D','',end_date) # only keep digits
     product_info = product.split('/')
-    export_dir = region_name + '_' + product_info[-1] + '_images'
-    save_file_name = region_name + '_' + product_info[-1] + '_grid%d'%ext_id
+    export_dir = region_name + '_' + product_info[-1] + '_' +  date_range_str + '_images'
+    save_file_name = region_name + '_' + product_info[-1] + '_' + date_range_str + '_grid%d'%ext_id
 
     # save some task record in the local folder
     if os.path.isdir(export_dir) is False:
