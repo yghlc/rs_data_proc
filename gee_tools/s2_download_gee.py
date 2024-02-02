@@ -49,6 +49,29 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
     polygon_bound = extent
     cloud_cover = 'CLOUDY_PIXEL_PERCENTAGE' #  for Sentinel-2
 
+    # got error on Narval: requests.exceptions.SSLError: None: Max retries exceeded with url: /token (Caused by None)
+    # the internet there is very good, send too many request during a short time, got rejected
+
+    # cannot have a sub folder in Google Drive.
+    date_range_str = re.sub(r'\D','',start_date) + '_' + re.sub(r'\D','',end_date) # only keep digits
+    product_info = product.split('/')
+    export_dir = region_name + '_' + product_info[-1] + '_' +  date_range_str + '_images'
+    save_file_name = region_name + '_' + product_info[-1] + '_' + date_range_str + '_grid%d'%ext_id
+    if b_vis:
+        save_file_name = save_file_name + '_8bit'
+    # checking file existence before the query.
+    save_file_path = os.path.join(export_dir, save_file_name + '.tif')
+    local_record = os.path.join(os.path.join(export_dir, save_file_name + '.submit'))
+    if b_save2local:
+        if os.path.isfile(save_file_path):
+            print('%s already exists, skipping downloading' % save_file_path)
+            return False
+    else:
+        if os.path.isfile(local_record):
+            print('task %s already be submitted to GEE, skip' % local_record)
+            return False
+
+
     filtercollection = ee.ImageCollection(product). \
         filterBounds(polygon_bound). \
         filterDate(start, finish). \
@@ -65,11 +88,7 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
         return False
 
     print('Find %d image for the polygon (id: %d )' %(count, ext_id))
-    # cannot have a sub folder in Google Drive.
-    date_range_str = re.sub(r'\D','',start_date) + '_' + re.sub(r'\D','',end_date) # only keep digits
-    product_info = product.split('/')
-    export_dir = region_name + '_' + product_info[-1] + '_' +  date_range_str + '_images'
-    save_file_name = region_name + '_' + product_info[-1] + '_' + date_range_str + '_grid%d'%ext_id
+
 
     # save some task record in the local folder
     if os.path.isdir(export_dir) is False:
@@ -93,25 +112,14 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
     if b_vis:
         # s2_mosaic_rgb_8bit = mosaic.visualize(bands=band_names, min=0, max=2000)
         mosaic = mosaic.visualize(bands=band_names, min=0, max=2000)
-        save_file_name = save_file_name + '_8bit'
         dtype = np.uint8
 
 
     if b_save2local:
-        save_file_path = os.path.join(export_dir,save_file_name+'.tif')
-        if os.path.isfile(save_file_path):
-            print('%s already exists, skipping downloading' % save_file_path)
-            return False
         mosaic_array = mosaic.sampleRectangle(extent, defaultValue=0)
         mosaic_features = mosaic_array.getInfo()  # the actual download
         directly_save_image_to_local(save_file_path,dtype,mosaic,mosaic_features)
     else:
-
-        local_record = os.path.join(os.path.join(export_dir, save_file_name+'.submit'))
-        if os.path.isfile(local_record):
-            print('task %s already be submitted to GEE, skip' % local_record)
-            return False
-
         # only export first image
         # export_one_imagetoDrive(first_image,export_dir,polygon_idx,crop_region, img_speci['res'])
         task = export_one_imagetoDrive(mosaic, export_dir, save_file_name, extent, resolution, wait2finished=wait_all_finished)
