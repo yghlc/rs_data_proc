@@ -132,17 +132,6 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
         return task
 
 
-# def worker(para_ii):
-#     idx, total_count, region_name, start_date, end_date, ext_id, extent, product, resolution, projection, \
-#                 bands, cloud_cover_thr, crop, b_vis , wait_all_finished, b_save2local = parameters_list[para_ii]
-#
-#     parallel_gee_download_images_to_local(idx, total_count, region_name, start_date, end_date, ext_id, extent, product,
-#                                           resolution, projection,
-#         bands, cloud_cover_thr, crop, b_vis , wait_all_finished, b_save2local)
-
-# def initialize_ee():
-#     ee.Initialize()
-
 def parallel_gee_download_images_to_local(idx, total_count, region_name,start_date, end_date, ext_id, extent, product, resolution, projection,
                         bands, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True,b_save2local=True):
     ee.Initialize()
@@ -176,28 +165,26 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
 
     all_task_list = []
     if b_save2local:
-        # save to local disks
-        theadPool = Pool(process_num)  # multi processes ,initializer=initialize_ee()
+        if process_num == 1:
+            for idx, (extent, ext_id) in enumerate(zip(extent_polygons, extent_ids)):
+                print('%d/%d Downloading Sentinel-2 for a polygon (id: %d ) ' % (idx + 1, len(extent_polygons), ext_id))
 
-        # idx, total_count, region_name,start_date, end_date, ext_id, extent, product, resolution, projection,
-        #                         bands, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True,b_save2local=True
-        # global parameters_list
-        parameters_list = [(idx,len(extent_polygons), region_name,start_date, end_date,ext_id, extent,product, resolution, projection,
-                            bands,cloud_cover_thr,b_crop,b_visualize, True, True)
-                           for idx, (extent, ext_id) in enumerate(zip(extent_polygons, extent_ids))]
-        results = theadPool.starmap(parallel_gee_download_images_to_local, parameters_list)  # need python3
-        # results = theadPool.map(parallel_gee_download_images_to_local, parameters_list)  # need python3
-        # for para in parameters_list:
-        #     idx, total_count, region_name, start_date, end_date, ext_id, extent, product, resolution, projection,\
-        #         bands, cloud_cover_thr, crop, b_vis , wait_all_finished, b_save2local = para
-        #     parallel_gee_download_images_to_local(idx, total_count, region_name, start_date, end_date, ext_id, extent, product, resolution, projection,
-        #     bands, cloud_cover_thr, crop, b_vis , wait_all_finished, b_save2local)
-        theadPool.close()
+                extent_gee = shapely_polygon_to_gee_polygon(extent)
 
-        # indices = [item for item in range(len(parameters_list))]
-        #
-        # with Pool(processes=process_num) as p:
-        #     p.map(worker, indices)
+                gee_download_images(region_name, start_date, end_date, ext_id, extent_gee, product, resolution,
+                                    projection, bands, cloud_cover_thr=cloud_cover_thr,
+                                    crop=b_crop, b_vis=b_visualize, wait_all_finished=True,
+                                    b_save2local=b_save2local)
+
+        else:
+            # save to local disks
+            theadPool = Pool(process_num)  # multi processes ,initializer=initialize_ee()
+
+            parameters_list = [(idx,len(extent_polygons), region_name,start_date, end_date,ext_id, extent,product, resolution, projection,
+                                bands,cloud_cover_thr,b_crop,b_visualize, True, True)
+                               for idx, (extent, ext_id) in enumerate(zip(extent_polygons, extent_ids))]
+            results = theadPool.starmap(parallel_gee_download_images_to_local, parameters_list)  # need python3
+            theadPool.close()
 
     else:
         # exporting to Google Drive
