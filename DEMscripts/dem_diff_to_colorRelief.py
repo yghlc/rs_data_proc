@@ -9,6 +9,7 @@ add time: 21 March, 2024
 """
 
 import os,sys
+from optparse import OptionParser
 import time
 machine_name = os.uname()[1]
 
@@ -65,18 +66,28 @@ def one_dem_diff_to_colorRelief(demDiff_tif):
         return False
     return True
 
-def main():
+def main(options, args):
     basic.setlogfile('log_convert_dem_diff_to_colorRelief.txt')
-    if os.path.isdir(grid_dem_diffs_color_dir) is False:
-        io_function.mkdir(grid_dem_diffs_color_dir)
 
-    dem_diff_list = io_function.get_file_list_by_pattern(grid_dem_diffs_dir,'*DEM_diff_grid*.tif')
+    if len(args) < 1:
+        dem_diff_list = io_function.get_file_list_by_pattern(grid_dem_diffs_dir, '*DEM_diff_grid*.tif')
+        if os.path.isdir(grid_dem_diffs_color_dir) is False:
+            io_function.mkdir(grid_dem_diffs_color_dir)
+    else:
+        dem_diff_file_or_dir = args[0]
+        if os.path.isfile(dem_diff_file_or_dir):
+            dem_diff_list = [dem_diff_file_or_dir]
+        else:
+            dem_diff_list = io_function.get_file_list_by_pattern(dem_diff_file_or_dir,'*DEM_diff_grid*.tif')
+
+    out_dir = grid_dem_diffs_color_dir if os.path.isdir(grid_dem_diffs_color_dir) else './'
+
     count = len(dem_diff_list)
     failed_tifs = []
     for idx, tif in enumerate(dem_diff_list):
         print('%d/%d convert %s to Color Relief'%(idx+1, count, tif))
         tif_color = io_function.get_name_by_adding_tail(tif, 'color')
-        output = os.path.join(grid_dem_diffs_color_dir, os.path.basename(tif_color))
+        output = os.path.join(out_dir, os.path.basename(tif_color))
         if dem_tif_to_colorReleif(tif,output) is False:
             failed_tifs.append(tif)
 
@@ -85,5 +96,10 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    usage = "usage: %prog [options] dem_diff or dem_diff_dir "
+    parser = OptionParser(usage=usage, version="1.0 2024-3-21")
+    parser.description = 'Introduction: producing DEM color relief '
+
+    (options, args) = parser.parse_args()
+    main(options, args)
     # test_dem_tif_to_colorReleif_one()
