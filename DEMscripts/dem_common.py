@@ -59,6 +59,7 @@ relative_dem_dir = os.path.join(ArcticDEM_tmp_dir,'dem_relative_8bit')
 
 grid_dem_diffs_dir = os.path.join(ArcticDEM_tmp_dir,'grid_dem_diffs')
 grid_dem_diffs_8bit_dir = os.path.join(ArcticDEM_tmp_dir,'grid_dem_diffs_8bit')
+grid_dem_diffs_color_dir = os.path.join(ArcticDEM_tmp_dir,'grid_dem_diffs_color')
 grid_dem_diffs_segment_dir = os.path.join(ArcticDEM_tmp_dir,'grid_dem_diffs_segment_results')
 
 grid_matchtag_sum_dir = os.path.join(ArcticDEM_tmp_dir,'grid_matchtag_sum_tifs')
