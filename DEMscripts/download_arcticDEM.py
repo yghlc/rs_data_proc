@@ -177,6 +177,9 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                         reg_tifs = io_function.get_file_list_by_pattern(reg_tif_dir, tar_base + '*reg_dem.tif')
                     else:
                         reg_tifs = io_function.get_file_list_by_pattern(reg_tif_dir,tar_base+'*dem_reg.tif')
+                    if len(reg_tifs) < 1:
+                        # looking for dem.tif files in the new release (2022)
+                        reg_tifs = io_function.get_file_list_by_pattern(reg_tif_dir, tar_base + '*_dem.tif')
                     if len(reg_tifs) > 0:
                         basic.outputlogMessage('warning, unpack and registrated tif for %s already exists, skip downloading' % filename)
                         reg_tifs_list.append(reg_tifs[0])
