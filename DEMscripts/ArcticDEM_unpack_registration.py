@@ -43,7 +43,7 @@ def is_ArcticDEM_tiles(tar_list):
     :param tar_list:
     :return:
     '''
-    tile_pattern = '^\d{2}_\d{2}_'
+    tile_pattern = r'^\d{2}_\d{2}_'
     for tar in tar_list:
         tar_base = os.path.basename(tar)
         tiles = re.findall(tile_pattern,tar_base)
