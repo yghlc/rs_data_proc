@@ -228,7 +228,7 @@ def main(options, args):
         apply_registration = True
 
     work_dir = './'
-    b_rm_tarball = True  # remove tarball after unpacking
+    b_rm_tarball = b_rm_tarball # True  # remove tarball after unpacking
     process_dem_tarball(tar_list, work_dir, save_dir, remove_inter_data=b_rm_inter, rm_tarball=b_rm_tarball, apply_registration=apply_registration)
 
 
