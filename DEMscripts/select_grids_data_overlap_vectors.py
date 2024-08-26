@@ -199,6 +199,12 @@ def test_find_grids_overlap_vector_shp():
     find_grids_overlap_vector_shp(grid_indexes_shp,[vector_shp,vector_shp2])
     # find_grids_overlap_vector_shp(grid_indexes_shp,vector_shp2)
 
+def get_all_arcticdata_url_composited_images():
+    composited_index_shp = \
+        os.path.expanduser('~/Data/dem_processing/products_derived_from_ArcticDEM/Index_shp/composited-images_Index/composited-images_Index.shp')
+    all_grids = gpd.read_file(composited_index_shp)
+    save_arcticdata_url_composited_images(all_grids, 'all_grids_arcticdata_urls_compositedImages.txt')
+
 
 def main(options, args):
     grid_indexes_shp= args[0]
@@ -244,6 +250,7 @@ if __name__ == '__main__':
                       help="the folder that contains ArcticDEM results")
 
     # test_find_grids_overlap_vector_shp()
+    # get_all_arcticdata_url_composited_images()
     # sys.exit(0)
 
     (options, args) = parser.parse_args()
