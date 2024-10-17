@@ -49,9 +49,9 @@ img_speci = {# https://developers.google.com/earth-engine/datasets/catalog/LANDS
               # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C01_T1_TOA
              'landsat8_pan':{'product':'LANDSAT/LC08/C01/T1_TOA', 'bands':['B8'], 'res':15},
               # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LE07_C01_T1_SR
-              'landsat7_rgb':{'product':'LANDSAT/LE07/C01/T1_SR', 'bands':['B4', 'B3', 'B2'], 'res':30},
+              'landsat7_rgb':{'product':'LANDSAT/LE07/C02/T1_TOA', 'bands':['B4', 'B3', 'B2'], 'res':30},
               # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LE07_C01_T1_TOA
-              'landsat7_pan':{'product':'LANDSAT/LE07/C01/T1_TOA', 'bands':['B8'], 'res':15},
+              'landsat7_pan':{'product':'LANDSAT/LE07/C02/T1_TOA', 'bands':['B8'], 'res':15},
               # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LT05_C01_T1_SR
                'landsat5_rgb':{'product':'LANDSAT/LT05/C01/T1_SR', 'bands':['B3', 'B2', 'B1'], 'res':30},
               # https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2
@@ -445,7 +445,11 @@ def main(options, args):
 
 
     # initialize earth engine environment
-    ee.Initialize()
+    #ee.Initialize()
+    # after Oct 2024, GEE need to link to a Google project
+    # ee.Authenticate()
+    ee.Initialize(project='gee-project-99319')
+
     # environment_test()  # for each computer, need to run "earthengine authenticate" first.
     # environment_test()
     # test_download()
