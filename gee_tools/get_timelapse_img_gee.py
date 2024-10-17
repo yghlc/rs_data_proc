@@ -378,7 +378,7 @@ def gee_download_time_lapse_images(start_date, end_date, cloud_cover_thr, img_sp
     if max_download_count is None:
         print('Image count %d, try to download all'%count)
     else:
-        print('Image count %d, try to %s images (maximum), less could cover first ' %(count, str(max_download_count)))
+        print('Image count %d, try to %s images (maximum), less cloud cover first ' %(count, str(max_download_count)))
     # print(filtercollection)                 # print serialized request instructions
     # print(filtercollection.getInfo())       # print object information
     # polygon_idx
