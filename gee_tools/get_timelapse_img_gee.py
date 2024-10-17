@@ -103,6 +103,8 @@ def get_image_name(image_info,product):
         satellite = 'Landsat_8_TOA'
     elif 'LE07/C01/T1_TOA' in product:
         satellite = 'Landsat_7_TOA'
+    elif 'LE07/C02/T1_TOA' in product:
+        satellite = 'Landsat_7_TOA'
     else:
         raise ValueError('%s not supported yet'%(product))
 
