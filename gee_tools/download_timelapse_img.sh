@@ -5,13 +5,20 @@ set -eE -o functrace
 py=~/codes/PycharmProjects/rs_data_proc/gee_tools/get_timelapse_img_gee.py
 input_shp=../rgc2024-2-thawslumps_buff500.shp
 
+
+s_year=1990
+e_year=2000
+#s_year=2000
+#e_year=2013
+image_type='landsat5_rgb'
+
 #s_year=1980
 #e_year=2024
 #image_type='landsat7_pan'
 
-s_year=2013
-e_year=2020
-image_type='landsat8_pan'
+#s_year=2013
+#e_year=2020
+#image_type='landsat8_pan'
 
 #s_year=2015
 #e_year=2024

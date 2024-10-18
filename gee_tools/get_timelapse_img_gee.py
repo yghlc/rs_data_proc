@@ -53,7 +53,7 @@ img_speci = {# https://developers.google.com/earth-engine/datasets/catalog/LANDS
               # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LE07_C01_T1_TOA
               'landsat7_pan':{'product':'LANDSAT/LE07/C02/T1_TOA', 'bands':['B8'], 'res':15},
               # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LT05_C01_T1_SR
-               'landsat5_rgb':{'product':'LANDSAT/LT05/C01/T1_SR', 'bands':['B3', 'B2', 'B1'], 'res':30},
+               'landsat5_rgb':{'product':'LANDSAT/LT05/C02/T1_TOA', 'bands':['B3', 'B2', 'B1'], 'res':30},
               # https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2
                 'sentinel2_rgb':{'product':'COPERNICUS/S2', 'bands':['B4', 'B3', 'B2'], 'res':10},
               # https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR#description
@@ -107,6 +107,8 @@ def get_image_name(image_info,product):
         satellite = 'Landsat_7_TOA'
     elif 'LE07/C02/T1_TOA' in product:
         satellite = 'Landsat_7_TOA'
+    elif 'LT05/C02/T1_TOA' in product:
+        satellite = 'Landsat_5_TOA'
     else:
         raise ValueError('%s not supported yet'%(product))
 
