@@ -221,7 +221,9 @@ def main(options, args):
 
     # https://www.earthdatascience.org/tutorials/intro-google-earth-engine-python-api/
     # for each computer, need to run "earthengine authenticate" first.
-    ee.Initialize()
+    # ee.Initialize()
+    # after Oct 2024, GEE need to link to a Google project
+    ee.Initialize(project='gee-project-99319')
 
     # all images will save to Google Drive first
     # currently, manually download them from Google Drive
