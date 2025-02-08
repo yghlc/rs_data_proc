@@ -78,7 +78,7 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
     io_function.is_folder_exist(dem_diff_dir)
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
-    if os.path.isdir(tmp_output_dir):
+    if os.path.isdir(tmp_output_dir) is False:
         io_function.mkdir(tmp_output_dir)
 
 
