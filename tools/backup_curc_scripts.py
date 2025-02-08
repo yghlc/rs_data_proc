@@ -29,6 +29,8 @@ def main(options, args):
 
     print('org_dir:',org_dir)
     print('bak_dir:',bak_dir)
+    if os.path.isdir(bak_dir) is False:
+        os.system('mkdir -p %s' % bak_dir)
 
     # get bash file (*.sh) list
     print('find *.sh and *.ini files')
@@ -63,7 +65,7 @@ def main(options, args):
 
     log_txt = os.path.join(bak_dir,'backupTime.txt')
     with open(log_txt,'a') as f_obj:
-        f_obj.writelines('Backup at %s'%str(datetime.now()))
+        f_obj.writelines('Backup at %s\n'%str(datetime.now()))
 
 
 if __name__ == '__main__':
