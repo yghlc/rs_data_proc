@@ -114,11 +114,12 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
 
 
 def test_sam_segment_a_big_region():
-    work_dir = 'ext09_for_ArcticDEM_proc'
-    dem_diff_dir = os.path.join(ArcticDEM_results_dir,work_dir,'grid_dem_diffs')
-    save_dir = os.path.join(ArcticDEM_results_dir,work_dir,'grid_dem_diffs_sam_results')
-    tmp_save_dir = os.path.join(tmp_dir,work_dir)
+    work_folder =  'ext09_for_ArcticDEM_proc'
+    dem_diff_dir = os.path.join(ArcticDEM_results_dir,work_folder,'grid_dem_diffs')
+    save_dir = os.path.join(ArcticDEM_results_dir,work_folder,'grid_dem_diffs_sam_results')
+    tmp_save_dir = os.path.join(tmp_dir,work_folder)
 
+    work_dir = os.path.abspath(work_folder)
     sam_segment_a_big_region(work_dir,dem_diff_dir,save_dir,tmp_save_dir)
 
 
