@@ -79,6 +79,8 @@ def main(options, args):
             dem_diff_list = [dem_diff_file_or_dir]
         else:
             dem_diff_list = io_function.get_file_list_by_pattern(dem_diff_file_or_dir,'*DEM_diff_grid*.tif')
+            if len(dem_diff_list) < 1:
+                basic.outputlogMessage(f'No DEM diff files in {dem_diff_file_or_dir} for colorRelief')
 
     out_dir = grid_dem_diffs_color_dir if os.path.isdir(grid_dem_diffs_color_dir) else './'
 

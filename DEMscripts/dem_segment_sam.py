@@ -58,7 +58,7 @@ def create_colorRelief_DEM_diff(bash_ini_dir,dem_diff_dir,save_dir):
     io_function.copyfiletodir(color_txt,save_dir,overwrite=False)
 
     py_script = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMscripts/dem_diff_to_colorRelief.py')
-    cmd_str = f'{py_script}  dem_diff_dir'
+    cmd_str = f'{py_script}  {dem_diff_dir}'
     basic.os_system_exit_code(cmd_str)
 
     # change directory back
