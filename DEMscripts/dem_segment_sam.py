@@ -82,6 +82,8 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
         return
 
     dem_diff_color_dir = os.path.join(tmp_output_dir,'demDiff_color')
+    if os.path.isdir(dem_diff_color_dir) is False:
+        io_function.mkdir(dem_diff_color_dir)
 
     # copy the script and ini file
     copy_modify_script_inifile(bash_ini_dir,work_dir,dem_diff_color_dir,dem_diff_dir)
