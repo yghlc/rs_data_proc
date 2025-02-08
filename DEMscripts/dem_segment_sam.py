@@ -75,6 +75,13 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
     os.chdir(work_dir)
     basic.outputlogMessage(f'change current directory to {work_dir}')
 
+    io_function.is_folder_exist(dem_diff_dir)
+    if os.path.isdir(save_dir) is False:
+        io_function.mkdir(save_dir)
+    if os.path.isdir(tmp_output_dir):
+        io_function.mkdir(tmp_output_dir)
+
+
     # check if it's done
     done_indicator = f'{os.path.basename(work_dir)}.done'
     if os.path.isfile(done_indicator):
@@ -98,11 +105,6 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
     basic.os_system_exit_code(cmd_str)
 
 
-    io_function.is_folder_exist(dem_diff_dir)
-    if os.path.isdir(save_dir) is False:
-        io_function.mkdir(save_dir)
-    if os.path.isdir(tmp_output_dir):
-        io_function.mkdir(tmp_output_dir)
 
     # clean: (1) remove DEM diff colorRelif
 
