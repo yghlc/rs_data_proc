@@ -100,9 +100,9 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
 
 
 
-    # run the script for segment
-    cmd_str = './exe_sam.sh'
-    basic.os_system_exit_code(cmd_str)
+    # # run the script for segment
+    # cmd_str = './exe_sam.sh'
+    # basic.os_system_exit_code(cmd_str)
 
 
 
@@ -128,10 +128,18 @@ def test_sam_segment_a_big_region():
 
 
 def main():
-    test_sam_segment_a_big_region()
+    # test_sam_segment_a_big_region()
 
-    # dem_diff_dir_list = io_function.get_file_list_by_pattern(ArcticDEM_results_dir,'ext??_*/*diffs*')
-    # print(dem_diff_dir_list)
+    dem_diff_dir_list = io_function.get_file_list_by_pattern(ArcticDEM_results_dir,'ext??_*/*diffs*')
+    for dem_diff_dir in dem_diff_dir_list:
+        basic.outputlogMessage(f'processing {dem_diff_dir}')
+        work_folder = os.path.basename(os.path.dirname(dem_diff_dir))
+        save_dir = os.path.join(ArcticDEM_results_dir, work_folder, 'grid_dem_diffs_sam_results')
+        tmp_save_dir = os.path.join(tmp_dir, work_folder)
+
+        work_dir = os.path.abspath(work_folder)
+        sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_save_dir)
+
 
 
     pass
