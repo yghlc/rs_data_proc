@@ -115,6 +115,8 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
     # output a done indicator
     io_function.save_dict_to_txt_json(done_indicator,{'done_time':str(datetime.now())})
 
+    # change director back
+    os.chdir(org_dir)
 
 
 def test_sam_segment_a_big_region():
@@ -130,8 +132,12 @@ def test_sam_segment_a_big_region():
 def main():
     # test_sam_segment_a_big_region()
 
+    org_dir = os.getcwd()
+    basic.outputlogMessage(f'current directory to {org_dir}')
+
     dem_diff_dir_list = io_function.get_file_list_by_pattern(ArcticDEM_results_dir,'ext??_*/*diffs*')
     for dem_diff_dir in dem_diff_dir_list:
+        os.chdir(org_dir)   # change to original dir, because inside sam_segment_a_big_region, they change to other folder
         basic.outputlogMessage(f'processing {dem_diff_dir}')
         work_folder = os.path.basename(os.path.dirname(dem_diff_dir))
         save_dir = os.path.join(ArcticDEM_results_dir, work_folder, 'grid_dem_diffs_sam_results')
