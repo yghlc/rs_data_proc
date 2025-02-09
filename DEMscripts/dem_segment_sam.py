@@ -32,7 +32,7 @@ def copy_modify_script_inifile(ini_dir, work_dir,dem_diff_color_dir, dem_diff_pr
     files_copied = ['exe_sam.sh', 'sam_model_exp3.ini','main_para_exp3.ini','area_huang2023_demdiff.ini']
     file_paths = [ os.path.join(ini_dir,item) for item in files_copied]
     for item in file_paths:
-        io_function.copyfiletodir(item,work_dir,overwrite=False)
+        io_function.copyfiletodir(item,work_dir,overwrite=True)
 
     # rename 'area_huang2023_demdiff.ini'
     area_str = os.path.basename(work_dir)[:5]  # get ext?? , such ext18
@@ -55,7 +55,7 @@ def create_colorRelief_DEM_diff(bash_ini_dir,dem_diff_dir,save_dir):
     org_dir = os.getcwd()
     os.chdir(save_dir)
     basic.outputlogMessage(f'change current directory to {save_dir}')
-    io_function.copyfiletodir(color_txt,save_dir,overwrite=False)
+    io_function.copyfiletodir(color_txt,save_dir,overwrite=True)
 
     py_script = os.path.expanduser('~/codes/PycharmProjects/rs_data_proc/DEMscripts/dem_diff_to_colorRelief.py')
     cmd_str = f'{py_script}  {dem_diff_dir}'
@@ -67,6 +67,13 @@ def create_colorRelief_DEM_diff(bash_ini_dir,dem_diff_dir,save_dir):
 
 
 def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
+
+    # check if it's done
+    done_indicator = f'{os.path.basename(work_dir)}.done'
+    if os.path.isfile(done_indicator):
+        basic.outputlogMessage(f'this region: {work_dir} has been segmented, skip')
+        return
+
     # create a working folder, then switch to it
     if os.path.isdir(work_dir) is False:
         io_function.mkdir(work_dir)
@@ -80,13 +87,6 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
         io_function.mkdir(save_dir)
     if os.path.isdir(tmp_output_dir) is False:
         io_function.mkdir(tmp_output_dir)
-
-
-    # check if it's done
-    done_indicator = f'{os.path.basename(work_dir)}.done'
-    if os.path.isfile(done_indicator):
-        basic.outputlogMessage(f'this region: {work_dir} has been segmented, skip')
-        return
 
     dem_diff_color_dir = os.path.join(tmp_output_dir,'demDiff_color')
     if os.path.isdir(dem_diff_color_dir) is False:
