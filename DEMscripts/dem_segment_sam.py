@@ -21,6 +21,8 @@ import basic_src.io_function as io_function
 import basic_src.basic as basic
 import parameters
 
+from dem_common import get_grid_id_from_path
+
 # ArcticDEM results on ygAlpha
 ArcticDEM_results_dir = os.path.expanduser('~/data1/ArcticDEM_results')
 # tmp_dir = os.path.expanduser('~/tmpData')
@@ -30,7 +32,8 @@ bash_ini_dir = os.path.expanduser('~/Data/dem_diff_segment/sam_seg_script_ini_fi
 
 def copy_modify_script_inifile(ini_dir, work_dir,dem_diff_color_dir, dem_diff_prompt_dir):
 
-    files_copied = ['exe_sam.sh', 'sam_model_exp3.ini','main_para_exp3.ini','area_huang2023_demdiff.ini']
+    files_copied = ['exe_sam_get_prompt.sh','exe_sam_seg_postproc.sh', 'sam_model_exp3.ini',
+                    'main_para_exp3.ini','area_huang2023_demdiff.ini']
     file_paths = [ os.path.join(ini_dir,item) for item in files_copied]
     for item in file_paths:
         io_function.copyfiletodir(item,work_dir,overwrite=True)
@@ -47,7 +50,7 @@ def copy_modify_script_inifile(ini_dir, work_dir,dem_diff_color_dir, dem_diff_pr
 
     parameters.write_Parameters_file('main_para_exp3.ini','inference_regions',new_area_ini_file)
 
-    return True
+    return new_area_ini_file, 'main_para_exp3.ini'
 
 
 def create_colorRelief_DEM_diff(bash_ini_dir,dem_diff_dir,save_dir):
@@ -65,6 +68,48 @@ def create_colorRelief_DEM_diff(bash_ini_dir,dem_diff_dir,save_dir):
     # change directory back
     os.chdir(org_dir)
     basic.outputlogMessage(f'change current directory to {org_dir}')
+
+
+def set_each_grid_as_a_region(area_ini, main_para_ini,dem_diff_color_dir,area_ini_dir = 'area_grid'):
+
+    dem_diff_file_dir = parameters.get_directory(area_ini, 'dem_diff_prompt_dir')
+    dem_diff_file_or_pattern = parameters.get_string_parameters(area_ini, 'dem_diff_prompt_or_pattern')
+    dem_diff_file_list = io_function.get_file_list_by_pattern(dem_diff_file_dir, dem_diff_file_or_pattern)
+    if len(dem_diff_file_list) < 1:
+        raise IOError('No DEM Diff file found by \n dem_diff_file_dir: %s \n dem_diff_file_or_pattern: %s' % (
+        dem_diff_file_dir, dem_diff_file_or_pattern))
+    else:
+        basic.outputlogMessage('find %d DEM diff files' % len(dem_diff_file_list))
+
+    if os.path.isdir(area_ini_dir) is False:
+        io_function.mkdir(area_ini_dir)
+
+    area_grid_ini_list = []
+
+    for idx, dem_diff_file in enumerate(dem_diff_file_list):
+        grid_id = get_grid_id_from_path(dem_diff_file)
+        grid_str = f'grid{grid_id}'
+
+        area_grid_ini = os.path.join(area_ini_dir,f'area_{grid_str}_demdiff.ini')
+        io_function.copy_file_to_dst(area_ini, area_grid_ini, overwrite=True)
+
+        # dir_name = os.path.dirname(dem_diff_file)
+        fle_name = os.path.basename(dem_diff_file)
+
+        tif_color = io_function.get_name_by_adding_tail(fle_name, 'color')
+
+        parameters.write_Parameters_file(area_grid_ini,'area_name',grid_str)
+        # change dem_diff_color_dir? not necessary
+        # change dem_diff_prompt_dir? no need
+        parameters.write_Parameters_file(area_grid_ini,'inf_image_or_pattern',tif_color)
+        parameters.write_Parameters_file(area_grid_ini,'dem_diff_prompt_or_pattern',fle_name)
+        area_grid_ini_list.append(area_grid_ini)
+
+    save_list_txt = 'area_grid_ini_list.txt'
+    io_function.save_list_to_txt(save_list_txt,area_grid_ini_list)
+
+    parameters.write_Parameters_file(main_para_ini, 'inference_regions', save_list_txt)
+
 
 
 def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
@@ -94,16 +139,23 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
         io_function.mkdir(dem_diff_color_dir)
 
     # copy the script and ini file
-    copy_modify_script_inifile(bash_ini_dir,work_dir,dem_diff_color_dir,dem_diff_dir)
+    area_ini, main_para_ini = copy_modify_script_inifile(bash_ini_dir,work_dir,dem_diff_color_dir,dem_diff_dir)
 
     # create colorRelif DEM diff
     create_colorRelief_DEM_diff(bash_ini_dir, dem_diff_dir,dem_diff_color_dir)
 
 
+    # run the script for segment
+    cmd_str = './exe_sam_get_prompt.sh'
+    basic.os_system_exit_code(cmd_str)
 
-    # # run the script for segment
-    # cmd_str = './exe_sam.sh'
-    # basic.os_system_exit_code(cmd_str)
+
+    # set each grid as a region for segmentation
+    set_each_grid_as_a_region(area_ini, main_para_ini,dem_diff_color_dir)
+
+    # run the script for segment
+    cmd_str = './exe_sam_seg_postproc.sh'
+    basic.os_system_exit_code(cmd_str)
 
 
 
