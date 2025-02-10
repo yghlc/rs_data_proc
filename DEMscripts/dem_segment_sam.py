@@ -12,6 +12,7 @@ add time: 07 February, 2025
 """
 
 import os,sys
+import time
 
 from datetime import datetime
 
@@ -147,7 +148,12 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
 
     # run the script for segment
     cmd_str = './exe_sam_get_prompt.sh'
-    basic.os_system_exit_code(cmd_str)
+    # basic.os_system_exit_code(cmd_str)
+    res = os.system(cmd_str)
+    # basic.os_system_exit_code(command_str)
+    if res != 0:
+        basic.outputlogMessage('Warning, a step (could meering all prompts into a file) may be failed, please check')
+        time.sleep(10)
 
 
     # set each grid as a region for segmentation
