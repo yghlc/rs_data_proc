@@ -104,7 +104,16 @@ def set_each_grid_as_a_region(area_ini, main_para_ini,dem_diff_color_dir,area_in
         # change dem_diff_prompt_dir? no need
         parameters.write_Parameters_file(area_grid_ini,'inf_image_or_pattern',tif_color)
         parameters.write_Parameters_file(area_grid_ini,'dem_diff_prompt_or_pattern',fle_name)
+
+        # set prompt path
+        prompt_txt_list = io_function.get_file_list_by_pattern('prompts',f'*{grid_str}*.txt')
+        if len(prompt_txt_list) == 1:
+            parameters.write_Parameters_file(area_grid_ini,'prompt_path',prompt_txt_list[0])
+        else:
+            raise ValueError(f'the number of prompt txt is not 1: {str(prompt_txt_list)}')
+
         area_grid_ini_list.append(area_grid_ini)
+
 
     save_list_txt = 'area_grid_ini_list.txt'
     io_function.save_list_to_txt(save_list_txt,area_grid_ini_list)
