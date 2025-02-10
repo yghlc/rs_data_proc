@@ -23,7 +23,8 @@ import parameters
 
 # ArcticDEM results on ygAlpha
 ArcticDEM_results_dir = os.path.expanduser('~/data1/ArcticDEM_results')
-tmp_dir = os.path.expanduser('~/tmpData')
+# tmp_dir = os.path.expanduser('~/tmpData')
+tmp_dir = os.path.expanduser('~/data3/tmp_results')
 bash_ini_dir = os.path.expanduser('~/Data/dem_diff_segment/sam_seg_script_ini_files')
 
 
