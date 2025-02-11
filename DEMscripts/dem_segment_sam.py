@@ -124,12 +124,6 @@ def set_each_grid_as_a_region(area_ini, main_para_ini,dem_diff_color_dir,area_in
 
 def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
 
-    # check if it's done
-    done_indicator = f'{os.path.basename(work_dir)}.done'
-    if os.path.isfile(done_indicator):
-        basic.outputlogMessage(f'this region: {work_dir} has been segmented, skip')
-        return
-
     # create a working folder, then switch to it
     if os.path.isdir(work_dir) is False:
         io_function.mkdir(work_dir)
@@ -137,6 +131,13 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
     basic.outputlogMessage(f'current directory to {org_dir}')
     os.chdir(work_dir)
     basic.outputlogMessage(f'change current directory to {work_dir}')
+
+    # check if it's done
+    done_indicator = f'{os.path.basename(work_dir)}.done'
+    if os.path.isfile(done_indicator):
+        basic.outputlogMessage(f'this region: {work_dir} has been segmented, skip')
+        return
+
 
     io_function.is_folder_exist(dem_diff_dir)
     if os.path.isdir(save_dir) is False:
