@@ -155,6 +155,8 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
     # create colorRelif DEM diff
     create_colorRelief_DEM_diff(bash_ini_dir, dem_diff_dir,dem_diff_color_dir)
 
+    # set each grid as a region for segmentation
+    set_each_grid_as_a_region(area_ini, main_para_ini,dem_diff_color_dir)
 
     # run the script for segment
     cmd_str = './exe_sam_get_prompt.sh'
@@ -166,8 +168,6 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
         time.sleep(10)
 
 
-    # set each grid as a region for segmentation
-    set_each_grid_as_a_region(area_ini, main_para_ini,dem_diff_color_dir)
 
     # run the script for segment
     cmd_str = './exe_sam_seg_postproc.sh'
