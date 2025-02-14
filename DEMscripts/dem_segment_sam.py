@@ -119,6 +119,31 @@ def set_each_grid_as_a_region(area_ini, main_para_ini,dem_diff_color_dir,area_in
     io_function.save_list_to_txt(save_list_txt,area_grid_ini_list)
 
     parameters.write_Parameters_file(main_para_ini, 'inference_regions', save_list_txt)
+    return area_grid_ini_list
+
+
+def copy_organize_seg_results(area_grid_ini_list,sam_seg_result,save_dir):
+
+    # for region don't have results, only copy it's ini file
+    for grid_area_ini in area_grid_ini_list:
+        # copy ini file
+        io_function.copyfiletodir(grid_area_ini,save_dir,overwrite=True)
+
+        grid_str = parameters.read_Parameters_file(grid_area_ini,'area_name')
+        res_folder_list = io_function.get_file_list_by_pattern(sam_seg_result, f'{grid_str}*')
+        if len(res_folder_list) == 1:
+            # copy shp file (post)
+            res_shp_dir = res_folder_list[0]
+            shp_list = io_function.get_file_list_by_pattern(res_shp_dir,"*post*.shp")
+            if len(shp_list) != 1:
+                raise IOError('the number of post shapefile is not one')
+            save_shp_file = os.path.join(save_dir, f'DEM_diff_{grid_str}_sam_seg.shp')
+            io_function.copy_shape_file(shp_list[0],save_shp_file)
+
+        elif len(res_folder_list) == 0:
+            basic.outputlogMessage(f'warning, No SAM segment results for {grid_area_ini}')
+        else:
+            raise ValueError(f'the number of res_folder_list is not 1, grid_str: {grid_str}')
 
 
 
@@ -156,7 +181,7 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
     create_colorRelief_DEM_diff(bash_ini_dir, dem_diff_dir,dem_diff_color_dir)
 
     # set each grid as a region for segmentation
-    set_each_grid_as_a_region(area_ini, main_para_ini,dem_diff_color_dir)
+    area_grid_ini_list = set_each_grid_as_a_region(area_ini, main_para_ini,dem_diff_color_dir)
 
     # run the script for segment
     cmd_str = './exe_sam_get_prompt.sh'
@@ -173,13 +198,11 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
     cmd_str = './exe_sam_seg_postproc.sh'
     basic.os_system_exit_code(cmd_str)
 
+    # copy files for each grid (results are in result_backup)
+    copy_organize_seg_results(area_grid_ini_list, 'result_backup',  save_dir)
 
 
     # clean: (1) remove DEM diff colorRelif
-
-
-    # post-processing and copy files for each grid
-
 
     # output a done indicator
     io_function.save_dict_to_txt_json(done_indicator,{'done_time':str(datetime.now())})
