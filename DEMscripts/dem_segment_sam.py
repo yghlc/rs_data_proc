@@ -106,11 +106,11 @@ def set_each_grid_as_a_region(area_ini, main_para_ini,dem_diff_color_dir,area_in
         parameters.write_Parameters_file(area_grid_ini,'dem_diff_prompt_or_pattern',fle_name)
 
         # set prompt path
-        # prompt_txt_list = io_function.get_file_list_by_pattern('prompts',f'*{grid_str}*.txt')
-        # if len(prompt_txt_list) == 1:
-        #     parameters.write_Parameters_file(area_grid_ini,'prompt_path',prompt_txt_list[0])
-        # else:
-        #     raise ValueError(f'the number of prompt txt is not 1: {str(prompt_txt_list)}')
+        prompt_txt_list = io_function.get_file_list_by_pattern('prompts',f'*{grid_str}*.txt')
+        if len(prompt_txt_list) == 1:
+            parameters.write_Parameters_file(area_grid_ini,'prompt_path',prompt_txt_list[0])
+        else:
+            raise ValueError(f'the number of prompt txt is not 1: {str(prompt_txt_list)}')
 
         area_grid_ini_list.append(area_grid_ini)
 
@@ -180,8 +180,6 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
     # create colorRelif DEM diff
     create_colorRelief_DEM_diff(bash_ini_dir, dem_diff_dir,dem_diff_color_dir)
 
-    # set each grid as a region for segmentation
-    area_grid_ini_list = set_each_grid_as_a_region(area_ini, main_para_ini,dem_diff_color_dir)
 
     # run the script for segment
     cmd_str = './exe_sam_get_prompt.sh'
@@ -192,7 +190,8 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
         basic.outputlogMessage('Warning, a step (could meering all prompts into a file) may be failed, please check')
         time.sleep(10)
 
-
+    # set each grid as a region for segmentation after "get_prompt.sh", allow parallel computing when gettting prompt
+    area_grid_ini_list = set_each_grid_as_a_region(area_ini, main_para_ini,dem_diff_color_dir)
 
     # run the script for segment
     cmd_str = './exe_sam_seg_postproc.sh'
