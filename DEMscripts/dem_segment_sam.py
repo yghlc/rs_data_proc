@@ -106,11 +106,11 @@ def set_each_grid_as_a_region(area_ini, main_para_ini,dem_diff_color_dir,area_in
         parameters.write_Parameters_file(area_grid_ini,'dem_diff_prompt_or_pattern',fle_name)
 
         # set prompt path
-        prompt_txt_list = io_function.get_file_list_by_pattern('prompts',f'*{grid_str}*.txt')
-        if len(prompt_txt_list) == 1:
-            parameters.write_Parameters_file(area_grid_ini,'prompt_path',prompt_txt_list[0])
-        else:
-            raise ValueError(f'the number of prompt txt is not 1: {str(prompt_txt_list)}')
+        # prompt_txt_list = io_function.get_file_list_by_pattern('prompts',f'*{grid_str}*.txt')
+        # if len(prompt_txt_list) == 1:
+        #     parameters.write_Parameters_file(area_grid_ini,'prompt_path',prompt_txt_list[0])
+        # else:
+        #     raise ValueError(f'the number of prompt txt is not 1: {str(prompt_txt_list)}')
 
         area_grid_ini_list.append(area_grid_ini)
 
@@ -212,7 +212,8 @@ def sam_segment_a_big_region(work_dir, dem_diff_dir, save_dir, tmp_output_dir):
 
 
 def test_sam_segment_a_big_region():
-    work_folder =  'ext09_for_ArcticDEM_proc'
+    # work_folder =  'ext09_for_ArcticDEM_proc'
+    work_folder =  'ext07_for_ArcticDEM_proc'
     dem_diff_dir = os.path.join(ArcticDEM_results_dir,work_folder,'grid_dem_diffs')
     save_dir = os.path.join(ArcticDEM_results_dir,work_folder,'grid_dem_diffs_sam_results')
     tmp_save_dir = os.path.join(tmp_dir,work_folder)
