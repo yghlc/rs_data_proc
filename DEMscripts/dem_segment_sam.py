@@ -106,7 +106,7 @@ def set_each_grid_as_a_region(area_ini, main_para_ini,dem_diff_color_dir,area_in
         parameters.write_Parameters_file(area_grid_ini,'dem_diff_prompt_or_pattern',fle_name)
 
         # set prompt path
-        prompt_txt_list = io_function.get_file_list_by_pattern('prompts',f'*{grid_str}*.txt')
+        prompt_txt_list = io_function.get_file_list_by_pattern('prompts',f'*_{grid_str}_*.txt')
         if len(prompt_txt_list) == 1:
             parameters.write_Parameters_file(area_grid_ini,'prompt_path',prompt_txt_list[0])
         else:
@@ -130,7 +130,7 @@ def copy_organize_seg_results(area_grid_ini_list,sam_seg_result,save_dir):
         io_function.copyfiletodir(grid_area_ini,save_dir,overwrite=True)
 
         grid_str = parameters.read_Parameters_file(grid_area_ini,'area_name')
-        res_folder_list = io_function.get_file_list_by_pattern(sam_seg_result, f'{grid_str}*')
+        res_folder_list = io_function.get_file_list_by_pattern(sam_seg_result, f'{grid_str}_*')
         if len(res_folder_list) == 1:
             # copy shp file (post)
             res_shp_dir = res_folder_list[0]
