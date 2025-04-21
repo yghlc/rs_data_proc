@@ -10,7 +10,7 @@ add time: 11 July, 2023
 import sys,os
 from optparse import OptionParser
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from datetime import timedelta
 
 import multiprocessing
@@ -32,6 +32,11 @@ import basic_src.timeTools as timeTools
 import ee
 
 parameters_list = None
+
+max_download_count = 3
+b_not_mosaic = False
+
+
 
 from gee_common import export_one_imagetoDrive,wait_all_task_finished, maximum_submit_tasks, active_task_count, \
     shapely_polygon_to_gee_polygon, reproject,directly_save_image_to_local
@@ -57,7 +62,11 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
     date_range_str = re.sub(r'\D','',start_date) + '_' + re.sub(r'\D','',end_date) # only keep digits
     product_info = product.split('/')
     export_dir = region_name + '_' + product_info[-1] + '_' +  date_range_str + '_images'
-    save_file_name = region_name + '_' + product_info[-1] + '_' + date_range_str + '_grid%d'%ext_id
+    if b_not_mosaic:
+        save_file_name = region_name + '_' + product_info[-1] + '_img%d' % ext_id
+    else:
+        save_file_name = region_name + '_' + product_info[-1] + '_' + date_range_str + '_grid%d'%ext_id
+
     if b_vis:
         save_file_name = save_file_name + '_8bit'
     # checking file existence before the query.
@@ -95,42 +104,102 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
     if os.path.isdir(export_dir) is False:
         io_function.mkdir(export_dir)
 
-    # Make a list of images
-    # img_list = filtercollection.toList(filtercollection.size())
+
 
     # first_image = ee.Image(filtercollection.first()).select(band_names)
     # # reproject?
     # # default is UTM, reproject to the projection of extent_shp
     # first_image = reproject(first_image,projection,resolution)
+    if b_not_mosaic:
+        # does not create mosiac, but download many images
+        ## Make a list of images
+        img_list = filtercollection.toList(filtercollection.size())
 
-    # if omit "toUint16()" , it output float64
-    dtype = np.uint16
-    mosaic = filtercollection.select(band_names,band_names).median().toUint16()  # create mosaic using median values
-    mosaic = reproject(mosaic, projection, resolution)
-    # Error: Image.visualize: Expected a string or list of strings for field 'bands'. (Error code: 3)
-    # rgbVis = {'min': 0, 'max': 2000, 'bands': band_names }
-    # s2_mosaic_rgb_8bit = mosaic.visualize(rgbVis)
-    if b_vis:
-        # s2_mosaic_rgb_8bit = mosaic.visualize(bands=band_names, min=0, max=2000)
-        mosaic = mosaic.visualize(bands=band_names, min=0, max=2000)
-        dtype = np.uint8
+        # export all
+        n = 0
+        tasklist = []
+        while True:
+            try:
+                dtype = np.uint16
+                an_img = ee.Image(img_list.get(n)).select(band_names)
+                # image_info = an_img.getInfo()
+                # print('image_info',image_info)
+                time_start = an_img.get('system:time_start').getInfo()
+                acquisition_time = datetime.fromtimestamp(time_start / 1000, tz=timezone.utc).strftime('%Y%m%d-%H%M%S')
+
+                reproject(an_img, projection, resolution)
+                if b_vis:
+                    # s2_mosaic_rgb_8bit = mosaic.visualize(bands=band_names, min=0, max=2000)
+                    an_img = an_img.visualize(bands=band_names, min=0, max=2000)
+                    dtype = np.uint8
+
+                # image_info = an_img.getInfo()
+                # print('image_info',image_info)
+
+                # change file name3
+                # time_start = an_img.get('system:time_start').getInfo()  # not available
+                # acquisition_time = datetime.fromtimestamp(time_start / 1000, tz=timezone.utc).strftime('%Y%m%d-%H%M%S')
+                save_file_path_ii = io_function.get_name_by_adding_tail(save_file_path,f'm{n}_{acquisition_time}')
+                save_file_name_ii = os.path.basename(save_file_path_ii)
+
+                if b_save2local:
+                    an_img_array = an_img.sampleRectangle(extent, defaultValue=0)
+                    an_img_features = an_img_array.getInfo()  # the actual download
+                    directly_save_image_to_local(save_file_path_ii, dtype, an_img, an_img_features)
+                else:
+                    # print('testing:',save_file_name_ii)
+                    task = export_one_imagetoDrive(an_img, export_dir, save_file_name_ii, extent, resolution,
+                                                   wait2finished=wait_all_finished)
+                    # save a record in the local dir
+                    with open(local_record, 'w') as f_obj:
+                        f_obj.writelines('submitted to GEE on %s\n' % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+                    tasklist.append(task)
+                n += 1
+                # print('%s: Start %dth task to download images covering %dth polygon' % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), n, polygon_idx))
+                if n >= max_download_count:
+                    break
+            except Exception as e:
+                error = str(e).split(':')
+                if error[0] == 'List.get':
+                    break
+                else:
+                    raise e
+
+        # wait all task filished
+        wait_all_task_finished(tasklist)
 
 
-    if b_save2local:
-        mosaic_array = mosaic.sampleRectangle(extent, defaultValue=0)
-        mosaic_features = mosaic_array.getInfo()  # the actual download
-        directly_save_image_to_local(save_file_path,dtype,mosaic,mosaic_features)
     else:
-        # only export first image
-        # export_one_imagetoDrive(first_image,export_dir,polygon_idx,crop_region, img_speci['res'])
-        task = export_one_imagetoDrive(mosaic, export_dir, save_file_name, extent, resolution, wait2finished=wait_all_finished)
-        # task = export_one_imagetoDrive(s2_mosaic_rgb_8bit, export_dir, save_file_name+'_8bit', extent, resolution, wait2finished=wait_all_finished)
 
-        # save a record in the local dir
-        with open(local_record, 'w') as f_obj:
-            f_obj.writelines('submitted to GEE on %s\n' % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        # if omit "toUint16()" , it output float64
+        dtype = np.uint16
+        mosaic = filtercollection.select(band_names,band_names).median().toUint16()  # create mosaic using median values
+        mosaic = reproject(mosaic, projection, resolution)
+        # Error: Image.visualize: Expected a string or list of strings for field 'bands'. (Error code: 3)
+        # rgbVis = {'min': 0, 'max': 2000, 'bands': band_names }
+        # s2_mosaic_rgb_8bit = mosaic.visualize(rgbVis)
+        if b_vis:
+            # s2_mosaic_rgb_8bit = mosaic.visualize(bands=band_names, min=0, max=2000)
+            mosaic = mosaic.visualize(bands=band_names, min=0, max=2000)
+            dtype = np.uint8
 
-        return task
+
+        if b_save2local:
+            mosaic_array = mosaic.sampleRectangle(extent, defaultValue=0)
+            mosaic_features = mosaic_array.getInfo()  # the actual download
+            directly_save_image_to_local(save_file_path,dtype,mosaic,mosaic_features)
+        else:
+            # only export first image
+            # export_one_imagetoDrive(first_image,export_dir,polygon_idx,crop_region, img_speci['res'])
+            task = export_one_imagetoDrive(mosaic, export_dir, save_file_name, extent, resolution, wait2finished=wait_all_finished)
+            # task = export_one_imagetoDrive(s2_mosaic_rgb_8bit, export_dir, save_file_name+'_8bit', extent, resolution, wait2finished=wait_all_finished)
+
+            # save a record in the local dir
+            with open(local_record, 'w') as f_obj:
+                f_obj.writelines('submitted to GEE on %s\n' % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+            return task
 
 
 def parallel_gee_download_images_to_local(idx, total_count, region_name,start_date, end_date, ext_id, extent, product, resolution, projection,
@@ -241,6 +310,10 @@ def main(options, args):
     b_save2local = options.b_save2local
     process_num = options.process_num
 
+    global max_download_count, b_not_mosaic
+    max_download_count = options.max_count
+    b_not_mosaic = options.b_not_mosaic
+
 
     start_date, end_date = options.start_date, options.end_date
     gee_download_sentinel2_image(extent_shp,region_name, id_column_name,start_date, end_date,cloud_cover_thr,
@@ -290,6 +363,14 @@ if __name__ == '__main__':
     parser.add_option("", "--process_num",
                       action="store", dest="process_num", type=int, default=8,
                       help="number of processes to download images to local disks")
+
+    parser.add_option("", "--max_count",
+                      action="store", dest="max_count", type=int,default=3,
+                      help="the maximum count of images for a polygon to download, default is 3")
+    parser.add_option("", "--b_not_mosaic",
+                      action="store_true", dest="b_not_mosaic", default=False,
+                      help="if set, it will not create mosaic for each polygon, but download all available images)")
+
 
     # multiprocessing.set_start_method('spawn')
     (options, args) = parser.parse_args()

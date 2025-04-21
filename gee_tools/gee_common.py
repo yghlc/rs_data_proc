@@ -68,6 +68,8 @@ def export_one_imagetoDrive(select_image, save_folder,save_file_name, crop_regio
 def active_task_count(tasks):
     count = 0
     for task in tasks:
+        if task is None:
+            continue
         if task.active():
             count += 1
     return count
