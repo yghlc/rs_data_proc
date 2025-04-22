@@ -168,7 +168,8 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
                     raise e
 
         # wait all task filished
-        wait_all_task_finished(tasklist)
+        if len(tasklist) > 0:
+            wait_all_task_finished(tasklist)
 
 
     else:
