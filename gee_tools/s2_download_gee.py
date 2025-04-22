@@ -71,15 +71,15 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
         save_file_name = save_file_name + '_8bit'
     # checking file existence before the query.
     save_file_path = os.path.join(export_dir, save_file_name + '.tif')
-    local_record = os.path.join(os.path.join(export_dir, save_file_name + '.submit'))
-    if b_save2local:
-        if os.path.isfile(save_file_path):
-            print('%s already exists, skipping downloading' % save_file_path)
-            return False
-    else:
-        if os.path.isfile(local_record):
-            print('task %s already be submitted to GEE, skip' % local_record)
-            return False
+    local_record = os.path.join(export_dir, save_file_name + '.submit')
+    # if b_save2local:
+    #     if os.path.isfile(save_file_path):
+    #         print('%s already exists, skipping downloading' % save_file_path)
+    #         return False
+    # else:
+    if os.path.isfile(local_record):
+        print('task %s already be submitted to GEE or downloaded, skip' % local_record)
+        return False
 
 
     filtercollection = ee.ImageCollection(product). \
@@ -150,11 +150,12 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
                     # print('testing:',save_file_name_ii)
                     task = export_one_imagetoDrive(an_img, export_dir, save_file_name_ii, extent, resolution,
                                                    wait2finished=wait_all_finished)
-                    # save a record in the local dir
-                    with open(local_record, 'w') as f_obj:
-                        f_obj.writelines('submitted to GEE on %s\n' % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-
                     tasklist.append(task)
+
+                # save a record in the local dir
+                with open(local_record, 'w') as f_obj:
+                    f_obj.writelines('downloaded or submitted to GEE on %s\n' % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
                 n += 1
                 # print('%s: Start %dth task to download images covering %dth polygon' % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), n, polygon_idx))
                 if n >= max_download_count:
@@ -189,6 +190,9 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
             mosaic_array = mosaic.sampleRectangle(extent, defaultValue=0)
             mosaic_features = mosaic_array.getInfo()  # the actual download
             directly_save_image_to_local(save_file_path,dtype,mosaic,mosaic_features)
+            # save a record in the local dir
+            with open(local_record, 'w') as f_obj:
+                f_obj.writelines('Downloaded on %s\n' % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         else:
             # only export first image
             # export_one_imagetoDrive(first_image,export_dir,polygon_idx,crop_region, img_speci['res'])
