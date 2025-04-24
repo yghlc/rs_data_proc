@@ -26,6 +26,7 @@ import basic_src.map_projection as map_projection
 import basic_src.basic as basic
 import basic_src.io_function as io_function
 import basic_src.timeTools as timeTools
+from collections import defaultdict
 
 # input earth engine, used: ~/programs/anaconda3/envs/gee/bin/python, or change to ee by "source activate gee"
 # need shapely, geopandas, gdal
@@ -293,6 +294,62 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
 
         # wait until all finished
         wait_all_task_finished(all_task_list)
+
+    if b_save2local:
+        # save downloaded images list
+
+        # save labels for each download images if "class_int" exists
+        class_int_list = vector_gpd.read_attribute_values_list(extent_shp, 'class_int')
+
+        print('To save image and labels (if class_int exists) for each downloaded image ')
+
+        # get image folder (the same as in "gee_download_images")
+        date_range_str = re.sub(r'\D', '', start_date) + '_' + re.sub(r'\D', '', end_date)  # only keep digits
+        product_info = product.split('/')
+        export_dir = region_name + '_' + product_info[-1] + '_' +  date_range_str + '_images'
+
+        save_tif_list = []
+        save_tif_list_txt = export_dir+'_list.txt'
+        total_count = len(extent_ids)
+
+        if os.path.isdir(export_dir):
+            if class_int_list is None:
+                class_int_list_str = [' ']*len(extent_ids)  # class label is empty
+            else:
+                class_int_list_str = [str(item) for item in class_int_list]
+
+            ### this is too slow, each time, need to get_file_list_by_pattern ##
+            ##
+            # # for poly_id, c_label in zip(extent_ids,class_int_list_str):
+            # for idx, (poly_id, c_label) in enumerate(zip(extent_ids, class_int_list_str), start=1):
+            #     if idx%100 ==0:
+            #         print(datetime.now(),f"Progress: {idx/total_count:.2f}% ({idx}/{total_count})")
+            #     # class_int_list
+            #     save_file_name = region_name + '_' + product_info[-1] + '_img%d' % poly_id
+            #     save_file_list = io_function.get_file_list_by_pattern(export_dir,save_file_name + '*.tif')
+            #     for s_file in save_file_list:
+            #         save_tif_list.append(s_file+' '+c_label)
+            ##################################################################
+
+
+            all_tif_files = io_function.get_file_list_by_pattern(export_dir, '*.tif')
+            file_groups = defaultdict(list)
+            for file_path in all_tif_files:
+                file_basename = os.path.basename(file_path)
+                poly_id = int(re.findall(r'_img\d+', file_basename)[0][4:])
+                file_groups[poly_id].append(file_basename)
+            for idx, (poly_id, c_label) in enumerate(zip(extent_ids, class_int_list_str), start=1):
+                if idx % 1000 == 0:
+                    print(datetime.now(), f"Progress: {idx / total_count:.2%} ({idx}/{total_count})")
+                for s_file in file_groups.get(poly_id, []):  # Use .get() to avoid KeyError
+                    save_tif_list.append(f"{s_file} {c_label}")
+
+
+            io_function.save_list_to_txt(save_tif_list_txt ,save_tif_list)
+
+        else:
+            print(f'Warning, folder: {export_dir} does not exist')
+
 
 def main(options, args):
 
