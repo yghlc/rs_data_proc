@@ -39,7 +39,9 @@ from gee_common import export_one_imagetoDrive,wait_all_task_finished, maximum_s
 
 # image specification (more in ChangeDet_DL/dataTools/get_timelapse_img_gee.py)
 # on Feb 6, update COPERNICUS/S2_SR to COPERNICUS/S2_SR_HARMONIZED (https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR)
-img_speci = {'sentinel2_rgb_sr': {'product': 'COPERNICUS/S2_SR_HARMONIZED', 'bands': ['B4', 'B3', 'B2'], 'res': 10}
+img_speci = {'sentinel2_rgb_sr': {'product': 'COPERNICUS/S2_SR_HARMONIZED', 'bands': ['B4', 'B3', 'B2'], 'res': 10},
+            # B8 is the NIR band
+            'sentinel2_Nrgb_sr': {'product': 'COPERNICUS/S2_SR_HARMONIZED', 'bands': ['B4', 'B3', 'B2','B8'], 'res': 10}
             }
 
 def gee_download_images(region_name,start_date, end_date, ext_id, extent, product, resolution, projection,
