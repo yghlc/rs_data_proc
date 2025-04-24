@@ -33,10 +33,6 @@ import ee
 
 parameters_list = None
 
-max_download_count = 3
-b_not_mosaic = False
-
-
 
 from gee_common import export_one_imagetoDrive,wait_all_task_finished, maximum_submit_tasks, active_task_count, \
     shapely_polygon_to_gee_polygon, reproject,directly_save_image_to_local
@@ -47,7 +43,8 @@ img_speci = {'sentinel2_rgb_sr': {'product': 'COPERNICUS/S2_SR_HARMONIZED', 'ban
             }
 
 def gee_download_images(region_name,start_date, end_date, ext_id, extent, product, resolution, projection,
-                        band_names, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True,b_save2local=False):
+                        band_names, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True,b_save2local=False,
+                        b_not_mosaic=False,max_download_count=3):
 
     start = ee.Date(start_date)  # '%Y-%m-%d'
     finish = ee.Date(end_date)
@@ -208,18 +205,20 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
 
 
 def parallel_gee_download_images_to_local(idx, total_count, region_name,start_date, end_date, ext_id, extent, product, resolution, projection,
-                        bands, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True,b_save2local=True):
-    ee.Initialize()
+                        bands, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True,b_save2local=True,
+                                          b_not_mosaic=False,max_download_count=3, gee_project=None):
+    ee.Initialize(project=gee_project)
     print('%d/%d Downloading Sentinel-2 for a polygon (id: %d ) ' % (idx + 1, total_count, ext_id))
 
     extent_gee = shapely_polygon_to_gee_polygon(extent)
 
     gee_download_images(region_name, start_date, end_date, ext_id, extent_gee, product, resolution,
                                projection, bands, cloud_cover_thr=cloud_cover_thr,
-                               crop=crop, b_vis=b_vis, wait_all_finished=wait_all_finished,b_save2local=b_save2local)
+                               crop=crop, b_vis=b_vis, wait_all_finished=wait_all_finished,b_save2local=b_save2local,
+                                b_not_mosaic=b_not_mosaic,max_download_count=max_download_count)
 
 def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_date, end_date,cloud_cover_thr,
-                                 b_save2local=False, process_num=8):
+                                 b_save2local=False, process_num=8,b_not_mosaic=False,max_download_count=3, gee_project=None):
 
     # checking input shapefile
     projection = map_projection.get_raster_or_vector_srs_info_epsg(extent_shp)
@@ -249,14 +248,14 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
                 gee_download_images(region_name, start_date, end_date, ext_id, extent_gee, product, resolution,
                                     projection, bands, cloud_cover_thr=cloud_cover_thr,
                                     crop=b_crop, b_vis=b_visualize, wait_all_finished=True,
-                                    b_save2local=b_save2local)
+                                    b_save2local=b_save2local,b_not_mosaic=b_not_mosaic,max_download_count=max_download_count)
 
         else:
             # save to local disks
             theadPool = Pool(process_num)  # multi processes ,initializer=initialize_ee()
 
             parameters_list = [(idx,len(extent_polygons), region_name,start_date, end_date,ext_id, extent,product, resolution, projection,
-                                bands,cloud_cover_thr,b_crop,b_visualize, True, True)
+                                bands,cloud_cover_thr,b_crop,b_visualize, True, True,b_not_mosaic,max_download_count, gee_project)
                                for idx, (extent, ext_id) in enumerate(zip(extent_polygons, extent_ids))]
             results = theadPool.starmap(parallel_gee_download_images_to_local, parameters_list)  # need python3
             theadPool.close()
@@ -282,7 +281,8 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
 
             task = gee_download_images(region_name, start_date, end_date, ext_id, extent_gee, product, resolution,
                                        projection, bands, cloud_cover_thr=cloud_cover_thr,
-                                       crop=b_crop, b_vis=b_visualize, wait_all_finished=False)
+                                       crop=b_crop, b_vis=b_visualize, wait_all_finished=False,
+                                       b_not_mosaic=b_not_mosaic,max_download_count=max_download_count)
 
             if task is False:
                 continue
@@ -298,7 +298,8 @@ def main(options, args):
     # for each computer, need to run "earthengine authenticate" first.
     # ee.Initialize()
     # after Oct 2024, GEE need to link to a Google project
-    ee.Initialize(project='gee-project-99319')
+    google_cloud_project = "gee-project-99319"
+    ee.Initialize(project=google_cloud_project)
 
     # all images will save to Google Drive first
     # currently, manually download them from Google Drive
@@ -315,14 +316,17 @@ def main(options, args):
     b_save2local = options.b_save2local
     process_num = options.process_num
 
-    global max_download_count, b_not_mosaic
+    # global max_download_count, b_not_mosaic
+    # max_download_count = 3
+    # b_not_mosaic = False
     max_download_count = options.max_count
     b_not_mosaic = options.b_not_mosaic
 
 
     start_date, end_date = options.start_date, options.end_date
     gee_download_sentinel2_image(extent_shp,region_name, id_column_name,start_date, end_date,cloud_cover_thr,
-                                 b_save2local=b_save2local, process_num=process_num)
+                                 b_save2local=b_save2local, process_num=process_num,b_not_mosaic=b_not_mosaic,
+                                 max_download_count=max_download_count,gee_project=google_cloud_project)
 
 
 
