@@ -16,6 +16,7 @@ import fiona
 import geopandas as gpd
 import random
 import numpy as np
+from shapely.geometry import Polygon, MultiPolygon
 import gc  # Garbage collection module
 
 # Step 1: Load feature counts from the text file
@@ -73,6 +74,11 @@ def map_indices_to_files(global_indices, cumulative_counts):
 #
 #     return selected_polygons
 
+
+# fiona, which allows selective reading of specific features (rows) from a file
+# without loading the entire file into memory.
+# You can use fiona directly to read only the rows you need, more efficient if the file is large
+
 def extract_selected_polygons(file_names, file_indices):
     selected_polygons = []
     file_to_indices = {}
@@ -88,26 +94,38 @@ def extract_selected_polygons(file_names, file_indices):
         file = file_names[file_idx]
         print(f"Processing file: {file}, extracting {len(indices)} polygons")
 
-        # fiona, which allows selective reading of specific features (rows) from a file
-        # without loading the entire file into memory.
-        # You can use fiona directly to read only the rows you need
+        # Load the GeoDataFrame for the current file
+        gdf = gpd.read_file(file)
 
-        # Open the file with Fiona for selective reading
-        with fiona.open(file) as src:
-            for idx in indices:
-                feature = src[idx]  # Read only the specific feature
-                selected_polygons.append(feature)
+        # Extract only the polygons at the required indices
+        for idx in indices:
+            if idx < len(gdf):  # Check if the index is valid
+                feature = gdf.iloc[idx]
+                if feature.geometry and isinstance(feature.geometry, (Polygon, MultiPolygon)):
+                    selected_polygons.append(feature)
+                else:
+                    print(f"Warning: Invalid geometry at index {idx} in file {file}")
+            else:
+                print(f"Warning: Index {idx} out of bounds for file {file}")
 
-    # Convert the selected features to a GeoDataFrame
-    gdf_selected = gpd.GeoDataFrame.from_features(selected_polygons)
+        # Release memory
+        del gdf
 
-    return gdf_selected
+    return selected_polygons
 
 # Step 5: Save selected polygons to a new GPKG file
 def save_selected_polygons(selected_polygons, output_file):
+    if not selected_polygons:
+        print("No valid polygons were selected. Skipping save.")
+        return
+
+    # Convert the list of selected polygons to a GeoDataFrame
     gdf_selected = gpd.GeoDataFrame(selected_polygons)
-    gdf_selected.to_file(output_file, driver="ESRI Shapefile")  # driver="GPKG"
+
+    # Save to a Shapefile using GeoPandas
+    gdf_selected.to_file(output_file, driver="ESRI Shapefile")
     print(f"Saved {len(selected_polygons)} polygons to {output_file}")
+
 
 # Main Function
 def main(options, args):
