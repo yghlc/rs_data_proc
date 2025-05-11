@@ -46,44 +46,12 @@ def map_indices_to_files(global_indices, cumulative_counts):
     return file_indices
 
 # # Step 4: Extract selected polygons using geopandas
-# def extract_selected_polygons(file_names, file_indices):
-#     selected_polygons = []
-#     file_to_indices = {}
-#
-#     # Group indices by file to minimize file reads
-#     for file_idx, local_idx in file_indices:
-#         if file_idx not in file_to_indices:
-#             file_to_indices[file_idx] = []
-#         file_to_indices[file_idx].append(local_idx)
-#
-#     # Process each file only once
-#     for file_idx, indices in file_to_indices.items():
-#         file = file_names[file_idx]
-#         print(f"Processing file: {file}, extracting {len(indices)} polygons")
-#
-#         # Load the GeoDataFrame for the current file
-#         gdf = gpd.read_file(file)
-#
-#         # Extract only the polygons at the required indices
-#         for idx in indices:
-#             selected_polygons.append(gdf.iloc[idx])
-#
-#         # Release memory by deleting the GeoDataFrame and forcing garbage collection
-#         del gdf
-#         gc.collect()
-#
-#     return selected_polygons
-
-
-# fiona, which allows selective reading of specific features (rows) from a file
-# without loading the entire file into memory.
-# You can use fiona directly to read only the rows you need, more efficient if the file is large
-
 def extract_selected_polygons(file_names, file_indices):
     selected_polygons = []
     file_to_indices = {}
+    dataset_crs = None  # Variable to store the CRS
 
-    # Group indices by file for efficient processing
+    # Group indices by file to minimize file reads
     for file_idx, local_idx in file_indices:
         if file_idx not in file_to_indices:
             file_to_indices[file_idx] = []
@@ -94,32 +62,72 @@ def extract_selected_polygons(file_names, file_indices):
         file = file_names[file_idx]
         print(f"Processing file: {file}, extracting {len(indices)} polygons")
 
-        # Sort the indices for efficient sequential access
-        indices = sorted(indices)
+        # Load the GeoDataFrame for the current file
+        gdf = gpd.read_file(file)
 
-        # Open the file with fiona and read sequentially
-        with fiona.open(file) as src:
-            for i, feature in enumerate(src):  # Read features sequentially
-                if i in indices:  # Check if the current index is in the list
-                    if feature and feature.get("geometry"):  # Ensure the geometry exists
-                        selected_polygons.append(feature)
-                    else:
-                        print(f"Warning: Invalid or missing geometry at index {i} in file {file}")
+        # Set the CRS if it's not already set
+        if dataset_crs is None:
+            dataset_crs = gdf.crs
 
-                # Stop early if all indices are processed
-                if len(indices) == 0:
-                    break
+        # Extract only the polygons at the required indices
+        for idx in indices:
+            selected_polygons.append(gdf.iloc[idx])
 
-    return selected_polygons
+        # Release memory by deleting the GeoDataFrame and forcing garbage collection
+        del gdf
+        gc.collect()
+
+    return selected_polygons, dataset_crs
+
+
+# fiona, which allows selective reading of specific features (rows) from a file
+# without loading the entire file into memory.
+# You can use fiona directly to read only the rows you need, more efficient if the file is large
+## not working well, although save memory. Need more effort in code engineering
+
+#def extract_selected_polygons(file_names, file_indices):
+#    selected_polygons = []
+#    file_to_indices = {}
+#
+#    # Group indices by file for efficient processing
+#    for file_idx, local_idx in file_indices:
+#        if file_idx not in file_to_indices:
+#            file_to_indices[file_idx] = []
+#        file_to_indices[file_idx].append(local_idx)
+#
+#    # Process each file only once
+#    for file_idx, indices in file_to_indices.items():
+#        file = file_names[file_idx]
+#        print(f"Processing file: {file}, extracting {len(indices)} polygons")
+#
+#        # Sort the indices for efficient sequential access
+#        indices = sorted(indices)
+#
+#        # Open the file with fiona and read sequentially
+#        with fiona.open(file) as src:
+#            for i, feature in enumerate(src):  # Read features sequentially
+#                if i in indices:  # Check if the current index is in the list
+#                    if feature and feature.get("geometry"):  # Ensure the geometry exists
+#                        selected_polygons.append(feature)
+#                    else:
+#                        print(f"Warning: Invalid or missing geometry at index {i} in file {file}")
+#
+#                # Stop early if all indices are processed
+#                if len(indices) == 0:
+#                    break
+#
+#    return selected_polygons
 
 # Step 5: Save selected polygons to a new GPKG file
-def save_selected_polygons(selected_polygons, output_file):
+def save_selected_polygons(selected_polygons, output_file, crs):
     if not selected_polygons:
         print("No valid polygons were selected. Skipping save.")
         return
 
     # Convert the list of selected polygons to a GeoDataFrame
     gdf_selected = gpd.GeoDataFrame(selected_polygons)
+    # Set the CRS in the GeoDataFrame
+    gdf_selected = gdf_selected.set_crs(crs)
 
     # Save to a Shapefile using GeoPandas
     gdf_selected.to_file(output_file, driver="ESRI Shapefile")
@@ -145,10 +153,10 @@ def main(options, args):
     file_indices = map_indices_to_files(random_indices, cumulative_counts)
 
     # Step 4: Extract selected polygons
-    selected_polygons = extract_selected_polygons(file_names, file_indices)
+    selected_polygons, dataset_crs = extract_selected_polygons(file_names, file_indices)
 
     # Step 5: Save selected polygons
-    save_selected_polygons(selected_polygons, output_file)
+    save_selected_polygons(selected_polygons, output_file, dataset_crs)
 
 # Run the script
 if __name__ == '__main__':
