@@ -15,6 +15,7 @@ from optparse import OptionParser
 import geopandas as gpd
 import random
 import numpy as np
+import gc  # Garbage collection module
 
 # Step 1: Load feature counts from the text file
 def load_feature_counts(file_path):
@@ -57,12 +58,17 @@ def extract_selected_polygons(file_names, file_indices):
     for file_idx, indices in file_to_indices.items():
         file = file_names[file_idx]
         print(f"Processing file: {file}, extracting {len(indices)} polygons")
-        # Load the file with GeoPandas
+
+        # Load the GeoDataFrame for the current file
         gdf = gpd.read_file(file)
 
-        # Extract the polygons at the required indices
+        # Extract only the polygons at the required indices
         for idx in indices:
             selected_polygons.append(gdf.iloc[idx])
+
+        # Release memory by deleting the GeoDataFrame and forcing garbage collection
+        del gdf
+        gc.collect()
 
     return selected_polygons
 
