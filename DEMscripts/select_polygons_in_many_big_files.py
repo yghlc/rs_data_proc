@@ -45,12 +45,25 @@ def map_indices_to_files(global_indices, cumulative_counts):
 # Step 4: Extract selected polygons using geopandas
 def extract_selected_polygons(file_names, file_indices):
     selected_polygons = []
+    file_to_indices = {}
+
+    # Group indices by file to minimize file reads
     for file_idx, local_idx in file_indices:
+        if file_idx not in file_to_indices:
+            file_to_indices[file_idx] = []
+        file_to_indices[file_idx].append(local_idx)
+
+    # Process each file only once
+    for file_idx, indices in file_to_indices.items():
         file = file_names[file_idx]
-        print(f"Processing file: {file}, extracting polygon at index {local_idx}")
+        print(f"Processing file: {file}, extracting {len(indices)} polygons")
         # Load the file with GeoPandas
         gdf = gpd.read_file(file)
-        selected_polygons.append(gdf.iloc[local_idx])  # Select the specific row
+
+        # Extract the polygons at the required indices
+        for idx in indices:
+            selected_polygons.append(gdf.iloc[idx])
+
     return selected_polygons
 
 # Step 5: Save selected polygons to a new GPKG file
