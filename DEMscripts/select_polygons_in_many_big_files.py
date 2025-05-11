@@ -94,17 +94,21 @@ def extract_selected_polygons(file_names, file_indices):
         file = file_names[file_idx]
         print(f"Processing file: {file}, extracting {len(indices)} polygons")
 
-        # Open the file with fiona
+        # Sort the indices for efficient sequential access
+        indices = sorted(indices)
+
+        # Open the file with fiona and read sequentially
         with fiona.open(file) as src:
-            for idx in indices:
-                if idx < len(src):  # Check if the index is valid
-                    feature = src[idx]  # Read the specific feature
+            for i, feature in enumerate(src):  # Read features sequentially
+                if i in indices:  # Check if the current index is in the list
                     if feature and feature.get("geometry"):  # Ensure the geometry exists
                         selected_polygons.append(feature)
                     else:
-                        print(f"Warning: Invalid or missing geometry at index {idx} in file {file}")
-                else:
-                    print(f"Warning: Index {idx} out of bounds for file {file}")
+                        print(f"Warning: Invalid or missing geometry at index {i} in file {file}")
+
+                # Stop early if all indices are processed
+                if len(indices) == 0:
+                    break
 
     return selected_polygons
 
