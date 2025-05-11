@@ -83,7 +83,7 @@ def extract_selected_polygons(file_names, file_indices):
     selected_polygons = []
     file_to_indices = {}
 
-    # Group indices by file to minimize file reads
+    # Group indices by file for efficient processing
     for file_idx, local_idx in file_indices:
         if file_idx not in file_to_indices:
             file_to_indices[file_idx] = []
@@ -94,22 +94,17 @@ def extract_selected_polygons(file_names, file_indices):
         file = file_names[file_idx]
         print(f"Processing file: {file}, extracting {len(indices)} polygons")
 
-        # Load the GeoDataFrame for the current file
-        gdf = gpd.read_file(file)
-
-        # Extract only the polygons at the required indices
-        for idx in indices:
-            if idx < len(gdf):  # Check if the index is valid
-                feature = gdf.iloc[idx]
-                if feature.geometry and isinstance(feature.geometry, (Polygon, MultiPolygon)):
-                    selected_polygons.append(feature)
+        # Open the file with fiona
+        with fiona.open(file) as src:
+            for idx in indices:
+                if idx < len(src):  # Check if the index is valid
+                    feature = src[idx]  # Read the specific feature
+                    if feature and feature.get("geometry"):  # Ensure the geometry exists
+                        selected_polygons.append(feature)
+                    else:
+                        print(f"Warning: Invalid or missing geometry at index {idx} in file {file}")
                 else:
-                    print(f"Warning: Invalid geometry at index {idx} in file {file}")
-            else:
-                print(f"Warning: Index {idx} out of bounds for file {file}")
-
-        # Release memory
-        del gdf
+                    print(f"Warning: Index {idx} out of bounds for file {file}")
 
     return selected_polygons
 
