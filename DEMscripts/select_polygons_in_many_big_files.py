@@ -12,6 +12,7 @@ add time: 11 May, 2025
 import os, sys
 from optparse import OptionParser
 
+import fiona
 import geopandas as gpd
 import random
 import numpy as np
@@ -43,7 +44,35 @@ def map_indices_to_files(global_indices, cumulative_counts):
         file_indices.append((file_idx, local_idx))
     return file_indices
 
-# Step 4: Extract selected polygons using geopandas
+# # Step 4: Extract selected polygons using geopandas
+# def extract_selected_polygons(file_names, file_indices):
+#     selected_polygons = []
+#     file_to_indices = {}
+#
+#     # Group indices by file to minimize file reads
+#     for file_idx, local_idx in file_indices:
+#         if file_idx not in file_to_indices:
+#             file_to_indices[file_idx] = []
+#         file_to_indices[file_idx].append(local_idx)
+#
+#     # Process each file only once
+#     for file_idx, indices in file_to_indices.items():
+#         file = file_names[file_idx]
+#         print(f"Processing file: {file}, extracting {len(indices)} polygons")
+#
+#         # Load the GeoDataFrame for the current file
+#         gdf = gpd.read_file(file)
+#
+#         # Extract only the polygons at the required indices
+#         for idx in indices:
+#             selected_polygons.append(gdf.iloc[idx])
+#
+#         # Release memory by deleting the GeoDataFrame and forcing garbage collection
+#         del gdf
+#         gc.collect()
+#
+#     return selected_polygons
+
 def extract_selected_polygons(file_names, file_indices):
     selected_polygons = []
     file_to_indices = {}
@@ -59,18 +88,20 @@ def extract_selected_polygons(file_names, file_indices):
         file = file_names[file_idx]
         print(f"Processing file: {file}, extracting {len(indices)} polygons")
 
-        # Load the GeoDataFrame for the current file
-        gdf = gpd.read_file(file)
+        # fiona, which allows selective reading of specific features (rows) from a file
+        # without loading the entire file into memory.
+        # You can use fiona directly to read only the rows you need
 
-        # Extract only the polygons at the required indices
-        for idx in indices:
-            selected_polygons.append(gdf.iloc[idx])
+        # Open the file with Fiona for selective reading
+        with fiona.open(file) as src:
+            for idx in indices:
+                feature = src[idx]  # Read only the specific feature
+                selected_polygons.append(feature)
 
-        # Release memory by deleting the GeoDataFrame and forcing garbage collection
-        del gdf
-        gc.collect()
+    # Convert the selected features to a GeoDataFrame
+    gdf_selected = gpd.GeoDataFrame.from_features(selected_polygons)
 
-    return selected_polygons
+    return gdf_selected
 
 # Step 5: Save selected polygons to a new GPKG file
 def save_selected_polygons(selected_polygons, output_file):
