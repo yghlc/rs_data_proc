@@ -162,7 +162,7 @@ def random_select_from_gpkg_ogr2ogr(input_file, output_file, layer_name, num_sam
     # Execute the command
     try:
         subprocess.run(ogr2ogr_cmd, check=True)
-        print(f"Randomly selected {num_samples} features from layer '{layer_name}' and saved to '{output_file}'.")
+        print(f"Randomly selected {num_samples} features from layer '{layer_name}' in '{input_file}' and saved to '{output_file}'.")
     except subprocess.CalledProcessError as e:
         print(f"Error running ogr2ogr: {e}")
         raise RuntimeError(f"ogr2ogr command failed: {e}")
