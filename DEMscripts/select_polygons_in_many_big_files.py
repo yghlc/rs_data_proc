@@ -19,6 +19,9 @@ import numpy as np
 from shapely.geometry import Polygon, MultiPolygon
 import gc  # Garbage collection module
 
+import subprocess
+from osgeo import ogr
+
 # Step 1: Load feature counts from the text file
 def load_feature_counts(file_path):
     feature_counts = []
@@ -45,17 +48,24 @@ def map_indices_to_files(global_indices, cumulative_counts):
         file_indices.append((file_idx, local_idx))
     return file_indices
 
-# # Step 4: Extract selected polygons using geopandas
-def extract_selected_polygons(file_names, file_indices):
-    selected_polygons = []
+def group_indices_by_file(file_indices):
     file_to_indices = {}
-    dataset_crs = None  # Variable to store the CRS
-
     # Group indices by file to minimize file reads
     for file_idx, local_idx in file_indices:
         if file_idx not in file_to_indices:
             file_to_indices[file_idx] = []
         file_to_indices[file_idx].append(local_idx)
+
+    return file_to_indices
+
+# # Step 4: Extract selected polygons using geopandas
+def extract_selected_polygons(file_names, file_indices):
+    selected_polygons = []
+
+    dataset_crs = None  # Variable to store the CRS
+
+    # Group indices by file to minimize file reads
+    file_to_indices = group_indices_by_file(file_indices)
 
     # Process each file only once
     for file_idx, indices in file_to_indices.items():
@@ -118,6 +128,41 @@ def extract_selected_polygons(file_names, file_indices):
 #
 #    return selected_polygons
 
+
+def random_select_from_gpkg_ogr2ogr(input_file, output_file, layer_name, num_samples):
+    """
+    Randomly selects polygons from a GeoPackage file using ogr2ogr and saves them to a new GeoPackage.
+
+    Args:
+        input_file (str): Path to the input GeoPackage file.
+        output_file (str): Path to the output GeoPackage file.
+        layer_name (str): The name of the layer to process.
+        num_samples (int): The number of random polygons to select.
+
+    Returns:
+        None
+    """
+    # Construct the SQL query for random selection
+    sql_query = f"SELECT * FROM {layer_name} ORDER BY RANDOM() LIMIT {num_samples}"
+
+    # Build the ogr2ogr command
+    ogr2ogr_cmd = [
+        "ogr2ogr",
+        "-f", "GPKG",             # Output format: GeoPackage
+        output_file,              # Output file
+        input_file,               # Input file
+        "-sql", sql_query,        # SQL query for random selection
+        "-nln", layer_name        # Name of the output layer
+    ]
+
+    # Execute the command
+    try:
+        subprocess.run(ogr2ogr_cmd, check=True)
+        print(f"Randomly selected {num_samples} features from layer '{layer_name}' and saved to '{output_file}'.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error running ogr2ogr: {e}")
+        raise RuntimeError(f"ogr2ogr command failed: {e}")
+
 # Step 5: Save selected polygons to a new GPKG file
 def save_selected_polygons(selected_polygons, output_file, crs):
     if not selected_polygons:
@@ -132,6 +177,84 @@ def save_selected_polygons(selected_polygons, output_file, crs):
     # Save to a Shapefile using GeoPandas
     gdf_selected.to_file(output_file, driver="ESRI Shapefile")
     print(f"Saved {len(selected_polygons)} polygons to {output_file}")
+
+
+def random_select_polygons_in_multi_gpkg(file_names, samp_counts_in_files, output_file):
+    """
+    Randomly selects polygons from multiple GeoPackage files using ogr2ogr,
+    merges the results into a single GeoPackage, and removes intermediate files.
+
+    Args:
+        file_names (list): List of input GeoPackage file paths.
+        samp_counts_in_files (list): List of sample counts for each file.
+        output_file (str): Path to the output GeoPackage file.
+
+    Returns:
+        None
+    """
+    # Temporary files list to store intermediate small GeoPackages
+    temp_files = []
+
+    for file_idx, input_file in enumerate(file_names):
+        sample_count = samp_counts_in_files[file_idx]
+        layer_name = None  # We'll infer the layer name automatically
+
+        # Open the input GeoPackage to get the layer name
+        driver = ogr.GetDriverByName("GPKG")
+        datasource = driver.Open(input_file, 0)  # Open in read-only mode
+        if not datasource:
+            raise RuntimeError(f"Could not open file: {input_file}")
+
+        # Get the first layer name
+        layer = datasource.GetLayer()
+        layer_name = layer.GetName()
+        datasource = None  # Close the datasource
+
+        # Define a temporary file name for the small GeoPackage
+        temp_file = f"temp_{file_idx}.gpkg"
+        temp_files.append(temp_file)
+
+        # Call random_select_from_gpkg_ogr2ogr to create the small GeoPackage
+        random_select_from_gpkg_ogr2ogr(input_file, temp_file, layer_name, sample_count)
+
+    # Merge all temporary GeoPackages into the final output file
+    driver = ogr.GetDriverByName("GPKG")
+    if os.path.exists(output_file):
+        driver.DeleteDataSource(output_file)  # Remove existing output file
+
+    # Create the output GeoPackage and merge layers
+    output_ds = driver.CreateDataSource(output_file)
+    if not output_ds:
+        raise RuntimeError(f"Could not create output file: {output_file}")
+
+    for temp_file in temp_files:
+        # Open each temporary file
+        temp_ds = driver.Open(temp_file, 0)  # Open in read-only mode
+        if not temp_ds:
+            raise RuntimeError(f"Could not open temporary file: {temp_file}")
+
+        # Get the layer from the temporary file
+        temp_layer = temp_ds.GetLayer()
+        temp_layer_name = temp_layer.GetName()
+
+        # Copy the layer into the output GeoPackage
+        output_ds.CopyLayer(temp_layer, temp_layer_name)
+
+        print(f"Merged layer '{temp_layer_name}' from '{temp_file}' into '{output_file}'.")
+
+        # Close the temporary datasource
+        temp_ds = None
+
+    # Close the output datasource
+    output_ds = None
+
+    # Remove temporary files
+    for temp_file in temp_files:
+        os.remove(temp_file)
+        print(f"Removed temporary file: {temp_file}")
+
+    print(f"All selected polygons have been merged into '{output_file}'.")
+
 
 
 # Main Function
@@ -152,11 +275,22 @@ def main(options, args):
     cumulative_counts = np.cumsum([0] + feature_counts)
     file_indices = map_indices_to_files(random_indices, cumulative_counts)
 
-    # Step 4: Extract selected polygons
-    selected_polygons, dataset_crs = extract_selected_polygons(file_names, file_indices)
+    # # Step 4: Extract selected polygons
+    # selected_polygons, dataset_crs = extract_selected_polygons(file_names, file_indices)
 
-    # Step 5: Save selected polygons
-    save_selected_polygons(selected_polygons, output_file, dataset_crs)
+    # # Step 5: Save selected polygons
+    # save_selected_polygons(selected_polygons, output_file, dataset_crs)
+
+
+    # Group indices by file to minimize file reads
+    file_to_indices = group_indices_by_file(file_indices)
+    # print(file_to_indices.keys())
+    samp_counts_in_files = [len(file_to_indices[item]) for item in file_to_indices.keys()]
+    random_select_polygons_in_multi_gpkg(file_names, samp_counts_in_files, output_file)
+
+    random_select_polygons_in_multi_gpkg(file_names, samp_counts_in_files, output_file)
+
+
 
 # Run the script
 if __name__ == '__main__':
