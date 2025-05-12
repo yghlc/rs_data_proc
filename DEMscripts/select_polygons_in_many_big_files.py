@@ -22,6 +22,10 @@ import gc  # Garbage collection module
 import subprocess
 from osgeo import ogr
 
+sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS'))
+# import basic_src.io_function as io_function
+import vector_gpd
+
 # Step 1: Load feature counts from the text file
 def load_feature_counts(file_path):
     feature_counts = []
@@ -192,12 +196,16 @@ def random_select_polygons_in_multi_gpkg(file_names, samp_counts_in_files, outpu
     Returns:
         None
     """
+
+    if os.path.isfile(output_file):
+        print(f'The final output: {output_file} already exist, cancel extracting polygons')
+        return
+
     # Temporary files list to store intermediate small GeoPackages
     temp_files = []
 
     for file_idx, input_file in enumerate(file_names):
         sample_count = samp_counts_in_files[file_idx]
-        layer_name = None  # We'll infer the layer name automatically
 
         # Open the input GeoPackage to get the layer name
         driver = ogr.GetDriverByName("GPKG")
@@ -217,36 +225,8 @@ def random_select_polygons_in_multi_gpkg(file_names, samp_counts_in_files, outpu
         # Call random_select_from_gpkg_ogr2ogr to create the small GeoPackage
         random_select_from_gpkg_ogr2ogr(input_file, temp_file, layer_name, sample_count)
 
-    # Merge all temporary GeoPackages into the final output file
-    driver = ogr.GetDriverByName("GPKG")
-    if os.path.exists(output_file):
-        driver.DeleteDataSource(output_file)  # Remove existing output file
 
-    # Create the output GeoPackage and merge layers
-    output_ds = driver.CreateDataSource(output_file)
-    if not output_ds:
-        raise RuntimeError(f"Could not create output file: {output_file}")
-
-    for temp_file in temp_files:
-        # Open each temporary file
-        temp_ds = driver.Open(temp_file, 0)  # Open in read-only mode
-        if not temp_ds:
-            raise RuntimeError(f"Could not open temporary file: {temp_file}")
-
-        # Get the layer from the temporary file
-        temp_layer = temp_ds.GetLayer()
-        temp_layer_name = temp_layer.GetName()
-
-        # Copy the layer into the output GeoPackage
-        output_ds.CopyLayer(temp_layer, temp_layer_name)
-
-        print(f"Merged layer '{temp_layer_name}' from '{temp_file}' into '{output_file}'.")
-
-        # Close the temporary datasource
-        temp_ds = None
-
-    # Close the output datasource
-    output_ds = None
+    vector_gpd.merge_vector_files(temp_files,output_file,format='ESRI Shapefile')
 
     # Remove temporary files
     for temp_file in temp_files:
