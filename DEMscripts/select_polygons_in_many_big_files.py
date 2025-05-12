@@ -268,7 +268,6 @@ def main(options, args):
     samp_counts_in_files = [len(file_to_indices[item]) for item in file_to_indices.keys()]
     random_select_polygons_in_multi_gpkg(file_names, samp_counts_in_files, output_file)
 
-    random_select_polygons_in_multi_gpkg(file_names, samp_counts_in_files, output_file)
 
 
 
