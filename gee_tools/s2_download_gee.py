@@ -226,12 +226,17 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
     # checking input shapefile
     projection = map_projection.get_raster_or_vector_srs_info_epsg(extent_shp)
 
-    product = img_speci['sentinel2_rgb_sr']['product']
-    resolution = img_speci['sentinel2_rgb_sr']['res']
-    bands = img_speci['sentinel2_rgb_sr']['bands']
+    # product = img_speci['sentinel2_rgb_sr']['product']
+    # resolution = img_speci['sentinel2_rgb_sr']['res']
+    # bands = img_speci['sentinel2_rgb_sr']['bands']
+
+    product = img_speci['sentinel2_Nrgb_sr']['product']
+    resolution = img_speci['sentinel2_Nrgb_sr']['res']
+    bands = img_speci['sentinel2_Nrgb_sr']['bands']
+
 
     b_crop = True  # crop images to input extent
-    b_visualize = True   # to 8bit, for visualization
+    b_visualize = False   # to 8bit, for visualization
 
     extent_polygons = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp, 'EPSG:4326')
     extent_ids = vector_gpd.read_attribute_values_list(extent_shp, id_column_name)
