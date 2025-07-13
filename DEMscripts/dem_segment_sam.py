@@ -227,8 +227,8 @@ def main():
     org_dir = os.getcwd()
     basic.outputlogMessage(f'current directory to {org_dir}')
 
-    # select_ext_list = ['ext00','ext01','ext02','ext03','ext04','ext05','ext06','ext07','ext08','ext09']
-    select_ext_list = ['ext00','ext01','ext02','ext03','ext04']
+    select_ext_list = ['ext00','ext01','ext02','ext03','ext04','ext05','ext06','ext07','ext08','ext09','ext13']
+    #select_ext_list = ['ext00','ext01','ext02','ext03','ext04']
 
     dem_diff_dir_list = io_function.get_file_list_by_pattern(ArcticDEM_results_dir,'ext??_*/*diffs*')
     for dem_diff_dir in dem_diff_dir_list:

@@ -35,9 +35,12 @@ def create_grids_for_overlap_vectors(coverage,input_vector,grid_size_x,grid_size
     if cover_prj != input_prj:
         raise ValueError('%s and %s do not have the same projection' % (coverage, input_vector))
 
+    print(datetime.now(), f'Start creating grids for overlapping vectors: {input_vector} with coverage: {coverage}')
+
     # Get the bounds of the study area (minx, miny, maxx, maxy)
     out_minx, out_miny, out_maxx, out_maxy = vector_gpd.get_vector_file_bounding_box(coverage)
-    geometries = vector_gpd.read_polygons_gpd(input_vector)
+    # geometries = vector_gpd.read_polygons_gpd(input_vector)
+    input_gdf = gpd.read_file(input_vector)
 
     # Step 1: Create a regular grid over the bounding box
     grid_cells = []
@@ -62,18 +65,34 @@ def create_grids_for_overlap_vectors(coverage,input_vector,grid_size_x,grid_size
         x += grid_size_x
         row += 1
 
-    # Step 2: Convert grid cells to a GeoDataFrame
-    grid_gdf = gpd.GeoDataFrame({'geometry': grid_cells, 'grid_id': grid_ids}, crs=cover_prj)
 
-    # Step 3: Intersect the grid with the input vector geometries
-    input_geometries_union = unary_union(geometries)  # Union of all input geometries
-    grid_gdf['geometry'] = grid_gdf['geometry'].intersection(input_geometries_union)
+    print(datetime.now(), f'obtained {len(grid_cells)} grid cells for the coverage area')    
+
+    # Step 2: Convert grid cells to a GeoDataFrame
+    grid_gdf = gpd.GeoDataFrame({'geometry': grid_cells, 'RowCol_id': grid_ids}, crs=cover_prj)
+
+
+    # Step 3: Perform spatial join to find intersecting grid cells
+    intersecting_gdf = gpd.sjoin(grid_gdf, input_gdf, how='inner', predicate='intersects')
+
+    # Remove duplicate grid cells (if any)
+    intersecting_gdf = intersecting_gdf.drop_duplicates(subset='RowCol_id')
+
+    # # Step 3: Intersect the grid with the input vector geometries
+    # input_geometries_union = unary_union(geometries)  # Union of all input geometries
+    # grid_gdf['geometry'] = grid_gdf['geometry'].intersection(input_geometries_union)
+
+    # print(datetime.now(), f'after intersection, {len(grid_gdf)} grid cells remain')
 
     # Remove empty geometries (resulting from non-overlapping grid cells)
-    grid_gdf = grid_gdf[~grid_gdf['geometry'].is_empty]
+    # grid_gdf = grid_gdf[~grid_gdf['geometry'].is_empty]
+
+    print(datetime.now(), f'{len(intersecting_gdf)} grid cells remain')
 
     # Step 4: Save the resulting GeoDataFrame to the specified path
-    grid_gdf.to_file(save_path, driver='ESRI Shapefile')
+    save_path.replace('.gpkg','.shp')
+    intersecting_gdf[['geometry', 'RowCol_id']].to_file(save_path, driver='ESRI Shapefile')
+    print(datetime.now(), f'Grids saved to {save_path}')
 
 
 
