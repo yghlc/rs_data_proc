@@ -92,7 +92,7 @@ def create_grids_for_overlap_vectors(coverage,input_vector,grid_size_x,grid_size
     # print(datetime.now(), f'{len(intersecting_gdf)} grid cells remain')
 
     # Step 4: Save the resulting GeoDataFrame to the specified path
-    save_path.replace('.gpkg','.shp')
+    save_path = save_path.replace('.gpkg','.shp')
     intersecting_gdf[['geometry', 'RowCol_id']].to_file(save_path, driver='ESRI Shapefile')
     print(datetime.now(), f'Grids saved to {save_path}')
 
