@@ -63,9 +63,9 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
     product_info = product.split('/')
     export_dir = region_name + '_' + product_info[-1] + '_' +  date_range_str + '_images'
     if b_not_mosaic:
-        save_file_name = region_name + '_' + product_info[-1] + '_img%d' % ext_id
+        save_file_name = region_name + '_' + product_info[-1] + f'_img{ext_id}'
     else:
-        save_file_name = region_name + '_' + product_info[-1] + '_' + date_range_str + '_grid%d'%ext_id
+        save_file_name = region_name + '_' + product_info[-1] + '_' + date_range_str + f'_grid{ext_id}'
 
     if b_vis:
         save_file_name = save_file_name + '_8bit'
@@ -94,10 +94,10 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
     # check count  # getInfo can get python number (not ee.Number)
     count = filtercollection.size().getInfo()
     if count < 1:
-        basic.outputlogMessage('No results for the polygon (id: %d ) with %s' % (ext_id, str(img_speci)))
+        basic.outputlogMessage(f'No results for the polygon (id: {ext_id} ) with {img_speci}')
         return False
 
-    print('Find %d image for the polygon (id: %d )' %(count, ext_id))
+    print(f'Find {count} image for the polygon (id: {ext_id} )' )
 
 
     # save some task record in the local folder
@@ -211,7 +211,7 @@ def parallel_gee_download_images_to_local(idx, total_count, region_name,start_da
                         bands, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True,b_save2local=True,
                                           b_not_mosaic=False,max_download_count=3, gee_project=None):
     ee.Initialize(project=gee_project)
-    print('%d/%d Downloading Sentinel-2 for a polygon (id: %d ) ' % (idx + 1, total_count, ext_id))
+    print(f'{idx + 1}/{total_count} Downloading Sentinel-2 for a polygon (id: {ext_id}) ')
 
     extent_gee = shapely_polygon_to_gee_polygon(extent)
 
@@ -241,15 +241,15 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
     extent_polygons = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp, 'EPSG:4326')
     extent_ids = vector_gpd.read_attribute_values_list(extent_shp, id_column_name)
     if extent_ids is None:
-        extent_ids = [ item for item in range(len(extent_polygons))]
+        extent_ids = [ str(item) for item in range(len(extent_polygons))]
     else:
-        extent_ids = [int(item) for item in extent_ids]
+        extent_ids = [item for item in extent_ids]
 
     all_task_list = []
     if b_save2local:
         if process_num == 1:
             for idx, (extent, ext_id) in enumerate(zip(extent_polygons, extent_ids)):
-                print('%d/%d Downloading Sentinel-2 for a polygon (id: %d ) ' % (idx + 1, len(extent_polygons), ext_id))
+                print(f'{idx + 1}/{len(extent_polygons)} Downloading Sentinel-2 for a polygon (id: {ext_id})')
 
                 extent_gee = shapely_polygon_to_gee_polygon(extent)
 
@@ -283,7 +283,7 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
                 time.sleep(60)
                 active_tasks = active_task_count(all_task_list)
 
-            print('%d/%d Downloading Sentinel-2 for a polygon (id: %d ) ' % (idx+1, len(extent_polygons), ext_id))
+            print(f'{idx+1}/{len(extent_polygons)} Downloading Sentinel-2 for a polygon (id: {ext_id})')
 
             extent_gee = shapely_polygon_to_gee_polygon(extent)
 
