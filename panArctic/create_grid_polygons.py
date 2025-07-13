@@ -74,9 +74,11 @@ def create_grids_for_overlap_vectors(coverage,input_vector,grid_size_x,grid_size
 
     # Step 3: Perform spatial join to find intersecting grid cells
     intersecting_gdf = gpd.sjoin(grid_gdf, input_gdf, how='inner', predicate='intersects')
+    print(datetime.now(), f'after spatial join, {len(intersecting_gdf)} grid cells intersect with the input vector geometries')
 
     # Remove duplicate grid cells (if any)
     intersecting_gdf = intersecting_gdf.drop_duplicates(subset='RowCol_id')
+    print(datetime.now(), f'after removing duplicates, {len(intersecting_gdf)} grid cells remain')
 
     # # Step 3: Intersect the grid with the input vector geometries
     # input_geometries_union = unary_union(geometries)  # Union of all input geometries
@@ -87,7 +89,7 @@ def create_grids_for_overlap_vectors(coverage,input_vector,grid_size_x,grid_size
     # Remove empty geometries (resulting from non-overlapping grid cells)
     # grid_gdf = grid_gdf[~grid_gdf['geometry'].is_empty]
 
-    print(datetime.now(), f'{len(intersecting_gdf)} grid cells remain')
+    # print(datetime.now(), f'{len(intersecting_gdf)} grid cells remain')
 
     # Step 4: Save the resulting GeoDataFrame to the specified path
     save_path.replace('.gpkg','.shp')
