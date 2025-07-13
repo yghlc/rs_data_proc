@@ -127,7 +127,7 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
                 time_start = an_img.get('system:time_start').getInfo()
                 acquisition_time = datetime.fromtimestamp(time_start / 1000, tz=timezone.utc).strftime('%Y%m%d-%H%M%S')
 
-                reproject(an_img, projection, resolution)
+                an_img = reproject(an_img, projection, resolution)
                 if b_vis:
                     # s2_mosaic_rgb_8bit = mosaic.visualize(bands=band_names, min=0, max=2000)
                     an_img = an_img.visualize(bands=band_names, min=0, max=2000)
