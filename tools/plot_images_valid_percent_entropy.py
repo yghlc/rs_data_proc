@@ -103,6 +103,12 @@ def basic_statistics_and_histogram(values, bins=10, stats_file="statistics.txt",
 
     return stats
 
+def output_image_path_lower_than_threshold(image_list, values, threshold=0.5):
+
+    for img, value in zip(image_list, values):
+        if value < threshold:
+            print(f"Image: {img}, Value: {value:.2f} (below threshold: {threshold})")
+
 
 def main(options, args):
 
@@ -140,6 +146,11 @@ def main(options, args):
 
     basic_statistics_and_histogram(valid_percent_list,500, stats_file='statistics_valid_percent.txt',
                                    histogram_file='histogram_valid_percent.jpg')
+
+    print(f"images with low valid percent:")
+    output_image_path_lower_than_threshold(image_list, valid_percent_list, threshold=10)
+    print(f"\n\nimages with low entropy:")
+    output_image_path_lower_than_threshold(image_list, image_entropy_list, threshold=0.5)
 
 
 
