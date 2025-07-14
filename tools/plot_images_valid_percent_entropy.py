@@ -30,11 +30,13 @@ def get_image_valid_percent(image_list, nodata_user=0):
     return valid_percent_list
 
 def get_image_entropy(image_list, nodata_user=0):
+    valid_percent_list = []
     img_entropy_list = []
-    for idx, img in enumerate(tqdm(image_list, desc="Calculating image entropy")):
-        raster_io.get_valid_percent_shannon_entropy(img,nodata_input=nodata_user)
-        img_entropy_list.append(img)
-    return img_entropy_list
+    for idx, img in enumerate(tqdm(image_list, desc="Calculating image valid and entropy")):
+        valid_per, entropy = raster_io.get_valid_percent_shannon_entropy(img,nodata_input=nodata_user)
+        valid_percent_list.append(valid_per)
+        img_entropy_list.append(entropy)
+    return valid_percent_list, img_entropy_list
 
 
 def save_values_to_dict_file(image_list, values,save_path):
@@ -114,30 +116,33 @@ def main(options, args):
 
     pre_name = os.path.splitext(os.path.basename(img_dir_or_path))[0]
 
-    save_valid_percent = pre_name+'_validPercent.json'
-    if os.path.isfile(save_valid_percent):
-        print(f'Image valid percent has been calculated, read it from {save_valid_percent}')
-        data_dict = read_values_from_dict_file(save_valid_percent)
-        valid_percent_list = data_dict.values()
-    else:
-        valid_percent_list = get_image_valid_percent(image_list, nodata_user=nodata_user)
-        save_values_to_dict_file(image_list,valid_percent_list,save_valid_percent)
-
-    basic_statistics_and_histogram(save_valid_percent,500, stats_file='statistics_valid_percent.txt',
-                                   histogram_file='histogram_valid_percent.jpg')
-
-
     save_entropy = pre_name+'_entropy.json'
     if os.path.isfile(save_entropy):
         print(f'Image entropy has been calculate, read it from {save_entropy}')
         data_dict = read_values_from_dict_file(save_entropy)
-        image_entropy_list = data_dict.values()
+        image_entropy_list = list(data_dict.values())
     else:
-        image_entropy_list = get_image_entropy(image_list, nodata_user=nodata_user)
+        valid_percent_list, image_entropy_list = get_image_entropy(image_list, nodata_user=nodata_user)
         save_values_to_dict_file(image_list,image_entropy_list,save_entropy)
 
-    basic_statistics_and_histogram(save_entropy,500, stats_file='statistics_entropy.txt',
+    basic_statistics_and_histogram(image_entropy_list,500, stats_file='statistics_entropy.txt',
                                    histogram_file='histogram_entropy.jpg')
+
+
+    save_valid_percent = pre_name+'_validPercent.json'
+    if os.path.isfile(save_valid_percent):
+        print(f'Image valid percent has been calculated, read it from {save_valid_percent}')
+        data_dict = read_values_from_dict_file(save_valid_percent)
+        valid_percent_list = list(data_dict.values())
+    else:
+        # valid_percent_list = get_image_valid_percent(image_list, nodata_user=nodata_user)
+        save_values_to_dict_file(image_list,valid_percent_list,save_valid_percent)
+
+    basic_statistics_and_histogram(valid_percent_list,500, stats_file='statistics_valid_percent.txt',
+                                   histogram_file='histogram_valid_percent.jpg')
+
+
+
 
 
 if __name__ == '__main__':
