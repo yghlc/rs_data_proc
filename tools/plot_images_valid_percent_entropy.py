@@ -14,6 +14,7 @@ from optparse import OptionParser
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from tqdm import tqdm
 
 sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS'))
 
@@ -23,14 +24,14 @@ import raster_io
 
 def get_image_valid_percent(image_list, nodata_user=0):
     valid_percent_list = []
-    for idx, img in enumerate(image_list):
+    for idx, img in enumerate(tqdm(image_list, desc="Calculating image valid percent")):
         valid_per = raster_io.get_valid_pixel_percentage(img,nodata=nodata_user)
         valid_percent_list.append(valid_per)
     return valid_percent_list
 
 def get_image_entropy(image_list, nodata_user=0):
     img_entropy_list = []
-    for idx, img in enumerate(image_list):
+    for idx, img in enumerate(tqdm(image_list, desc="Calculating image entropy")):
         raster_io.get_valid_percent_shannon_entropy(img,nodata_input=nodata_user)
         img_entropy_list.append(img)
     return img_entropy_list
