@@ -63,7 +63,8 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
     product_info = product.split('/')
     export_dir = region_name + '_' + product_info[-1] + '_' +  date_range_str + '_images'
     if b_not_mosaic:
-        save_file_name = region_name + '_' + product_info[-1] + f'_img{ext_id}'
+        # save_file_name = region_name + '_' + product_info[-1] + f'_img{ext_id}'
+        save_file_name = f'img{ext_id}'        # avoid file name is too long
     else:
         save_file_name = region_name + '_' + product_info[-1] + '_' + date_range_str + f'_grid{ext_id}'
 
