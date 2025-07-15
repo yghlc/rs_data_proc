@@ -153,6 +153,13 @@ def main(options, args):
     basic_statistics_and_histogram(valid_percent_list,500, stats_file='statistics_valid_percent.txt',
                                    histogram_file='histogram_valid_percent.jpg')
 
+    save_valid_percent_entropy = pre_name+'_validPercent_entropy.json'
+    save_dict = {}
+    for img, perc, entropy in zip(image_list,valid_percent_list,image_entropy_list):
+        save_dict[img] = [perc, entropy]
+    io_function.save_dict_to_txt_json(save_valid_percent_entropy, save_dict)
+
+
     print(f"images with low valid percent:")
     output_image_path_lower_than_threshold(image_list, valid_percent_list, threshold=10)
     print(f"\n\nimages with low entropy:")
