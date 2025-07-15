@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # Filename: plot_images_valid_percent_entropy.py
 """
-introduction: calculate the image shannon_entropy in do some basis statistics
+introduction: calculate the image shannon_entropy in do some basis statistics,
+
+A simlar script is in ~/codes/PycharmProjects/BigImageMapper/utility/get_valid_percent_entropy.py
 
 authors: Huang Lingcao
 email:huanglingcao@gmail.com
@@ -105,9 +107,13 @@ def basic_statistics_and_histogram(values, bins=10, stats_file="statistics.txt",
 
 def output_image_path_lower_than_threshold(image_list, values, threshold=0.5):
 
+    save_image_values_dict = {}
     for img, value in zip(image_list, values):
         if value < threshold:
             print(f"Image: {img}, Value: {value:.2f} (below threshold: {threshold})")
+            save_image_values_dict[img] = value
+
+    io_function.save_dict_to_txt_json(f'images_below_threshold_{threshold}.json', save_image_values_dict)
 
 
 def main(options, args):
