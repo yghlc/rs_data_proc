@@ -53,7 +53,7 @@ def get_image_lower_than_thresholds(image_list, valid_percent, entropy_list, val
 
     return  list(save_image_values_dict.keys())
 
-def delete_bad_images(image_list, bak_dir='./deleted_images'):
+def delete_bad_images(image_list, bak_dir='./deleted_files'):
     if os.path.isdir(bak_dir):
         io_function.mkdir(bak_dir)
     for img in image_list:
@@ -70,7 +70,17 @@ def get_ids_without_images(all_image_id, org_image_list, delete_img_list):
 
     io_function.save_list_to_txt('ids_without_download_image.txt',id_without_images)
 
+    return id_without_images
 
+
+def delete_submit_file_if_no_image_for_the_id(id_without_images, image_dir, bak_dir='./deleted_files'):
+    if os.path.isdir(bak_dir):
+        io_function.mkdir(bak_dir)
+
+    for id_no_img in id_without_images:
+        submit_file = os.path.join(image_dir,f'img{id_no_img}.submit')
+        if os.path.isfile(submit_file):
+            io_function.movefiletodir(submit_file,bak_dir,overwrite=True)
 
 def main(options, args):
 
@@ -78,6 +88,7 @@ def main(options, args):
     id_column_name = options.id_column
     file_pattern = options.file_pattern
     image_dir = args[1]
+    back_up_dir = './deleted_files'
 
     extent_polygons = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp, 'EPSG:4326')
     extent_ids = vector_gpd.read_attribute_values_list(extent_shp, id_column_name)
@@ -95,9 +106,10 @@ def main(options, args):
                                     valid_threshold=80, entropy_thr=0.5)
 
 
-    get_ids_without_images(extent_ids,image_list,deleted_images)
+    id_without_images = get_ids_without_images(extent_ids,image_list,deleted_images)
 
-    delete_bad_images(deleted_images)
+    delete_bad_images(deleted_images,bak_dir=back_up_dir)
+    delete_submit_file_if_no_image_for_the_id(id_without_images, image_dir, bak_dir=back_up_dir)
 
 
 
