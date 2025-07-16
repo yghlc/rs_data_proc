@@ -105,7 +105,7 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
     if os.path.isdir(export_dir) is False:
         io_function.mkdir(export_dir)
 
-
+    valid_pixel_percent_thr = 80
 
     # first_image = ee.Image(filtercollection.first()).select(band_names)
     # # reproject?
@@ -146,7 +146,11 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
                 if b_save2local:
                     an_img_array = an_img.sampleRectangle(extent, defaultValue=0)
                     an_img_features = an_img_array.getInfo()  # the actual download
-                    directly_save_image_to_local(save_file_path_ii, dtype, an_img, an_img_features)
+                    b_saved = directly_save_image_to_local(save_file_path_ii, dtype, an_img, an_img_features,
+                                                 valid_pixel_percent_thr=valid_pixel_percent_thr)
+                    if b_saved is False:
+                        continue
+
                 else:
                     # print('testing:',save_file_name_ii)
                     task = export_one_imagetoDrive(an_img, export_dir, save_file_name_ii, extent, resolution,

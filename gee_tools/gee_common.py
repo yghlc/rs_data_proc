@@ -117,7 +117,17 @@ def shapely_polygon_to_gee_polygon(polygon):
 #   return reprojected.rename(dateString);//.rename('ndsi'.concat(dateString)); //
 # }
 
-def directly_save_image_to_local(save_file_path, dtype, image, image_features):
+# copied from raster_io.py in DeeplabforRS
+def get_valid_pixel_percentage_np(image_np, nodata=0):
+    valid_loc = np.where(image_np != nodata)
+    valid_pixel_count = valid_loc[0].size
+    total_count = image_np.size
+    # if total_count == 0:
+    #     return 0.0
+    valid_per = 100.0 * valid_pixel_count / total_count
+    return valid_per
+
+def directly_save_image_to_local(save_file_path, dtype, image, image_features, valid_pixel_percent_thr=None):
     # for small image < 32M ? we can save it directly to local file
 
     # outside this function, download data by:
@@ -156,6 +166,14 @@ def directly_save_image_to_local(save_file_path, dtype, image, image_features):
     img_all = np.concatenate( [raster[key] for key in raster.keys()] , axis=2)
     height, width, channels = img_all.shape
 
+    if valid_pixel_percent_thr is not None:
+        valid_percent = get_valid_pixel_percentage_np(img_all,nodata=0)
+        if valid_percent < valid_pixel_percent_thr:
+            print(f'Valid pixel percentage {valid_percent} less than threshold {valid_pixel_percent_thr}, '
+                  f'do not save this image, try a new one')
+            return False
+
+
     transform = (dst_res, 0, min(x_new)-dst_res/2.0, 0, -dst_res, max(y_new) + dst_res/2.0) # # (resX, 0, X_min, 0, -resY, Y_max)
     # transform = (dst_res, 0, x_new[0], 0, -dst_res, y_new[0]) # # (resX, 0, X_min, 0, -resY, Y_max)
     profile = {
@@ -178,6 +196,6 @@ def directly_save_image_to_local(save_file_path, dtype, image, image_features):
         for i, key in enumerate(raster.keys()):
             f.set_band_description(i+1, key)
 
-
+    return True
 
 
