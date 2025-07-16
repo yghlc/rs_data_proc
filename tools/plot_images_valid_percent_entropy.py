@@ -171,8 +171,8 @@ def main(options, args):
 
 if __name__ == '__main__':
     usage = "usage: %prog [options] image_folder "
-    parser = OptionParser(usage=usage, version="1.0 2021-01-07")
-    parser.description = 'Introduction: plot histogram of images '
+    parser = OptionParser(usage=usage, version="1.0 2025-07-14")
+    parser.description = 'Introduction: plot histogram of image entropy and valid pixel percentage '
 
 
     parser.add_option("", "--file_pattern",
