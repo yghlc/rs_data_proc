@@ -149,6 +149,7 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
                     b_saved = directly_save_image_to_local(save_file_path_ii, dtype, an_img, an_img_features,
                                                  valid_pixel_percent_thr=valid_pixel_percent_thr)
                     if b_saved is False:
+                        n += 1
                         continue
 
                 else:
