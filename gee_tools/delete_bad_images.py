@@ -54,7 +54,7 @@ def get_image_lower_than_thresholds(image_list, valid_percent, entropy_list, val
     return  list(save_image_values_dict.keys())
 
 def delete_bad_images(image_list, bak_dir='./deleted_files'):
-    if os.path.isdir(bak_dir):
+    if os.path.isdir(bak_dir) is False:
         io_function.mkdir(bak_dir)
     for img in image_list:
         io_function.movefiletodir(img,bak_dir,overwrite=True)
@@ -74,7 +74,7 @@ def get_ids_without_images(all_image_id, org_image_list, delete_img_list):
 
 
 def delete_submit_file_if_no_image_for_the_id(id_without_images, image_dir, bak_dir='./deleted_files'):
-    if os.path.isdir(bak_dir):
+    if os.path.isdir(bak_dir) is False:
         io_function.mkdir(bak_dir)
 
     for id_no_img in id_without_images:
