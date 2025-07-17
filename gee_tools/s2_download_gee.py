@@ -347,7 +347,7 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
             file_groups = defaultdict(list)
             for file_path in all_tif_files:
                 file_basename = os.path.basename(file_path)
-                poly_id = int(re.findall(r'_img\d+', file_basename)[0][4:])
+                poly_id = int(re.findall(r'img\d+', file_basename)[0][3:])
                 file_groups[poly_id].append(file_basename)
             for idx, (poly_id, c_label) in enumerate(zip(extent_ids, class_int_list_str), start=1):
                 if idx % 1000 == 0:
