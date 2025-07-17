@@ -102,8 +102,12 @@ def main(options, args):
 
     valid_percent_list, img_entropy_list = get_image_valid_percent_entropy(image_list)
 
+    # mainly use entropy_thr to removed bad images,
+    # valid percentage has been checked in gee_common.py, with threshold of 80.
+    valid_threshold = 30
+    entropy_thr = 0.5
     deleted_images = get_image_lower_than_thresholds(image_list, valid_percent_list, img_entropy_list,
-                                    valid_threshold=80, entropy_thr=0.5)
+                                    valid_threshold=valid_threshold, entropy_thr=entropy_thr)
 
 
     id_without_images = get_ids_without_images(extent_ids,image_list,deleted_images)
