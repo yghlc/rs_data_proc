@@ -46,6 +46,59 @@ img_speci = {'sentinel2_rgb_sr': {'product': 'COPERNICUS/S2_SR_HARMONIZED', 'ban
             'sentinel2_Nrgb_sr': {'product': 'COPERNICUS/S2_SR_HARMONIZED', 'bands': ['B4', 'B3', 'B2','B8'], 'res': 10}
             }
 
+
+def initialize_ee(project):
+    # avoid too many rapid requests to Google's API when parallel call this function
+    # MaxRetryError: HTTPSConnectionPool(host='oauth2.googleapis.com', port=443): Max retries exceeded with url:
+    # /token (Caused by SSLError(SSLError(1, '[SSL] record layer failure (_ssl.c:2559)')))"
+    # wait random 0.1 to 2 seconds
+
+    # random_wait = np.random.randint(1, 5)     # alway genreated when call in the parallel function
+
+    # Generate a random wait time between 0.1 and 2.0 seconds
+    random_wait = random.uniform(0.1, 10)
+
+    time.sleep(random_wait)
+    print(f'Initializing Earth Engine with project: {project}, please wait {random_wait:.1f} seconds')
+    ee.Initialize(project=project)
+
+
+def get_export_dir_name(region_name,product, start_date,end_date):
+    # cannot have a sub folder in Google Drive.
+    date_range_str = re.sub(r'\D','',start_date) + '_' + re.sub(r'\D','',end_date) # only keep digits
+    product_info = product.split('/')
+    export_dir = region_name + '_' + product_info[-1] + '_' +  date_range_str + '_images'
+    return export_dir
+
+def get_save_file_name(region_name, product, ext_id, start_date,end_date, b_not_mosaic):
+    product_info = product.split('/')
+    date_range_str = re.sub(r'\D', '', start_date) + '_' + re.sub(r'\D', '', end_date)
+    if b_not_mosaic:
+        # save_file_name = region_name + '_' + product_info[-1] + f'_img{ext_id}'
+        save_file_name = f'img{ext_id}'        # avoid file name is too long
+    else:
+        save_file_name = region_name + '_' + product_info[-1] + '_' + date_range_str + f'_grid{ext_id}'
+
+    return save_file_name
+
+
+def remove_downloaded_tasks(region_name, product, start_date, end_date,extent_polygons, extent_ids, b_not_mosaic):
+    # remove already donwloaded IDs before run parallel, to improve efficiency
+    export_dir = get_export_dir_name(region_name, product, start_date, end_date)
+
+    remain_extent_polygons = []
+    remain_extent_ids = []
+    for idx, (extent, ext_id) in enumerate(zip(extent_polygons, extent_ids)):
+        save_file_name = get_save_file_name(region_name, product, ext_id, start_date, end_date, b_not_mosaic)
+        local_record = os.path.join(export_dir, save_file_name + '.submit')
+        if os.path.isfile(local_record):
+            print('task %s already be submitted to GEE or downloaded, skip' % local_record)
+        else:
+            remain_extent_polygons.append(extent)
+            remain_extent_ids.append(ext_id)
+
+    return remain_extent_polygons, remain_extent_ids
+
 def gee_download_images(region_name,start_date, end_date, ext_id, extent, product, resolution, projection,
                         band_names, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True,b_save2local=False,
                         b_not_mosaic=False,max_download_count=3):
@@ -59,15 +112,8 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
     # got error on Narval: requests.exceptions.SSLError: None: Max retries exceeded with url: /token (Caused by None)
     # the internet there is very good, send too many request during a short time, got rejected
 
-    # cannot have a sub folder in Google Drive.
-    date_range_str = re.sub(r'\D','',start_date) + '_' + re.sub(r'\D','',end_date) # only keep digits
-    product_info = product.split('/')
-    export_dir = region_name + '_' + product_info[-1] + '_' +  date_range_str + '_images'
-    if b_not_mosaic:
-        # save_file_name = region_name + '_' + product_info[-1] + f'_img{ext_id}'
-        save_file_name = f'img{ext_id}'        # avoid file name is too long
-    else:
-        save_file_name = region_name + '_' + product_info[-1] + '_' + date_range_str + f'_grid{ext_id}'
+    export_dir = get_export_dir_name(region_name,product, start_date,end_date)
+    save_file_name = get_save_file_name(region_name, product, ext_id, start_date,end_date, b_not_mosaic)
 
     if b_vis:
         save_file_name = save_file_name + '_8bit'
@@ -213,20 +259,7 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
 
             return task
 
-def initialize_ee(project):
-    # avoid too many rapid requests to Google's API when parallel call this function
-    # MaxRetryError: HTTPSConnectionPool(host='oauth2.googleapis.com', port=443): Max retries exceeded with url: 
-    # /token (Caused by SSLError(SSLError(1, '[SSL] record layer failure (_ssl.c:2559)')))"
-    # wait random 0.1 to 2 seconds
 
-    # random_wait = np.random.randint(1, 5)     # alway genreated when call in the parallel function
-
-    # Generate a random wait time between 0.1 and 2.0 seconds
-    random_wait = random.uniform(0.1, 10)
-
-    time.sleep(random_wait)
-    print(f'Initializing Earth Engine with project: {project}, please wait {random_wait:.1f} seconds')
-    ee.Initialize(project=project)
 
 
 def parallel_gee_download_images_to_local(idx, total_count, region_name,start_date, end_date, ext_id, extent, product, resolution, projection,
@@ -284,6 +317,9 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
             # save to local disks
             theadPool = Pool(process_num,initializer=initialize_ee, initargs=(gee_project,))  # multi processes ,initializer=initialize_ee()
 
+            # remove already downloaded IDs before run parallel, to improve efficiency
+            extent_polygons, extent_ids = remove_downloaded_tasks(region_name, product, start_date, end_date, extent_polygons, extent_ids, b_not_mosaic)
+
             parameters_list = [(idx,len(extent_polygons), region_name,start_date, end_date,ext_id, extent,product, resolution, projection,
                                 bands,cloud_cover_thr,b_crop,b_visualize, True, True,b_not_mosaic,max_download_count, gee_project)
                                for idx, (extent, ext_id) in enumerate(zip(extent_polygons, extent_ids))]
@@ -331,9 +367,7 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
         print('To save image and labels (if class_int exists) for each downloaded image ')
 
         # get image folder (the same as in "gee_download_images")
-        date_range_str = re.sub(r'\D', '', start_date) + '_' + re.sub(r'\D', '', end_date)  # only keep digits
-        product_info = product.split('/')
-        export_dir = region_name + '_' + product_info[-1] + '_' +  date_range_str + '_images'
+        export_dir = get_export_dir_name(region_name, product, start_date, end_date)
 
         save_tif_list = []
         save_tif_list_txt = export_dir+'_list.txt'
