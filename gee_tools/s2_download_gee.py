@@ -380,12 +380,6 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
 
 def main(options, args):
 
-    # https://www.earthdatascience.org/tutorials/intro-google-earth-engine-python-api/
-    # for each computer, need to run "earthengine authenticate" first.
-    # ee.Initialize()
-    # after Oct 2024, GEE need to link to a Google project
-    google_cloud_project = "gee-project-99319"
-    ee.Initialize(project=google_cloud_project)
 
     # all images will save to Google Drive first
     # currently, manually download them from Google Drive
@@ -407,6 +401,17 @@ def main(options, args):
     # b_not_mosaic = False
     max_download_count = options.max_count
     b_not_mosaic = options.b_not_mosaic
+
+
+    # https://www.earthdatascience.org/tutorials/intro-google-earth-engine-python-api/
+    # for each computer, need to run "earthengine authenticate" first.
+    # ee.Initialize()
+    # after Oct 2024, GEE need to link to a Google project
+    google_cloud_project = "gee-project-99319"
+    if process_num == 1:
+        ee.Initialize(project=google_cloud_project)
+    else:
+        print('Will Initialize gee in the parallel Pool')
 
 
     start_date, end_date = options.start_date, options.end_date
