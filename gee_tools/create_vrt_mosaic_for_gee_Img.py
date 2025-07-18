@@ -46,12 +46,12 @@ def create_virtual_mosaic(image_list, save_path, b_overview=True):
     img_list_txt = 'mosaic_infile_list.txt'
     io_function.save_list_to_txt(img_list_txt,image_list)
 
-    cmd_str = f"gdalbuildvrt -resolution average -r bilinear -input_file_list {img_list_txt} ${save_path}"
+    cmd_str = f"gdalbuildvrt -resolution average -r bilinear -input_file_list {img_list_txt} {save_path}"
     basic.os_system_exit_code(cmd_str)
 
     # generated overview
     if b_overview:
-        cmd_str = f"gdaladdo  -ro ${save_path} 4 8 16 32 64 128"
+        cmd_str = f"gdaladdo  -ro {save_path} 4 8 16 32 64 128"
         basic.os_system_exit_code(cmd_str)
 
 
