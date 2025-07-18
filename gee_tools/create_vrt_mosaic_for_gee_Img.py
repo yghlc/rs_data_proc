@@ -66,7 +66,7 @@ def main(options, args):
     img_list_max_entropy = get_image_list_with_max_entropy(image_list,valid_percent_list,img_entropy_list)
 
     vrt_mosaic_path = image_dir + '.vrt'
-    create_virtual_mosaic(img_list_max_entropy,vrt_mosaic_path, b_overview=True)
+    create_virtual_mosaic(img_list_max_entropy,vrt_mosaic_path, b_overview=False)
 
 
 
