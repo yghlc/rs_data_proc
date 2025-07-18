@@ -31,6 +31,7 @@ from collections import defaultdict
 # input earth engine, used: ~/programs/anaconda3/envs/gee/bin/python, or change to ee by "source activate gee"
 # need shapely, geopandas, gdal
 import ee
+import random
 
 parameters_list = None
 
@@ -212,11 +213,26 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
 
             return task
 
+def initialize_ee(project):
+    # avoid too many rapid requests to Google's API when parallel call this function
+    # MaxRetryError: HTTPSConnectionPool(host='oauth2.googleapis.com', port=443): Max retries exceeded with url: 
+    # /token (Caused by SSLError(SSLError(1, '[SSL] record layer failure (_ssl.c:2559)')))"
+    # wait random 0.1 to 2 seconds
+
+    # random_wait = np.random.randint(1, 5)     # alway genreated when call in the parallel function
+
+    # Generate a random wait time between 0.1 and 2.0 seconds
+    random_wait = random.uniform(0.1, 10)
+
+    time.sleep(random_wait)
+    print(f'Initializing Earth Engine with project: {project}, please wait {random_wait:.1f} seconds')
+    ee.Initialize(project=project)
+
 
 def parallel_gee_download_images_to_local(idx, total_count, region_name,start_date, end_date, ext_id, extent, product, resolution, projection,
                         bands, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True,b_save2local=True,
                                           b_not_mosaic=False,max_download_count=3, gee_project=None):
-    ee.Initialize(project=gee_project)
+    # ee.Initialize(project=gee_project)
     print(f'{idx + 1}/{total_count} Downloading Sentinel-2 for a polygon (id: {ext_id}) ')
 
     extent_gee = shapely_polygon_to_gee_polygon(extent)
@@ -266,7 +282,7 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
 
         else:
             # save to local disks
-            theadPool = Pool(process_num)  # multi processes ,initializer=initialize_ee()
+            theadPool = Pool(process_num,initializer=initialize_ee, initargs=(gee_project,))  # multi processes ,initializer=initialize_ee()
 
             parameters_list = [(idx,len(extent_polygons), region_name,start_date, end_date,ext_id, extent,product, resolution, projection,
                                 bands,cloud_cover_thr,b_crop,b_visualize, True, True,b_not_mosaic,max_download_count, gee_project)
