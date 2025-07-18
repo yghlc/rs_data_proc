@@ -92,7 +92,7 @@ def remove_downloaded_tasks(region_name, product, start_date, end_date,extent_po
         save_file_name = get_save_file_name(region_name, product, ext_id, start_date, end_date, b_not_mosaic)
         local_record = os.path.join(export_dir, save_file_name + '.submit')
         if os.path.isfile(local_record):
-            print('task %s already be submitted to GEE or downloaded, skip' % local_record)
+            print(f'{idx+1}/{len(extent_polygons)} task: {local_record} already be submitted to GEE or downloaded, skip')
         else:
             remain_extent_polygons.append(extent)
             remain_extent_ids.append(ext_id)
