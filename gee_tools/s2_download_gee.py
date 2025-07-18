@@ -318,11 +318,11 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
             theadPool = Pool(process_num,initializer=initialize_ee, initargs=(gee_project,))  # multi processes ,initializer=initialize_ee()
 
             # remove already downloaded IDs before run parallel, to improve efficiency
-            extent_polygons, extent_ids = remove_downloaded_tasks(region_name, product, start_date, end_date, extent_polygons, extent_ids, b_not_mosaic)
+            extent_polygons_2, extent_ids_2 = remove_downloaded_tasks(region_name, product, start_date, end_date, extent_polygons, extent_ids, b_not_mosaic)
 
-            parameters_list = [(idx,len(extent_polygons), region_name,start_date, end_date,ext_id, extent,product, resolution, projection,
+            parameters_list = [(idx,len(extent_polygons_2), region_name,start_date, end_date,ext_id, extent,product, resolution, projection,
                                 bands,cloud_cover_thr,b_crop,b_visualize, True, True,b_not_mosaic,max_download_count, gee_project)
-                               for idx, (extent, ext_id) in enumerate(zip(extent_polygons, extent_ids))]
+                               for idx, (extent, ext_id) in enumerate(zip(extent_polygons_2, extent_ids_2))]
             results = theadPool.starmap(parallel_gee_download_images_to_local, parameters_list)  # need python3
             theadPool.close()
 
