@@ -29,7 +29,7 @@ import basic_src.io_function as io_function
 
 def get_img_grid_id_from_path(item):
     # return str
-    return re.findall('img\d+', os.path.basename(item))[0][3:]
+    return re.findall(r'img\d+', os.path.basename(item))[0][3:]
 
 
 def get_image_valid_percent_entropy(image_list, nodata_user=0):
