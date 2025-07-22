@@ -63,6 +63,7 @@ def main(options, args):
     vrt_mosaic_path = image_dir + '.vrt'
     if os.path.isfile(vrt_mosaic_path):
         basic.outputlogMessage(f'{vrt_mosaic_path} exists, skip generating new mosaic')
+        return
 
     image_list = io_function.get_file_list_by_pattern(image_dir, file_pattern)
     valid_percent_list, img_entropy_list = get_image_valid_percent_entropy(image_list)
