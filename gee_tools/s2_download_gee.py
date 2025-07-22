@@ -142,7 +142,7 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
     # check count  # getInfo can get python number (not ee.Number)
     count = filtercollection.size().getInfo()
     if count < 1:
-        basic.outputlogMessage(f'No results for the polygon (id: {ext_id} ) with {img_speci}')
+        basic.outputlogMessage(f'No results for the polygon (id: {ext_id} ) with {product}')
         return False
 
     print(f'Find {count} image for the polygon (id: {ext_id} )' )
