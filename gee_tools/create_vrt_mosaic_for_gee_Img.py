@@ -14,6 +14,11 @@ from optparse import OptionParser
 sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS'))
 import basic_src.io_function as io_function
 import basic_src.basic as basic
+import basic_src.map_projection as map_projection
+import raster_io
+import vector_gpd
+
+import pandas as pd
 
 from delete_bad_images import get_image_valid_percent_entropy, get_img_grid_id_from_path
 
@@ -54,6 +59,14 @@ def create_virtual_mosaic(image_list, save_path, b_overview=True):
         cmd_str = f"gdaladdo  -ro {save_path} 4 8 16 32 64 128"
         basic.os_system_exit_code(cmd_str)
 
+def save_image_extend(img_list, save_path):
+    img_boxes = [ raster_io.get_image_bound_box(img_path)  for img_path in img_list]
+    img_box_polygons = [ vector_gpd.convert_image_bound_to_shapely_polygon(box) for box in img_boxes]
+    # save to file
+    wkt = map_projection.get_raster_or_vector_srs_info_proj4(img_list[0])
+    save_pd = pd.DataFrame({'raster':img_list, 'Polygon':img_box_polygons})
+    vector_gpd.save_polygons_to_files(save_pd,'Polygon',wkt,save_path,format='GPKG')
+    print(f'save raster extents to {save_path}')
 
 def main(options, args):
 
@@ -61,6 +74,7 @@ def main(options, args):
     image_dir = args[0]
 
     vrt_mosaic_path = image_dir + '.vrt'
+    image_extents_path = image_dir + '_imgExt.gpkg'
     if os.path.isfile(vrt_mosaic_path):
         basic.outputlogMessage(f'{os.path.abspath(vrt_mosaic_path)} exists, skip generating new mosaic')
         return
@@ -69,6 +83,7 @@ def main(options, args):
     valid_percent_list, img_entropy_list = get_image_valid_percent_entropy(image_list)
 
     img_list_max_entropy = get_image_list_with_max_entropy(image_list,valid_percent_list,img_entropy_list)
+    save_image_extend(img_list_max_entropy,image_extents_path)
 
 
     create_virtual_mosaic(img_list_max_entropy,vrt_mosaic_path, b_overview=False)
