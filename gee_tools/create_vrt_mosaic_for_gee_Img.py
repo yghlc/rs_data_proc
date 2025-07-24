@@ -64,7 +64,8 @@ def save_image_extend(img_list, save_path):
     img_box_polygons = [ vector_gpd.convert_image_bound_to_shapely_polygon(box) for box in img_boxes]
     # save to file
     wkt = map_projection.get_raster_or_vector_srs_info_proj4(img_list[0])
-    save_pd = pd.DataFrame({'raster':img_list, 'Polygon':img_box_polygons})
+    raster_names = [os.path.basename(item) for item in img_list]
+    save_pd = pd.DataFrame({'raster':raster_names, 'Polygon':img_box_polygons})
     vector_gpd.save_polygons_to_files(save_pd,'Polygon',wkt,save_path,format='GPKG')
     print(f'save raster extents to {save_path}')
 
