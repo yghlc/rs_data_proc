@@ -94,8 +94,9 @@ def main(options, args):
             dem_diff_list = io_function.get_file_list_by_pattern(dem_diff_file_or_dir,'*DEM_diff_grid*.tif')
             if len(dem_diff_list) < 1:
                 basic.outputlogMessage(f'No DEM diff files in {dem_diff_file_or_dir} for colorRelief')
-
-    out_dir = grid_dem_diffs_color_dir if os.path.isdir(grid_dem_diffs_color_dir) else out_dir
+    # if out_dir is not set, using the one in dem_common.py
+    if out_dir is None:
+        out_dir = grid_dem_diffs_color_dir if os.path.isdir(grid_dem_diffs_color_dir) else './'
 
     count = len(dem_diff_list)
     failed_tifs = []
@@ -120,7 +121,7 @@ if __name__ == '__main__':
                       help="the format of output images, GTIFF, PNG, JPEG, VRT, etc")
 
     parser.add_option("-o", "--out_dir",
-                      action="store", dest="out_dir",default='./',
+                      action="store", dest="out_dir",
                       help="the save directory for files")
 
     parser.add_option("-c", "--tif_compression",
