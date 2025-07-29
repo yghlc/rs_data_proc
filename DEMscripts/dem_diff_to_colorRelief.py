@@ -22,15 +22,19 @@ import basic_src.basic as basic
 
 from dem_common import grid_dem_diffs_dir, grid_dem_diffs_color_dir
 
-def dem_tif_to_colorReleif(input,output):
+def dem_tif_to_colorReleif(input,output,out_format='GTiff',tif_compression='lzw'):
     if os.path.isfile(output):
         basic.outputlogMessage('%s exists, skip'%output)
         return True
 
     color_text_file = 'dem_diff_color_5to5m.txt'
 
-    command_str = 'gdaldem color-relief -of GTiff -co compress=lzw -co tiled=yes -co bigtiff=if_safer ' \
-                  + input + ' ' + ' %s '%color_text_file  + output
+    if out_format=='GTiff':
+        command_str = f'gdaldem color-relief -of {out_format} -co compress={tif_compression} -co tiled=yes -co bigtiff=if_safer '
+    else:
+        command_str = f'gdaldem color-relief -of {out_format} '
+
+    command_str +=  input + ' ' + ' %s '%color_text_file  + output
 
     print(command_str)
     res = os.system(command_str)
@@ -68,6 +72,8 @@ def one_dem_diff_to_colorRelief(demDiff_tif):
 
 def main(options, args):
     basic.setlogfile('log_convert_dem_diff_to_colorRelief.txt')
+    out_format = options.out_format
+    tif_compression = options.tif_compression
 
     if len(args) < 1:
         dem_diff_list = io_function.get_file_list_by_pattern(grid_dem_diffs_dir, '*DEM_diff_grid*.tif')
@@ -90,7 +96,7 @@ def main(options, args):
         print('%d/%d convert %s to Color Relief'%(idx+1, count, tif))
         tif_color = io_function.get_name_by_adding_tail(tif, 'color')
         output = os.path.join(out_dir, os.path.basename(tif_color))
-        if dem_tif_to_colorReleif(tif,output) is False:
+        if dem_tif_to_colorReleif(tif,output,out_format=out_format,tif_compression=tif_compression) is False:
             failed_tifs.append(tif)
 
     if len(failed_tifs)>0:
@@ -101,6 +107,15 @@ if __name__ == '__main__':
     usage = "usage: %prog [options] dem_diff or dem_diff_dir "
     parser = OptionParser(usage=usage, version="1.0 2024-3-21")
     parser.description = 'Introduction: producing DEM color relief '
+
+    parser.add_option("-f", "--out_format",
+                      action="store", dest="out_format",default='GTIFF',
+                      help="the format of output images, GTIFF, PNG, JPEG, VRT, etc")
+
+    parser.add_option("-c", "--tif_compression",
+                      action="store", dest="tif_compression",default='lzw',
+                      help="the compression for tif format, JPEG compression reduce file size, "
+                           "but JPEG format reduce file size more but loss some info")
 
     (options, args) = parser.parse_args()
     main(options, args)
