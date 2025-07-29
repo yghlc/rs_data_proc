@@ -24,16 +24,16 @@ import raster_io
 from dem_common import grid_dem_diffs_dir, grid_dem_diffs_color_dir
 
 def dem_tif_to_colorReleif(input,output,out_format='GTiff',tif_compression='lzw'):
+    # change the file extension
+    file_extension = raster_io.get_file_extension(out_format)
+    file_path, ext1 = os.path.splitext(output)
+    output = file_path + file_extension
+
     if os.path.isfile(output):
         basic.outputlogMessage('%s exists, skip'%output)
         return True
 
     color_text_file = 'dem_diff_color_5to5m.txt'
-
-    # change the file extension
-    file_extension = raster_io.get_file_extension(out_format)
-    file_path, ext1 = os.path.splitext(output)
-    output = file_path + file_extension
 
     if out_format=='GTiff':
         command_str = f'gdaldem color-relief -of {out_format} -co compress={tif_compression} -co tiled=yes -co bigtiff=if_safer '
