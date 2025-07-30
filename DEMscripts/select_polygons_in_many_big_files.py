@@ -22,6 +22,8 @@ import gc  # Garbage collection module
 import subprocess
 from osgeo import ogr
 
+from DEMscripts.dem_mosaic_crop import add_id_grid_to_txt
+
 sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS'))
 # import basic_src.io_function as io_function
 import vector_gpd
@@ -235,6 +237,54 @@ def random_select_polygons_in_multi_gpkg(file_names, samp_counts_in_files, outpu
 
     print(f"All selected polygons have been merged into '{output_file}'.")
 
+def select_polygon_within_extent_in_multi_gpkg(file_names, extent_vector, output_file):
+    # Read and union all extent polygons
+    from shapely.geometry import shape
+    from shapely.ops import unary_union
+    import pandas as pd
+    import tempfile
+
+    extent_gdf = gpd.read_file(extent_vector)
+    extent_union = unary_union(extent_gdf.geometry)
+    extent_bounds = extent_union.bounds
+
+    selected_gdfs = []
+
+    for gpkg_path in file_names:
+        layers = fiona.listlayers(gpkg_path)
+        for layer in layers:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                # Step 1: Crop with bounding box for speed
+                cropped_path = os.path.join(tmpdir, 'cropped.gpkg')
+                input_layer_path = f"{gpkg_path}|layername={layer}"
+                clipped_file = vector_gpd.clip_geometries_ogr2ogr(input_path=input_layer_path, save_path=cropped_path,
+                                                       bounds=extent_bounds, format='GPKG')
+                if clipped_file is None or not os.path.exists(cropped_path):
+                    continue
+                # Step 2: Open the cropped file, perform exact intersection
+                try:
+                    gdf = gpd.read_file(cropped_path)
+                except Exception as e:
+                    continue
+                if gdf.empty:
+                    continue
+                # Make sure CRS matches
+                if gdf.crs != extent_gdf.crs:
+                    gdf = gdf.to_crs(extent_gdf.crs)
+                mask = gdf.geometry.intersects(extent_union)
+                selected = gdf[mask]
+                if not selected.empty:
+                    selected_gdfs.append(selected)
+
+    # Combine and save
+    if selected_gdfs:
+        result_gdf = gpd.GeoDataFrame(pd.concat(selected_gdfs, ignore_index=True), crs=extent_gdf.crs)
+        result_gdf.to_file(output_file, driver='GPKG', layer='selected_polygons')
+    else:
+        # Create an empty GeoDataFrame and save
+        empty_gdf = gpd.GeoDataFrame(geometry=[], crs=extent_gdf.crs)
+        empty_gdf.to_file(output_file, driver='GPKG', layer='selected_polygons')
+
 
 
 # Main Function
@@ -248,32 +298,36 @@ def main(options, args):
     file_names, feature_counts = load_feature_counts(feature_count_file)
     total_count = sum(feature_counts)
 
-    # Step 2: Generate random global indices
-    random_indices = generate_random_indices(total_count, num_samples)
+    if len(args[0])==1:
+        # Step 2: Generate random global indices
+        random_indices = generate_random_indices(total_count, num_samples)
 
-    # Step 3: Map global indices to file and local indices
-    cumulative_counts = np.cumsum([0] + feature_counts)
-    file_indices = map_indices_to_files(random_indices, cumulative_counts)
+        # Step 3: Map global indices to file and local indices
+        cumulative_counts = np.cumsum([0] + feature_counts)
+        file_indices = map_indices_to_files(random_indices, cumulative_counts)
 
-    # # Step 4: Extract selected polygons
-    # selected_polygons, dataset_crs = extract_selected_polygons(file_names, file_indices)
+        # # Step 4: Extract selected polygons
+        # selected_polygons, dataset_crs = extract_selected_polygons(file_names, file_indices)
 
-    # # Step 5: Save selected polygons
-    # save_selected_polygons(selected_polygons, output_file, dataset_crs)
+        # # Step 5: Save selected polygons
+        # save_selected_polygons(selected_polygons, output_file, dataset_crs)
 
 
-    # Group indices by file to minimize file reads
-    file_to_indices = group_indices_by_file(file_indices)
-    # print(file_to_indices.keys())
-    samp_counts_in_files = [len(file_to_indices[item]) for item in file_to_indices.keys()]
-    random_select_polygons_in_multi_gpkg(file_names, samp_counts_in_files, output_file)
+        # Group indices by file to minimize file reads
+        file_to_indices = group_indices_by_file(file_indices)
+        # print(file_to_indices.keys())
+        samp_counts_in_files = [len(file_to_indices[item]) for item in file_to_indices.keys()]
+        random_select_polygons_in_multi_gpkg(file_names, samp_counts_in_files, output_file)
+    else:
+        extent_vector = args[1]
+        select_polygon_within_extent_in_multi_gpkg(file_names, extent_vector, output_file)
 
 
 
 
 # Run the script
 if __name__ == '__main__':
-    usage = "usage: %prog [options] feature-count.txt "
+    usage = "usage: %prog [options] feature-count.txt [extent_vector] "
     parser = OptionParser(usage=usage, version="1.0 2025-5-11")
     parser.description = 'Introduction: select random from many GPKG files '
 
