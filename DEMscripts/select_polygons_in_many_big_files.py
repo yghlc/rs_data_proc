@@ -22,7 +22,7 @@ import gc  # Garbage collection module
 import subprocess
 from osgeo import ogr
 
-from DEMscripts.dem_mosaic_crop import add_id_grid_to_txt
+# from DEMscripts.dem_mosaic_crop import add_id_grid_to_txt
 
 sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS'))
 # import basic_src.io_function as io_function
