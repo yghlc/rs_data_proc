@@ -28,6 +28,9 @@ sys.path.insert(0, os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS'))
 # import basic_src.io_function as io_function
 import vector_gpd
 
+import tempfile
+from datetime import datetime
+
 # Step 1: Load feature counts from the text file
 def load_feature_counts(file_path):
     feature_counts = []
@@ -238,52 +241,35 @@ def random_select_polygons_in_multi_gpkg(file_names, samp_counts_in_files, outpu
     print(f"All selected polygons have been merged into '{output_file}'.")
 
 def select_polygon_within_extent_in_multi_gpkg(file_names, extent_vector, output_file):
-    # Read and union all extent polygons
-    from shapely.geometry import shape
-    from shapely.ops import unary_union
-    import pandas as pd
-    import tempfile
+    if os.path.isfile(output_file):
+        print(f'The final output: {output_file} already exists, cancel extracting polygons')
+        return
 
-    extent_gdf = gpd.read_file(extent_vector)
-    extent_union = unary_union(extent_gdf.geometry)
-    extent_bounds = extent_union.bounds
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_files = []
 
-    selected_gdfs = []
+        for file_idx, input_file in enumerate(file_names):
+            print(datetime.now(), f"{file_idx+1}/{len(file_names)} checking {os.path.basename(input_file)}")
+            overlap_touch = vector_gpd.geometries_overlap_another_group(input_file, extent_vector)
+            if overlap_touch.empty:
+                print(f"No overlapping polygons found in {input_file}, skipping.")
+                continue
 
-    for gpkg_path in file_names:
-        layers = fiona.listlayers(gpkg_path)
-        for layer in layers:
-            with tempfile.TemporaryDirectory() as tmpdir:
-                # Step 1: Crop with bounding box for speed
-                cropped_path = os.path.join(tmpdir, 'cropped.gpkg')
-                input_layer_path = f"{gpkg_path}|layername={layer}"
-                clipped_file = vector_gpd.clip_geometries_ogr2ogr(input_path=input_layer_path, save_path=cropped_path,
-                                                       bounds=extent_bounds, format='GPKG')
-                if clipped_file is None or not os.path.exists(cropped_path):
-                    continue
-                # Step 2: Open the cropped file, perform exact intersection
-                try:
-                    gdf = gpd.read_file(cropped_path)
-                except Exception as e:
-                    continue
-                if gdf.empty:
-                    continue
-                # Make sure CRS matches
-                if gdf.crs != extent_gdf.crs:
-                    gdf = gdf.to_crs(extent_gdf.crs)
-                mask = gdf.geometry.intersects(extent_union)
-                selected = gdf[mask]
-                if not selected.empty:
-                    selected_gdfs.append(selected)
+            temp_file = os.path.join(tmpdir, f"temp_{file_idx}.gpkg")
+            overlap_touch.to_file(temp_file, driver='GPKG', layer='selected_polygons')
+            temp_files.append(temp_file)
 
-    # Combine and save
-    if selected_gdfs:
-        result_gdf = gpd.GeoDataFrame(pd.concat(selected_gdfs, ignore_index=True), crs=extent_gdf.crs)
-        result_gdf.to_file(output_file, driver='GPKG', layer='selected_polygons')
-    else:
-        # Create an empty GeoDataFrame and save
-        empty_gdf = gpd.GeoDataFrame(geometry=[], crs=extent_gdf.crs)
-        empty_gdf.to_file(output_file, driver='GPKG', layer='selected_polygons')
+        if not temp_files:
+            print("No overlapping polygons found in any input file.")
+            return
+
+        vector_gpd.merge_vector_files(temp_files, output_file, format='GPKG')
+
+        for temp_file in temp_files:
+            os.remove(temp_file)
+            print(f"Removed temporary file: {temp_file}")
+
+        print(datetime.now(), f"All selected polygons have been merged into '{output_file}'.")
 
 
 
