@@ -258,6 +258,7 @@ def select_polygon_within_extent_in_multi_gpkg(file_names, extent_vector, output
             temp_file = os.path.join(tmpdir, f"temp_{file_idx}.gpkg")
             overlap_touch.to_file(temp_file, driver='GPKG', layer='selected_polygons')
             temp_files.append(temp_file)
+            gc.collect()
 
         if not temp_files:
             print("No overlapping polygons found in any input file.")
