@@ -245,35 +245,34 @@ def select_polygon_within_extent_in_multi_gpkg(file_names, extent_vector, output
         print(f'The final output: {output_file} already exists, cancel extracting polygons')
         return
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        temp_files = []
+    temp_files = []
 
-        for file_idx, input_file in enumerate(file_names):
-            print(datetime.now(), f"{file_idx+1}/{len(file_names)} checking {os.path.basename(input_file)}")
-            temp_file = os.path.join(tmpdir, f"temp_{file_idx}.gpkg")
-            if os.path.isfile(temp_file):
-                print(f'{temp_file} exists, skip')
-                continue
-            overlap_touch = vector_gpd.geometries_overlap_another_group(input_file, extent_vector)
-            if overlap_touch.empty:
-                print(f"No overlapping polygons found in {input_file}, skipping.")
-                continue
+    for file_idx, input_file in enumerate(file_names):
+        print(datetime.now(), f"{file_idx+1}/{len(file_names)} checking {os.path.basename(input_file)}")
+        temp_file = os.path.join(f"temp_{file_idx}.gpkg")
+        if os.path.isfile(temp_file):
+            print(f'{temp_file} exists, skip')
+            continue
+        overlap_touch = vector_gpd.geometries_overlap_another_group(input_file, extent_vector)
+        if overlap_touch.empty:
+            print(f"No overlapping polygons found in {input_file}, skipping.")
+            continue
 
-            overlap_touch.to_file(temp_file, driver='GPKG', layer='selected_polygons')
-            temp_files.append(temp_file)
-            gc.collect()
+        overlap_touch.to_file(temp_file, driver='GPKG', layer='selected_polygons')
+        temp_files.append(temp_file)
+        gc.collect()
 
-        if not temp_files:
-            print("No overlapping polygons found in any input file.")
-            return
+    if not temp_files:
+        print("No overlapping polygons found in any input file.")
+        return
 
-        vector_gpd.merge_vector_files(temp_files, output_file, format='GPKG')
+    vector_gpd.merge_vector_files(temp_files, output_file, format='GPKG')
 
-        for temp_file in temp_files:
-            os.remove(temp_file)
-            print(f"Removed temporary file: {temp_file}")
+    for temp_file in temp_files:
+        os.remove(temp_file)
+        print(f"Removed temporary file: {temp_file}")
 
-        print(datetime.now(), f"All selected polygons have been merged into '{output_file}'.")
+    print(datetime.now(), f"All selected polygons have been merged into '{output_file}'.")
 
 
 
