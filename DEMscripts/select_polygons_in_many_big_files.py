@@ -298,7 +298,7 @@ def main(options, args):
     file_names, feature_counts = load_feature_counts(feature_count_file)
     total_count = sum(feature_counts)
 
-    if len(args[0])==1:
+    if len(args)==1:
         # Step 2: Generate random global indices
         random_indices = generate_random_indices(total_count, num_samples)
 
