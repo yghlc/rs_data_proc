@@ -251,6 +251,7 @@ def select_polygon_within_extent_in_multi_gpkg(file_names, extent_vector, output
         print(datetime.now(), f"{file_idx+1}/{len(file_names)} checking {os.path.basename(input_file)}")
         temp_file = os.path.join(f"temp_{file_idx}.gpkg")
         if os.path.isfile(temp_file):
+            temp_files.append(temp_file)
             print(f'{temp_file} exists, skip')
             continue
         overlap_touch = vector_gpd.geometries_overlap_another_group(input_file, extent_vector)
