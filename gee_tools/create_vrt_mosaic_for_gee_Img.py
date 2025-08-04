@@ -48,7 +48,8 @@ def create_virtual_mosaic(image_list, save_path, b_overview=True):
     # gdalbuildvrt -resolution average -r nearest -input_file_list infile_list.txt ${save_vrt}
     # #rm infile_list.txt
 
-    img_list_txt = 'mosaic_infile_list.txt'
+    name_no_ext = io_function.get_name_no_ext(save_path)
+    img_list_txt = f'{name_no_ext}_infile_list.txt'
     io_function.save_list_to_txt(img_list_txt,image_list)
 
     cmd_str = f"gdalbuildvrt -resolution average -r bilinear -input_file_list {img_list_txt} {save_path}"
