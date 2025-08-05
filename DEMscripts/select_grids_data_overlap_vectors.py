@@ -24,7 +24,7 @@ from datetime import datetime
 arcticDEM_res_dir ="/Volumes/Seagate8T/ArcticDEM_results"
 arcticdata_root="https://arcticdata.io/data/10.18739/A2ZS2KF4B/Lingcao-output"
 
-def find_grids_overlap_vector_shp(grid_indexes_shp,vector_shp_list):
+def find_grids_overlap_vector_shp(grid_indexes_shp,vector_shp_list,save_path='overlap_touch_all.shp'):
 
     if isinstance(vector_shp_list,list) is False:
         vector_shp_list = [vector_shp_list]
@@ -38,7 +38,7 @@ def find_grids_overlap_vector_shp(grid_indexes_shp,vector_shp_list):
 
     # remove duplicated geometries in overlap_touch
     overlap_touch_all = overlap_touch_all.drop_duplicates(subset=['geometry'])    # only check geometry
-    overlap_touch_all.to_file('overlap_touch_all.shp')
+    overlap_touch_all.to_file(save_path)
 
     return overlap_touch_all
 
@@ -254,6 +254,7 @@ def main(options, args):
     global  arcticDEM_res_dir
     if options.arcticDEM_res_dir is not None:
         arcticDEM_res_dir = options.arcticDEM_res_dir
+    save_dir = options.save_dir
 
     #   cell_id (Integer64) = 58601
     #   tarball (String) = dem_diffs_2m_grid58601.tar.gz
@@ -263,17 +264,28 @@ def main(options, args):
     # grid_polys, grid_attributes = vector_gpd.read_polygons_attributes_list(grid_indexes_shp,['cell_id','fileurl'],
     #                                                                        b_fix_invalid_polygon=False)
 
-    sel_grids_gpd = find_grids_overlap_vector_shp(grid_indexes_shp, vector_shp_list)
-    save_grids_ids_to_txt(sel_grids_gpd,'select_grids_ids.txt')
-    save_grids_fileurl_to_txt(sel_grids_gpd,'select_grids_fileurls.txt')
-    save_arcticdata_url_dem_diff_raster(sel_grids_gpd,'select_grids_arcticdata_urls_DEMdiff.txt')
-    save_arcticdata_url_composited_images(sel_grids_gpd,'select_grids_arcticdata_urls_compositedImages.txt')
+    if grid_indexes_shp.endswith('_Index.shp'):
+        #  process ArcticDEM products
+        sel_grids_gpd = find_grids_overlap_vector_shp(grid_indexes_shp, vector_shp_list)
+        save_grids_ids_to_txt(sel_grids_gpd,'select_grids_ids.txt')
+        save_grids_fileurl_to_txt(sel_grids_gpd,'select_grids_fileurls.txt')
+        save_arcticdata_url_dem_diff_raster(sel_grids_gpd,'select_grids_arcticdata_urls_DEMdiff.txt')
+        save_arcticdata_url_composited_images(sel_grids_gpd,'select_grids_arcticdata_urls_compositedImages.txt')
 
-    find_dem_difference_raster(sel_grids_gpd, 'select_dem_diff_raster_list.txt')
+        find_dem_difference_raster(sel_grids_gpd, 'select_dem_diff_raster_list.txt')
 
-    save_folder = 'ele_dem_polygons'
-    # find_copy_dem_diff_polygons(sel_grids_gpd, save_folder)
-    find_copy_dem_diff_polygons_sam(sel_grids_gpd, save_folder)
+        save_folder = 'ele_dem_polygons'
+        # find_copy_dem_diff_polygons(sel_grids_gpd, save_folder)
+        find_copy_dem_diff_polygons_sam(sel_grids_gpd, save_folder)
+    else:
+        # Process a vector file that overlaps with others
+        pre_name = io_function.get_name_no_ext(grid_indexes_shp)
+        if os.path.isdir(save_dir) is False:
+            io_function.mkdir(save_dir)
+        save_path = os.path.join(save_dir,pre_name + '_overlap.shp')
+        sel_grids_gpd = find_grids_overlap_vector_shp(grid_indexes_shp, vector_shp_list, save_path=save_path)
+
+
 
 if __name__ == '__main__':
     usage = "usage: %prog [options] grid_indexes_shp vector_shp1 vector_shp2 ... "
