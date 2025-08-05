@@ -187,6 +187,45 @@ def find_copy_dem_diff_polygons(sel_grids_gpd, save_folder):
         # remove the gpkg
         io_function.delete_file_or_dir(gpkg_folder)
 
+def find_copy_dem_diff_polygons_sam(sel_grids_gpd, save_folder):
+    # find and crop polygons of elevation reductions (produced by Segment anything model)
+
+    grid_id_list = sel_grids_gpd['cell_id'].to_list()
+    grid_polys = sel_grids_gpd['geometry'].to_list()
+    fileurl_list = sel_grids_gpd['fileurl'].to_list()
+    ext_num_list = [item.split('/')[1] for item in fileurl_list]
+
+    ele_diff_poly_dir = os.path.join(arcticDEM_res_dir,'all_grid_dem_diffs_sam_results')
+    # group grids, based on ext num
+    ext_grid_ids = {}
+    ext_grid_polys = {}
+    for grid_id, ext_num, poly in zip(grid_id_list, ext_num_list, grid_polys):
+        ext_grid_ids.setdefault(ext_num, []).append(grid_id)
+        ext_grid_polys.setdefault(ext_num, []).append(poly)
+    # print(ext_grids)
+
+    # find and crop
+    for key in ext_grid_ids.keys():
+        print('finding and cropping polygons of elevations for ext: %s '%key)
+        ext_grid_id_list = ext_grid_ids[key]
+        ext_grid_list = ext_grid_polys[key]
+
+        save_folder = '%s_grid_dem_diffs_sam_results' % key
+        if os.path.isdir(save_folder):
+            print('warning, folder for %s already exist, data may already there, skip'%key)
+            continue
+
+        gpkg_path = io_function.get_file_list_by_pattern(ele_diff_poly_dir,'%s_*dem_diff_sam*.gpkg'%key)[0]
+        if os.path.isfile(gpkg_path) is False:
+            raise IOError('%s does not exist'%gpkg_path)
+
+        io_function.mkdir(save_folder)
+        for g_id, g_poly in zip(ext_grid_id_list, ext_grid_list):
+            print(datetime.now(), 'crop polygons for grid: %d'%g_id)
+            save_poly_path = os.path.join(save_folder, "dem_diffs_polygons_grid%d.gpkg" % g_id)
+            vector_gpd.clip_geometries_ogr2ogr(gpkg_path,save_poly_path,g_poly.bounds,format='GPKG')
+
+
 
 def test_find_grids_overlap_vector_shp():
     data_dir = os.path.expanduser('~/Data/dem_processing/products_derived_from_ArcticDEM/Index_shp')
@@ -233,8 +272,8 @@ def main(options, args):
     find_dem_difference_raster(sel_grids_gpd, 'select_dem_diff_raster_list.txt')
 
     save_folder = 'ele_dem_polygons'
-    find_copy_dem_diff_polygons(sel_grids_gpd, save_folder)
-
+    # find_copy_dem_diff_polygons(sel_grids_gpd, save_folder)
+    find_copy_dem_diff_polygons_sam(sel_grids_gpd, save_folder)
 
 if __name__ == '__main__':
     usage = "usage: %prog [options] grid_indexes_shp vector_shp1 vector_shp2 ... "
