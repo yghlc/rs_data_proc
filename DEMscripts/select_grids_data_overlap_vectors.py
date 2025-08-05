@@ -283,6 +283,9 @@ def main(options, args):
         if os.path.isdir(save_dir) is False:
             io_function.mkdir(save_dir)
         save_path = os.path.join(save_dir,pre_name + '_overlap.shp')
+        if os.path.isfile(save_path):
+            print(f'{save_path} exist, skip. Please remove it if necessary')
+            return
         sel_grids_gpd = find_grids_overlap_vector_shp(grid_indexes_shp, vector_shp_list, save_path=save_path)
 
 
