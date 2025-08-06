@@ -3,6 +3,8 @@
 """
 introduction: select grid data (DEM difference raster, polygons, and others) if they overlap input polygons or points
 
+OR select polygons in a vector file that overlap with others vector files (one or many)
+
 authors: Huang Lingcao
 email:huanglingcao@gmail.com
 add time: 18 December, 2023
