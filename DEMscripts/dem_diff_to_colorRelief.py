@@ -81,9 +81,10 @@ def main(options, args):
     out_format = options.out_format
     tif_compression = options.tif_compression
     out_dir = options.out_dir
+    file_pattern = options.file_pattern
 
     if len(args) < 1:
-        dem_diff_list = io_function.get_file_list_by_pattern(grid_dem_diffs_dir, '*DEM_diff_grid*.tif')
+        dem_diff_list = io_function.get_file_list_by_pattern(grid_dem_diffs_dir, file_pattern)
         if os.path.isdir(grid_dem_diffs_color_dir) is False:
             io_function.mkdir(grid_dem_diffs_color_dir)
     else:
@@ -91,7 +92,7 @@ def main(options, args):
         if os.path.isfile(dem_diff_file_or_dir):
             dem_diff_list = [dem_diff_file_or_dir]
         else:
-            dem_diff_list = io_function.get_file_list_by_pattern(dem_diff_file_or_dir,'*DEM_diff_grid*.tif')
+            dem_diff_list = io_function.get_file_list_by_pattern(dem_diff_file_or_dir,file_pattern)
             if len(dem_diff_list) < 1:
                 basic.outputlogMessage(f'No DEM diff files in {dem_diff_file_or_dir} for colorRelief')
     # if out_dir is not set, using the one in dem_common.py
@@ -128,6 +129,10 @@ if __name__ == '__main__':
                       action="store", dest="tif_compression",default='lzw',
                       help="the compression for tif format, JPEG compression reduce file size, "
                            "but JPEG format reduce file size more but loss some info")
+
+    parser.add_option("-p", "--file_pattern",
+                      action="store", dest="file_pattern",default='*DEM_diff_grid*.tif',
+                      help="the file name pattern for search rasters in a folder ")
 
     (options, args) = parser.parse_args()
     main(options, args)
