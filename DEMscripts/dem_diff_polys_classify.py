@@ -61,9 +61,11 @@ def find_grid_dem_diff_poly_shp(grid_str, dem_diff_poly_shps, dem_diff_poly_shps
 def find_dem_diff_include_neighbour(grid_ids_2d, grid_id, dem_diff_file_list, grid_id_list):
 
     neighbours_grids = find_neighbours_grids(grid_ids_2d,grid_id, connect=8)
+    # print(f'grid {grid_id} has neighbours: {neighbours_grids}')
+    # sys.exit(0)
     neighbours_grids.append(grid_id)
 
-    select_idx_list = [grid_id_list.index(item)  for item in neighbours_grids]
+    select_idx_list = [grid_id_list.index(item) for item in neighbours_grids if item in grid_id_list]
     # only keep the existing files
     select_dem_diff_list = [dem_diff_file_list[item] for item in select_idx_list if os.path.isfile(dem_diff_file_list[item])]
 
@@ -91,9 +93,9 @@ def find_dem_diff_color(sel_dem_file_list,dem_diff_color_dir, copy_dir):
 
 
 def set_each_grid_as_a_region_for_classify(area_ini, main_para_ini, dem_diff_file_dir, dem_diff_color_dir, dem_diff_poly_dir,
-                                           area_ini_dir = 'area_grid'):
+                                           area_ini_dir = 'area_grid_ini_files'):
 
-    dem_diff_file_or_pattern = parameters.get_string_parameters(area_ini, 'dem_diff_prompt_or_pattern')
+    dem_diff_file_or_pattern = parameters.get_string_parameters(area_ini, 'inf_image_or_pattern')
     dem_diff_file_list = io_function.get_file_list_by_pattern(dem_diff_file_dir, dem_diff_file_or_pattern)
     grid_id_list = [get_grid_id_from_path(item) for item in dem_diff_file_list]
     dem_diff_poly_shps = io_function.get_file_list_by_pattern(dem_diff_poly_dir, '*.shp')
@@ -127,13 +129,15 @@ def set_each_grid_as_a_region_for_classify(area_ini, main_para_ini, dem_diff_fil
 
         sel_dem_file_list = find_dem_diff_include_neighbour(grid_ids_2d,grid_id,dem_diff_file_list,grid_id_list)
 
-        grid_dem_diff_color_dir = f'{grid_str}_DEM_diff_color_ln'
+        grid_dem_diff_color_dir = os.path.join( 'soft_link_to_raster',f'{grid_str}_DEM_diff_color_link')
 
         sel_dem_file_list = find_dem_diff_color(sel_dem_file_list,dem_diff_color_dir,grid_dem_diff_color_dir)
 
         parameters.write_Parameters_file(area_grid_ini,'area_name',grid_str)
 
         parameters.write_Parameters_file(area_grid_ini, 'inf_image_dir', grid_dem_diff_color_dir)
+
+        parameters.write_Parameters_file(area_grid_ini, 'all_polygons_labels', dem_diff_poly_shp)
 
 
         area_grid_ini_list.append(area_grid_ini)

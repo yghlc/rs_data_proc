@@ -189,11 +189,12 @@ def find_neighbours_grids(grid_ids_2d,grid_id,connect):
     '''
 
     height, width = grid_ids_2d.shape
-    result = np.where(grid_ids_2d == grid_id)
-    if len(result) != 1:
-        raise ValueError(f'There are {len(result)} grids with the ID: {grid_id} in the numpy array, should be only one grid')
-    seed = result[0]
-    y,x = seed[0],seed[1]
+    rows, cols  = np.where(grid_ids_2d == grid_id)
+    # print(rows, cols)
+    if len(rows) != 1:
+        raise ValueError(f'There are {len(rows)} grids with the ID: {grid_id} in the numpy array, should be only one grid')
+
+    y,x = rows[0],cols[0]
 
     neigh_range = [-1,0,1]
     neighbours = [[i,j] for i in neigh_range for j in neigh_range  ]
@@ -218,7 +219,7 @@ def find_neighbours_grids(grid_ids_2d,grid_id,connect):
             continue
 
         # new_seeds.append([y,x])
-        neighour_grid_ids.append([grid_ids_2d[y,x]])
+        neighour_grid_ids.append(grid_ids_2d[y,x])
 
     return neighour_grid_ids
 
