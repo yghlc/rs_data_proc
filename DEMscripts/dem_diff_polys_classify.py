@@ -85,6 +85,9 @@ def find_dem_diff_color(sel_dem_file_list,dem_diff_color_dir, copy_dir):
 
         tif_color_list.append(tif_color)
         target = os.path.join(copy_dir,tif_color_filename)
+        if os.path.isfile(target):
+            print(f'{target} exist, skip creating the link')
+            continue
         cmd_str = 'ln -s %s %s' % (tif_color, target)
         basic.os_system_exit_code(cmd_str)
 
