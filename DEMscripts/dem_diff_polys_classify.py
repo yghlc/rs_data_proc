@@ -31,6 +31,8 @@ bash_ini_dir = os.path.expanduser('~/Data/slump_demdiff_classify/demDiff_classif
 from dem_segment_sam import create_colorRelief_DEM_diff
 from dem_common import grid_20_id_raster, find_neighbours_grids
 
+import torch
+
 def copy_modify_script_inifile(ini_dir, work_dir, dem_diff_color_dir):
 
     files_copied = ['run_classify.sh', 'model_clip.ini','main_para_exp3.ini',
@@ -128,6 +130,11 @@ def set_each_grid_as_a_region_for_classify(area_ini, main_para_ini, dem_diff_fil
             continue
 
         area_grid_ini = os.path.join(area_ini_dir,f'area_{grid_str}_demdiff.ini')
+
+        if os.path.isfile(area_grid_ini):
+            print(f'{area_grid_ini} exists, skip, remove it to generate a new one')
+            continue
+
         io_function.copy_file_to_dst(area_ini, area_grid_ini, overwrite=True)
 
         sel_dem_file_list = find_dem_diff_include_neighbour(grid_ids_2d,grid_id,dem_diff_file_list,grid_id_list)
@@ -191,18 +198,21 @@ def clip_classify_a_big_region(work_dir, dem_diff_dir, dem_diff_poly_dir, save_d
     # set each grid as a region for segmentation after "get_prompt.sh", allow parallel computing when gettting prompt
     area_grid_ini_list = set_each_grid_as_a_region_for_classify(area_ini, main_para_ini, dem_diff_dir, dem_diff_color_dir, dem_diff_poly_dir)
 
-
-    # run prediction
-    cmd_str = './run_classify.sh'
-    basic.os_system_exit_code(cmd_str)
+    num_gpus = torch.cuda.device_count()
+    if num_gpus > 1:
+        basic.outputlogMessage(f"Multiple ({num_gpus}) GPU exists, please manually change CUDA_VISIBLE_DEVICES to utilize these GPUs ")
+    else:
+        # run prediction
+        cmd_str = './run_classify.sh'
+        basic.os_system_exit_code(cmd_str)
 
     # run post-processing? (in ./run_classify.sh, it will modify original shapefile)
 
 
     # clean: (1) remove DEM diff colorRelif
 
-    # output a done indicator
-    io_function.save_dict_to_txt_json(done_indicator, {'done_time': str(datetime.now())})
+    # output a done indicator (put this into the run_classify.sh, because we need to manually run this if multiple GPU exists)
+    # io_function.save_dict_to_txt_json(done_indicator, {'done_time': str(datetime.now())})
 
     # change director back
     os.chdir(org_dir)
