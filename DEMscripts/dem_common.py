@@ -14,6 +14,7 @@ import re
 machine_name = os.uname()[1]
 import time
 from datetime import datetime
+import numpy as np
 
 deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
@@ -176,6 +177,51 @@ def save_id_grid_no_result(grid_id,file_path):
         with open(file_path, 'a') as f_obj:
             f_obj.writelines(str(grid_id) + '\n')
         return True
+
+
+def find_neighbours_grids(grid_ids_2d,grid_id,connect):
+    '''
+    find neighbourhood grids, a similar funciotn is "find_neighbours_2d"
+    :param grid_ids_2d: 2D data, read from "ArcticDEM_grid_20km_id.tif"
+    :param seed: a seed
+    :param connect: pixel connectivity, 4 or 8
+    :return: a list containing neighbours grids,
+    '''
+
+    height, width = grid_ids_2d.shape
+    result = np.where(grid_ids_2d == grid_id)
+    if len(result) != 1:
+        raise ValueError(f'There are {len(result)} grids with the ID: {grid_id} in the numpy array, should be only one grid')
+    seed = result[0]
+    y,x = seed[0],seed[1]
+
+    neigh_range = [-1,0,1]
+    neighbours = [[i,j] for i in neigh_range for j in neigh_range  ]
+    neighbours.remove([0,0])
+
+    # for grid ids, +- 1 or 191 may also got the id for their neighbour
+
+    # distance within 1
+    if connect==4:
+        connectivity = [ [y+dy, x+dx] for (dy,dx) in neighbours if (dy*dy + dx*dx) <= 1 ]
+    # distance within sqrt(2)
+    elif connect==8:
+        connectivity = [[y + dy, x + dx] for (dy, dx) in neighbours if (dy * dy + dx * dx) <= 2]
+    else:
+        raise ValueError('Only accept connectivity of 4 or 8')
+
+    # new_seeds = []
+    neighour_grid_ids = []
+    for [y,x] in connectivity:
+        # out extent
+        if y<0 or x<0 or y >= height or x >= width:
+            continue
+
+        # new_seeds.append([y,x])
+        neighour_grid_ids.append([grid_ids_2d[y,x]])
+
+    return neighour_grid_ids
+
 
 
 def check_create_lock(lock_path, message):
