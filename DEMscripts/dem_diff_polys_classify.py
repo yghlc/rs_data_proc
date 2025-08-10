@@ -133,6 +133,7 @@ def set_each_grid_as_a_region_for_classify(area_ini, main_para_ini, dem_diff_fil
 
         if os.path.isfile(area_grid_ini):
             print(f'{area_grid_ini} exists, skip, remove it to generate a new one')
+            area_grid_ini_list.append(area_grid_ini)
             continue
 
         io_function.copy_file_to_dst(area_ini, area_grid_ini, overwrite=True)
