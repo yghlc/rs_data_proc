@@ -10,6 +10,7 @@ add time: 10 August, 2025
 """
 
 import os,sys
+from optparse import OptionParser
 import time
 
 from datetime import datetime
@@ -219,14 +220,16 @@ def clip_classify_a_big_region(work_dir, dem_diff_dir, dem_diff_poly_dir, save_d
     os.chdir(org_dir)
 
 
-def main():
+def main(options, args):
     # test_sam_segment_a_big_region()
 
     org_dir = os.getcwd()
     basic.outputlogMessage(f'current directory to {org_dir}')
 
     ext_to_proc = 'ext_to_proc_list.txt'
-    if os.path.isfile(ext_to_proc):
+    if len(args) > 0:
+        select_ext_list = [item for item in args]
+    elif os.path.isfile(ext_to_proc):
         select_ext_list = io_function.read_list_from_txt(ext_to_proc)
     else:
         select_ext_list = ['ext09'] # for testing
@@ -252,4 +255,19 @@ def main():
         clip_classify_a_big_region(work_dir, dem_diff_dir, dem_diff_poly_dir, save_dir, tmp_save_dir)
 
 if __name__ == '__main__':
-    main()
+    usage = "usage: %prog [options] ext00 ext01 ext02 ... "
+    parser = OptionParser(usage=usage, version="1.0 2025-08-10")
+    parser.description = 'Introduction: run image classification for all grids in the ArcticDEM domain '
+
+
+    parser.add_option("-d", "--arcticDEM_res_dir",
+                      action="store", dest="arcticDEM_res_dir",
+                      help="the folder that contains ArcticDEM results")
+
+
+    (options, args) = parser.parse_args()
+    # if len(sys.argv) < 2 or len(args) < 1:
+    #     parser.print_help()
+    #     sys.exit(2)
+
+    main(options, args)
