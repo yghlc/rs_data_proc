@@ -67,10 +67,14 @@ def main():
 
     area_ini_list = io_function.read_list_from_txt('area_grid_ini_list.txt')
 
+    wrong_area_ini_list = []
+
     for area_ini in area_ini_list:
         if check_one_area_ini_file(area_ini) is False:
+            wrong_area_ini_list.append(area_ini)
             remove_wrong_file_folder(area_ini)
 
+    print(f'Checked {len(area_ini_list)}, {len(wrong_area_ini_list)} of them are wrong')
 
 if __name__ == '__main__':
     main()
