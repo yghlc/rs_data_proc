@@ -43,11 +43,9 @@ def check_one_area_ini_file(area_ini):
 
 
 def remove_wrong_file_folder(area_ini):
-    area_name = parameters.get_string_parameters(area_ini,'area_name')
-    area_time = parameters.get_string_parameters(area_ini,'area_time')
-    area_remark = parameters.get_string_parameters(area_ini,'area_remark')
-    # grid50784_DEMdiffColor_2008-17
-    area_folder = f'{area_name}_{area_remark}_{area_time}'
+
+
+    area_folder = parameters.get_area_name_remark_time(area_ini)
 
     # remove data in image_patches
     rm_folder_1 = os.path.join('image_patches',area_folder)

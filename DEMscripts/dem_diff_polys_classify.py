@@ -169,6 +169,23 @@ def set_each_grid_as_a_region_for_classify(area_ini, main_para_ini, dem_diff_fil
 
     pass
 
+def copy_organize_classify_results(area_grid_ini_list,result_folder,save_dir):
+
+    # for region don't have results, only copy it's ini file
+    for grid_area_ini in area_grid_ini_list:
+        # copy ini file
+        io_function.copyfiletodir(grid_area_ini,save_dir,overwrite=True)
+
+        grid_str = parameters.read_Parameters_file(grid_area_ini,'area_name')
+        area_folder = parameters.get_area_name_remark_time(grid_area_ini)
+
+        res_shp = os.path.join(result_folder,area_folder,area_folder + '-predicted_classID.shp')
+        if os.path.isfile(res_shp):
+            output_shp = os.path.join(save_dir, os.path.basename(res_shp))
+            io_function.copy_shape_file(res_shp, output_shp)
+        else:
+            raise IOError(f'result shp: {res_shp} does not exist, grid_str: {grid_str}')
+
 def clip_classify_a_big_region(work_dir, dem_diff_dir, dem_diff_poly_dir, save_dir, tmp_output_dir):
 
     # create a working folder, then switch to it
@@ -220,12 +237,22 @@ def clip_classify_a_big_region(work_dir, dem_diff_dir, dem_diff_poly_dir, save_d
     # output a done indicator (put this into the run_classify.sh, because we need to manually run this if multiple GPU exists)
     # io_function.save_dict_to_txt_json(done_indicator, {'done_time': str(datetime.now())})
 
+
+    # organize the prediction results into ArcticDEM results
+    para_file = 'main_para_exp3.ini'
+    expr_name = parameters.get_string_parameters(para_file, 'expr_name')
+    outdir = os.path.join(parameters.get_directory(para_file, 'inf_output_dir'), expr_name)
+    copy_organize_classify_results(area_grid_ini_list,outdir,save_dir)
+
+
     # change director back
     os.chdir(org_dir)
 
 
 def main(options, args):
     # test_sam_segment_a_big_region()
+
+    task_name = options.task_name
 
     org_dir = os.getcwd()
     basic.outputlogMessage(f'current directory to {org_dir}')
@@ -252,7 +279,7 @@ def main(options, args):
             basic.outputlogMessage(f'{work_folder} is not in the selected list, skip')
             continue
 
-        save_dir = os.path.join(ArcticDEM_results_dir, work_folder, 'grid_dem_diffs_sam_results')
+        save_dir = os.path.join(ArcticDEM_results_dir, work_folder, f'grid_dem_diffs_{task_name}_res')
         tmp_save_dir = os.path.join(tmp_dir, work_folder)
 
         work_dir = os.path.abspath(work_folder)
@@ -267,6 +294,10 @@ if __name__ == '__main__':
     parser.add_option("-d", "--arcticDEM_res_dir",
                       action="store", dest="arcticDEM_res_dir",
                       help="the folder that contains ArcticDEM results")
+
+    parser.add_option("-n", "--task_name",
+                      action="store", dest="task_name", default='reduction_poly_classify',
+                      help="the name of the task, using for saving folder name")
 
 
     (options, args) = parser.parse_args()
