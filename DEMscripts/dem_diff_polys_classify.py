@@ -186,7 +186,7 @@ def copy_organize_classify_results(area_grid_ini_list,result_folder,save_dir):
         else:
             raise IOError(f'result shp: {res_shp} does not exist, grid_str: {grid_str}')
 
-def clip_classify_a_big_region(work_dir, dem_diff_dir, dem_diff_poly_dir, save_dir, tmp_output_dir):
+def clip_classify_a_big_region(para_file, work_dir, dem_diff_dir, dem_diff_poly_dir, save_dir, tmp_output_dir):
 
     # create a working folder, then switch to it
     if os.path.isdir(work_dir) is False:
@@ -197,9 +197,16 @@ def clip_classify_a_big_region(work_dir, dem_diff_dir, dem_diff_poly_dir, save_d
     basic.outputlogMessage(f'change current directory to {work_dir}')
 
     # check if it's done
-    done_indicator = f'{os.path.basename(work_dir)}.done'
-    if os.path.isfile(done_indicator):
-        basic.outputlogMessage(f'this region: {work_dir} has been processed, skip')
+    classify_done_indicator = f'{os.path.basename(work_dir)}.done'
+    copy_done_indicator = f'{os.path.basename(work_dir)}.copied_done'
+    b_classified = False
+    # b_copied = False
+    if os.path.isfile(classify_done_indicator):
+        basic.outputlogMessage(f'this region: {work_dir} has been classified')
+        b_classified = True
+        # return
+    if os.path.isfile(copy_done_indicator):
+        basic.outputlogMessage(f'this region: {work_dir} has been processed and is completed')
         return
 
     io_function.is_folder_exist(dem_diff_dir)
@@ -216,7 +223,8 @@ def clip_classify_a_big_region(work_dir, dem_diff_dir, dem_diff_poly_dir, save_d
     area_ini, main_para_ini = copy_modify_script_inifile(bash_ini_dir, work_dir, dem_diff_color_dir)
 
     # create colorRelif DEM diff
-    create_colorRelief_DEM_diff(bash_ini_dir, dem_diff_dir, dem_diff_color_dir)
+    if b_classified is False:
+        create_colorRelief_DEM_diff(bash_ini_dir, dem_diff_dir, dem_diff_color_dir)
 
     # set each grid as a region for segmentation after "get_prompt.sh", allow parallel computing when gettting prompt
     area_grid_ini_list = set_each_grid_as_a_region_for_classify(area_ini, main_para_ini, dem_diff_dir, dem_diff_color_dir, dem_diff_poly_dir)
@@ -227,7 +235,8 @@ def clip_classify_a_big_region(work_dir, dem_diff_dir, dem_diff_poly_dir, save_d
     else:
         # run prediction
         cmd_str = './run_classify.sh'
-        basic.os_system_exit_code(cmd_str)
+        if b_classified is False:
+            basic.os_system_exit_code(cmd_str)
 
     # run post-processing? (in ./run_classify.sh, it will modify original shapefile)
 
@@ -239,11 +248,11 @@ def clip_classify_a_big_region(work_dir, dem_diff_dir, dem_diff_poly_dir, save_d
 
 
     # organize the prediction results into ArcticDEM results
-    para_file = 'main_para_exp3.ini'
     expr_name = parameters.get_string_parameters(para_file, 'expr_name')
     outdir = os.path.join(parameters.get_directory(para_file, 'inf_output_dir'), expr_name)
     copy_organize_classify_results(area_grid_ini_list,outdir,save_dir)
 
+    io_function.save_dict_to_txt_json(copy_done_indicator, {'copy_done_time': str(datetime.now())})
 
     # change director back
     os.chdir(org_dir)
@@ -253,6 +262,7 @@ def main(options, args):
     # test_sam_segment_a_big_region()
 
     task_name = options.task_name
+    para_file = options.para_file
 
     org_dir = os.getcwd()
     basic.outputlogMessage(f'current directory to {org_dir}')
@@ -283,7 +293,7 @@ def main(options, args):
         tmp_save_dir = os.path.join(tmp_dir, work_folder)
 
         work_dir = os.path.abspath(work_folder)
-        clip_classify_a_big_region(work_dir, dem_diff_dir, dem_diff_poly_dir, save_dir, tmp_save_dir)
+        clip_classify_a_big_region(para_file, work_dir, dem_diff_dir, dem_diff_poly_dir, save_dir, tmp_save_dir)
 
 if __name__ == '__main__':
     usage = "usage: %prog [options] ext00 ext01 ext02 ... "
@@ -298,6 +308,10 @@ if __name__ == '__main__':
     parser.add_option("-n", "--task_name",
                       action="store", dest="task_name", default='reduction_poly_classify',
                       help="the name of the task, using for saving folder name")
+
+    parser.add_option("-p", "--para_file",
+                      action="store", dest="para_file", default='main_para_exp3.ini',
+                      help="the main parameter file")
 
 
     (options, args) = parser.parse_args()
