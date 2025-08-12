@@ -51,13 +51,19 @@ def remove_wrong_file_folder(area_ini):
 
     # remove data in image_patches
     rm_folder_1 = os.path.join('image_patches',area_folder)
-    io_function.delete_file_or_dir(rm_folder_1)
-    print(f'removed {rm_folder_1}')
+    if os.path.isdir(rm_folder_1):
+        io_function.delete_file_or_dir(rm_folder_1)
+        print(f'removed {rm_folder_1}')
+    else:
+        print(f'{rm_folder_1} does not exists')
 
     # remove results in classified_results
     rm_folder_2 = os.path.join('classified_results','exp3',area_folder)
-    io_function.delete_file_or_dir(rm_folder_2)
-    print(f'removed {rm_folder_2}')
+    if os.path.isdir(rm_folder_2):
+        io_function.delete_file_or_dir(rm_folder_2)
+        print(f'removed {rm_folder_2}')
+    else:
+        print(f'{rm_folder_2} does not exist')
 
     # remove area ini
     io_function.delete_file_or_dir(area_ini)
