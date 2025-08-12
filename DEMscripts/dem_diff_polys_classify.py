@@ -55,10 +55,14 @@ def copy_modify_script_inifile(ini_dir, work_dir, dem_diff_color_dir):
 
     return new_area_ini_file, 'main_para_exp3.ini'
 
-def find_grid_dem_diff_poly_shp(grid_str, dem_diff_poly_shps, dem_diff_poly_shps_basename):
-    for shp, basename in zip(dem_diff_poly_shps, dem_diff_poly_shps_basename):
-        if grid_str in basename:
+def find_grid_dem_diff_poly_shp(grid_id, dem_diff_poly_shps, shp_grid_id_list):
+    for shp, shp_grid_id in zip(dem_diff_poly_shps, shp_grid_id_list):
+        # this is a potential bug, for example: grid10, is in grid101, grid102, .....
+        # if grid_str in basename:
+        #     return shp
+        if grid_id == shp_grid_id:
             return shp
+
     return None
 
 def find_dem_diff_include_neighbour(grid_ids_2d, grid_id, dem_diff_file_list, grid_id_list):
@@ -105,7 +109,7 @@ def set_each_grid_as_a_region_for_classify(area_ini, main_para_ini, dem_diff_fil
     dem_diff_file_list = io_function.get_file_list_by_pattern(dem_diff_file_dir, dem_diff_file_or_pattern)
     grid_id_list = [get_grid_id_from_path(item) for item in dem_diff_file_list]
     dem_diff_poly_shps = io_function.get_file_list_by_pattern(dem_diff_poly_dir, '*.shp')
-    dem_diff_poly_shps_basename = [os.path.basename(item) for item in dem_diff_poly_shps]
+    shp_grid_id_list = [get_grid_id_from_path(item) for item in dem_diff_poly_shps]
 
     if len(dem_diff_file_list) < 1:
         raise IOError('No DEM Diff file found by \n dem_diff_file_dir: %s \n dem_diff_file_or_pattern: %s' % (
@@ -125,7 +129,7 @@ def set_each_grid_as_a_region_for_classify(area_ini, main_para_ini, dem_diff_fil
         grid_str = f'grid{grid_id}'
 
         # find polygons shp
-        dem_diff_poly_shp = find_grid_dem_diff_poly_shp(grid_str,dem_diff_poly_shps, dem_diff_poly_shps_basename)
+        dem_diff_poly_shp = find_grid_dem_diff_poly_shp(grid_id,dem_diff_poly_shps, shp_grid_id_list)
         if dem_diff_poly_shp is None:
             basic.outputlogMessage(f'Warning, grid {grid_id} does not contain DEM diff polygons')
             continue
