@@ -36,7 +36,8 @@ import torch
 
 def copy_modify_script_inifile(ini_dir, work_dir, dem_diff_color_dir):
 
-    files_copied = ['run_classify.sh', 'model_clip.ini','main_para_exp3.ini',
+    para_file = 'main_para_exp3.ini'
+    files_copied = [para_file, 'run_classify.sh', 'model_clip.ini',
                     'area_ext00_alaska_extend_simple_DEMdiff.ini']
     file_paths = [ os.path.join(ini_dir,item) for item in files_copied]
     for item in file_paths:
@@ -51,7 +52,12 @@ def copy_modify_script_inifile(ini_dir, work_dir, dem_diff_color_dir):
     parameters.write_Parameters_file(new_area_ini_file,'area_name',area_str)
     parameters.write_Parameters_file(new_area_ini_file,'inf_image_dir',dem_diff_color_dir)
 
-    parameters.write_Parameters_file('main_para_exp3.ini','inference_regions',new_area_ini_file)
+    parameters.write_Parameters_file(para_file,'inference_regions',new_area_ini_file)
+
+    inf_extract_img_dir = parameters.get_directory_None_if_absence(para_file,'inf_extract_img_dir')
+    if inf_extract_img_dir is not None:
+        parameters.write_Parameters_file(para_file, 'inf_extract_img_dir', os.path.join(inf_extract_img_dir,
+                                                                                        os.path.basename(work_dir)))
 
     return new_area_ini_file, 'main_para_exp3.ini'
 
