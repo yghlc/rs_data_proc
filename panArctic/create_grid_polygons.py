@@ -27,7 +27,7 @@ shp_dir = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp')
 overall_coverage = os.path.join(shp_dir,'tiles.shp')
 
 
-def create_grids_for_overlap_vectors(coverage,input_vector,grid_size_x,grid_size_y,save_path):
+def create_grids_for_overlap_vectors(coverage,input_vector,grid_size_x,grid_size_y,save_path, exclude_id_txt=None):
 
     # check the projection
     cover_prj = map_projection.get_raster_or_vector_srs_info_proj4(coverage)
@@ -91,6 +91,14 @@ def create_grids_for_overlap_vectors(coverage,input_vector,grid_size_x,grid_size
 
     # print(datetime.now(), f'{len(intersecting_gdf)} grid cells remain')
 
+    # to exlcude some ids that not
+    if exclude_id_txt is not None:
+        exclude_ids = io_function.read_list_from_txt(exclude_id_txt)
+        # Exclude rows where 'RowCol_id' is in exclude_ids
+        intersecting_gdf = intersecting_gdf[~intersecting_gdf['RowCol_id'].isin(exclude_ids)]
+        print(datetime.now(), f'after excluding specified grid ids, {len(intersecting_gdf)} grid cells remain')
+
+
     # Step 4: Save the resulting GeoDataFrame to the specified path
     save_path = save_path.replace('.gpkg','.shp')
     intersecting_gdf[['geometry', 'RowCol_id']].to_file(save_path, driver='ESRI Shapefile')
@@ -109,8 +117,9 @@ def main(options, args):
 
     grid_size_x = options.grid_size_x
     grid_size_y = options.grid_size_y
+    exclude_grid_ids = options.exclude_grid_ids
 
-    create_grids_for_overlap_vectors(coverage, input_vector, grid_size_x, grid_size_y, save_path)
+    create_grids_for_overlap_vectors(coverage, input_vector, grid_size_x, grid_size_y, save_path, exclude_id_txt=exclude_grid_ids)
 
 if __name__ == "__main__":
     usage = "usage: %prog [options] vector_file "
@@ -132,6 +141,10 @@ if __name__ == "__main__":
     parser.add_option("-c", "--coverage",
                       action="store", dest="coverage",
                       help="the overall coverage of the entire study areas, default is the ArcticDEM coverage")
+
+    parser.add_option("-e", "--exclude_grid_ids",
+                      action="store", dest="exclude_grid_ids",
+                      help="the grid id lists saved in a txt file to be excluded")
 
 
     (options, args) = parser.parse_args()
