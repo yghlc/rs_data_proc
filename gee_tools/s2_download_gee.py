@@ -298,7 +298,8 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
     if extent_ids is None:
         extent_ids = [ str(item) for item in range(len(extent_polygons))]
     else:
-        extent_ids = [item for item in extent_ids]
+        if isinstance(extent_ids[0], (float, np.floating)): # only check the first one
+            extent_ids = [str(int(item)) for item in extent_ids]
 
     all_task_list = []
     if b_save2local:
