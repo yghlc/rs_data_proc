@@ -113,6 +113,49 @@ def save_arcticdata_url_composited_images(sel_grids_gpd, save_path):
     io_function.save_list_to_txt(save_path, all_urls)
 
 
+def save_arcticdata_url_lines_of_narrow_steep_slopes_and_headwall(sel_grids_gpd, save_path):
+    fileurl_list = sel_grids_gpd['fileurl'].to_list()
+    if 'lines-of-narrow-steep-slopes-and-headwall' in fileurl_list[0]:
+        pass
+    else:
+        print('Warning, no composited-images in the fireurl, skip saving the arcticdata url')
+        return
+
+    tmp_url_strs = [ item[:-7] for item in fileurl_list] # remove .tar.gz
+    grid_strs = [ os.path.basename(item).split('_')[-1] for item in tmp_url_strs]
+    grid_id_strs = [item[4:] for item in grid_strs ]
+
+    all_urls = []
+
+    # # download files (lines_of_narrow_steep_slopes):
+    # headwall_shp_multiDates_41.cpg
+    # headwall_shp_multiDates_41.dbf
+    # headwall_shp_multiDates_41.prj
+    # headwall_shp_multiDates_41.shp
+    # headwall_shp_multiDates_41.shx
+    # readme.txt
+
+    # not to download (after ripple sel, some grid may not have them, and we have them in our disk)
+    # headwall_shp_multiDates_41_rippleSel.cpg
+    # headwall_shp_multiDates_41_rippleSel.dbf
+    # headwall_shp_multiDates_41_rippleSel.prj
+    # headwall_shp_multiDates_41_rippleSel.shp
+    # headwall_shp_multiDates_41_rippleSel.shp
+
+
+    for grid_id_str, m_url in zip(grid_id_strs, tmp_url_strs):
+        file1 = 'headwall_shp_multiDates_%s.cpg'%grid_id_str
+        file2 = 'headwall_shp_multiDates_%s.dbf'%grid_id_str
+        file3 = 'headwall_shp_multiDates_%s.prj'%grid_id_str
+        file4 = 'headwall_shp_multiDates_%s.shp'%grid_id_str
+        file5 = 'headwall_shp_multiDates_%s.shx'%grid_id_str
+        file6 = 'readme.txt'
+        for filename in [file1, file2, file3, file4,file5,file6]:
+            tmp_url = os.path.join(arcticdata_root,m_url,filename)
+            all_urls.append(tmp_url)
+    io_function.save_list_to_txt(save_path, all_urls)
+
+
 def find_dem_difference_raster(sel_grids_gpd, save_txt_path):
     grid_id_list = sel_grids_gpd['cell_id'].to_list()
     fileurl_list = sel_grids_gpd['fileurl'].to_list()
@@ -246,6 +289,13 @@ def get_all_arcticdata_url_composited_images():
     all_grids = gpd.read_file(composited_index_shp)
     save_arcticdata_url_composited_images(all_grids, 'all_grids_arcticdata_urls_compositedImages.txt')
 
+def get_all_arcticdata_url_lines_of_narrow_steep_slopes_and_headwall():
+    composited_index_shp = \
+        os.path.expanduser('~/Data/dem_processing/products_derived_from_ArcticDEM/Index_shp/lines-of-narrow-steep-slopes-and-headwall_Index/lines-of-narrow-steep-slopes-and-headwall_Index.shp')
+    all_grids = gpd.read_file(composited_index_shp)
+
+    save_arcticdata_url_lines_of_narrow_steep_slopes_and_headwall(all_grids,
+                                        'all_grids_arcticdata_urls_lines_of_narrow_steep_slopes.txt')
 
 def main(options, args):
     grid_indexes_shp= args[0]
@@ -307,6 +357,7 @@ if __name__ == '__main__':
 
     # test_find_grids_overlap_vector_shp()
     # get_all_arcticdata_url_composited_images()
+    # get_all_arcticdata_url_lines_of_narrow_steep_slopes_and_headwall()
     # sys.exit(0)
 
     (options, args) = parser.parse_args()
