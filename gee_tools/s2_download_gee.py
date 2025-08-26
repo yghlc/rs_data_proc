@@ -43,7 +43,16 @@ from gee_common import export_one_imagetoDrive,wait_all_task_finished, maximum_s
 # on Feb 6, update COPERNICUS/S2_SR to COPERNICUS/S2_SR_HARMONIZED (https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR)
 img_speci = {'sentinel2_rgb_sr': {'product': 'COPERNICUS/S2_SR_HARMONIZED', 'bands': ['B4', 'B3', 'B2'], 'res': 10},
             # B8 is the NIR band
-            'sentinel2_Nrgb_sr': {'product': 'COPERNICUS/S2_SR_HARMONIZED', 'bands': ['B4', 'B3', 'B2','B8'], 'res': 10}
+            'sentinel2_Nrgb_sr': {'product': 'COPERNICUS/S2_SR_HARMONIZED', 'bands': ['B4', 'B3', 'B2','B8'], 'res': 10},
+            # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC09_C02_T1_L2
+            'landsat9_rgb':{'product':'LANDSAT/LC09/C02/T1_L2', 'bands':['SR_B4', 'SR_B3', 'SR_B2'], 'res':30},
+            # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC09_C02_T1_TOA
+            'landsat9_pan':{'product':'LANDSAT/LC09/C02/T1_TOA', 'bands':['B8'], 'res':15},
+            # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C02_T1_L2
+            'landsat8_rgb':{'product':'LANDSAT/LC08/C02/T1_L2', 'bands':['SR_B4', 'SR_B3', 'SR_B2'], 'res':30},
+              # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C02_T1_TOA
+             'landsat8_pan':{'product':'LANDSAT/LC08/C02/T1_TOA', 'bands':['B8'], 'res':15},
+              # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LE07_C01_T1_SR
             }
 
 
@@ -276,7 +285,8 @@ def parallel_gee_download_images_to_local(idx, total_count, region_name,start_da
                                 b_not_mosaic=b_not_mosaic,max_download_count=max_download_count)
 
 def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_date, end_date,cloud_cover_thr,
-                                 b_save2local=False, process_num=8,b_not_mosaic=False,max_download_count=3, gee_project=None):
+                                 b_save2local=False, process_num=8,b_not_mosaic=False,max_download_count=3, gee_project=None,
+                                 image_type='sentinel2_Nrgb_sr'):
 
     # checking input shapefile
     projection = map_projection.get_raster_or_vector_srs_info_epsg(extent_shp)
@@ -285,9 +295,9 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
     # resolution = img_speci['sentinel2_rgb_sr']['res']
     # bands = img_speci['sentinel2_rgb_sr']['bands']
 
-    product = img_speci['sentinel2_Nrgb_sr']['product']
-    resolution = img_speci['sentinel2_Nrgb_sr']['res']
-    bands = img_speci['sentinel2_Nrgb_sr']['bands']
+    product = img_speci[image_type]['product']
+    resolution = img_speci[image_type]['res']
+    bands = img_speci[image_type]['bands']
 
 
     b_crop = True  # crop images to input extent
@@ -436,6 +446,7 @@ def main(options, args):
     # b_not_mosaic = False
     max_download_count = options.max_count
     b_not_mosaic = options.b_not_mosaic
+    image_type = options.image_type
 
 
     # https://www.earthdatascience.org/tutorials/intro-google-earth-engine-python-api/
@@ -452,7 +463,8 @@ def main(options, args):
     start_date, end_date = options.start_date, options.end_date
     gee_download_sentinel2_image(extent_shp,region_name, id_column_name,start_date, end_date,cloud_cover_thr,
                                  b_save2local=b_save2local, process_num=process_num,b_not_mosaic=b_not_mosaic,
-                                 max_download_count=max_download_count,gee_project=google_cloud_project)
+                                 max_download_count=max_download_count,gee_project=google_cloud_project,
+                                 image_type=image_type)
 
 
 
@@ -506,6 +518,9 @@ if __name__ == '__main__':
                       action="store_true", dest="b_not_mosaic", default=False,
                       help="if set, it will not create mosaic for each polygon, but download all available images)")
 
+    parser.add_option("", "--image_type",
+                      action="store", dest="image_type", default='sentinel2_Nrgb_sr',
+                      help="the image types want to download (contain product, bands, resolution), more find 'img_speci' in the head of this script")
 
     # multiprocessing.set_start_method('spawn')
     (options, args) = parser.parse_args()
