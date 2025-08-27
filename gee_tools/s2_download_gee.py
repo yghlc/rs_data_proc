@@ -99,6 +99,17 @@ def get_save_file_name(region_name, product, ext_id, start_date,end_date, b_not_
     return save_file_name
 
 
+def to_toUint16(image, product):
+    # if omit "toUint16()" , it output float64
+    if 'S2' in product:
+        image = image.toUint16()
+    elif 'LANDSAT' in product:
+        # for Landsat, the surface reflectance is scaled by a factor of 10000
+        image = image.multiply(10000).toUint16()
+    else:
+        raise ValueError('%s not supported yet in to_toUint16()'%(product))
+    return image
+
 def remove_downloaded_tasks(region_name, product, start_date, end_date,extent_polygons, extent_ids, b_not_mosaic):
     # remove already donwloaded IDs before run parallel, to improve efficiency
     export_dir = get_export_dir_name(region_name, product, start_date, end_date)
@@ -255,7 +266,8 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
 
         # if omit "toUint16()" , it output float64
         dtype = np.uint16
-        mosaic = filtercollection.select(band_names,band_names).median().toUint16()  # create mosaic using median values
+        mosaic = filtercollection.select(band_names,band_names).median()  # create mosaic using median values
+        mosaic = to_toUint16(mosaic, product) # convet to uint16
         mosaic = reproject(mosaic, projection, resolution)
         # Error: Image.visualize: Expected a string or list of strings for field 'bands'. (Error code: 3)
         # rgbVis = {'min': 0, 'max': 2000, 'bands': band_names }
