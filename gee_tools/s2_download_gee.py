@@ -71,22 +71,30 @@ def initialize_ee(project):
     print(f'Initializing Earth Engine with project: {project}, please wait {random_wait:.1f} seconds')
     ee.Initialize(project=project)
 
+def get_product_info(product):
+    if "S2" in product:
+        product_info = product.split('/')[-1]   # will get S2_SR_HARMONIZED
+    elif "LANDSAT" in product:
+        product_info = product.split('/')[-3] + '_' +product.split('/')[-2] + '_' + product.split('/')[-1]  # will get LC09_C02_T1_L2
+    else:
+        product_info = product.replace('/','_')
+    return product_info
 
 def get_export_dir_name(region_name,product, start_date,end_date):
     # cannot have a sub folder in Google Drive.
     date_range_str = re.sub(r'\D','',start_date) + '_' + re.sub(r'\D','',end_date) # only keep digits
-    product_info = product.split('/')
-    export_dir = region_name + '_' + product_info[-1] + '_' +  date_range_str + '_images'
+    product_info = get_product_info(product)
+    export_dir = region_name + '_' + product_info + '_' +  date_range_str + '_images'
     return export_dir
 
 def get_save_file_name(region_name, product, ext_id, start_date,end_date, b_not_mosaic):
-    product_info = product.split('/')
+    product_info = get_product_info(product)
     date_range_str = re.sub(r'\D', '', start_date) + '_' + re.sub(r'\D', '', end_date)
     if b_not_mosaic:
-        # save_file_name = region_name + '_' + product_info[-1] + f'_img{ext_id}'
+        # save_file_name = region_name + '_' + product_info + f'_img{ext_id}'
         save_file_name = f'img{ext_id}'        # avoid file name is too long
     else:
-        save_file_name = region_name + '_' + product_info[-1] + '_' + date_range_str + f'_grid{ext_id}'
+        save_file_name = region_name + '_' + product_info + '_' + date_range_str + f'_grid{ext_id}'
 
     return save_file_name
 
@@ -116,13 +124,22 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
     finish = ee.Date(end_date)
 
     polygon_bound = extent
-    cloud_cover = 'CLOUDY_PIXEL_PERCENTAGE' #  for Sentinel-2
+    # cloud_cover = 'CLOUDY_PIXEL_PERCENTAGE' #  for Sentinel-2
+    if 'S2' in product:
+        cloud_cover = 'CLOUDY_PIXEL_PERCENTAGE'
+    elif 'LANDSAT' in product:
+        cloud_cover = 'CLOUD_COVER'
+    else:
+        raise ValueError('%s not supported yet in cloud mask'%(product))
 
     # got error on Narval: requests.exceptions.SSLError: None: Max retries exceeded with url: /token (Caused by None)
     # the internet there is very good, send too many request during a short time, got rejected
 
     export_dir = get_export_dir_name(region_name,product, start_date,end_date)
     save_file_name = get_save_file_name(region_name, product, ext_id, start_date,end_date, b_not_mosaic)
+    # print('export_dir:',export_dir)
+    # print('save_file_name:', save_file_name)
+    # sys.exit()
 
     if b_vis:
         save_file_name = save_file_name + '_8bit'
@@ -275,7 +292,7 @@ def parallel_gee_download_images_to_local(idx, total_count, region_name,start_da
                         bands, cloud_cover_thr=0.3, crop=False, b_vis=False, wait_all_finished=True,b_save2local=True,
                                           b_not_mosaic=False,max_download_count=3, gee_project=None):
     # ee.Initialize(project=gee_project)
-    print(f'{idx + 1}/{total_count} Downloading Sentinel-2 for a polygon (id: {ext_id}) ')
+    print(f'{idx + 1}/{total_count} Downloading images for a polygon (id: {ext_id}) ')
 
     extent_gee = shapely_polygon_to_gee_polygon(extent)
 
@@ -315,7 +332,7 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
     if b_save2local:
         if process_num == 1:
             for idx, (extent, ext_id) in enumerate(zip(extent_polygons, extent_ids)):
-                print(f'{idx + 1}/{len(extent_polygons)} Downloading Sentinel-2 for a polygon (id: {ext_id})')
+                print(f'{idx + 1}/{len(extent_polygons)} Downloading images for a polygon (id: {ext_id})')
 
                 extent_gee = shapely_polygon_to_gee_polygon(extent)
 
@@ -352,7 +369,7 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
                 time.sleep(60)
                 active_tasks = active_task_count(all_task_list)
 
-            print(f'{idx+1}/{len(extent_polygons)} Downloading Sentinel-2 for a polygon (id: {ext_id})')
+            print(f'{idx+1}/{len(extent_polygons)} Downloading images for a polygon (id: {ext_id})')
 
             extent_gee = shapely_polygon_to_gee_polygon(extent)
 
