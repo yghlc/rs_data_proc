@@ -19,6 +19,9 @@ import basic_src.io_function as io_function
 import basic_src.basic as basic
 import raster_io
 
+import numpy as np
+import rasterio
+from matplotlib.colors import LinearSegmentedColormap
 # some folder paths
 
 from dem_common import grid_dem_diffs_dir, grid_dem_diffs_color_dir
@@ -49,6 +52,93 @@ def dem_tif_to_colorReleif(input,output,out_format='GTiff',tif_compression='lzw'
         return True
     else:
         return False
+
+def parse_qgis_color_file(txt_path):
+    values = []
+    colors = []
+    nodata_color = None
+    with open(txt_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            parts = line.split(',')
+            if parts[0].lower() == 'nv':
+                nodata_color = [int(x) for x in parts[1:5]]  # RGBA
+                continue
+            # QGIS lines: value,R,G,B,A,value
+            value = float(parts[0])
+            rgb = [int(parts[1]), int(parts[2]), int(parts[3])]
+            values.append(value)
+            colors.append(rgb)
+    return np.array(values), np.array(colors) / 255.0, nodata_color
+
+def make_linear_colormap(values, rgbs):
+    vmin, vmax = values.min(), values.max()
+    norm_values = (values - vmin) / (vmax - vmin)
+    cdict = {'red': [], 'green': [], 'blue': []}
+    for v, rgb in zip(norm_values, rgbs):
+        cdict['red'].append((v, rgb[0], rgb[0]))
+        cdict['green'].append((v, rgb[1], rgb[1]))
+        cdict['blue'].append((v, rgb[2], rgb[2]))
+    return LinearSegmentedColormap('custom_cmap', cdict)
+
+def dem_tif_to_colorReleif_npArray(input, color_relief_txt):
+    # Parse color file (QGIS format)
+    values, rgbs, nodata_color = parse_qgis_color_file(color_relief_txt)
+    cmap = make_linear_colormap(values, rgbs)
+
+    # Read DEM
+    with rasterio.open(input) as src:
+        dem = src.read(1)
+        nodata = src.nodata
+
+    # Create mask for NODATA
+    mask = None
+    if nodata is not None:
+        mask = (dem == nodata)
+        dem = np.ma.masked_where(mask, dem)
+
+    # Normalize DEM to colormap domain
+    vmin, vmax = values.min(), values.max()
+    normed = (dem - vmin) / (vmax - vmin)
+    normed = np.clip(normed, 0, 1)
+
+    # Apply colormap
+    rgba = cmap(normed.filled(0) if isinstance(normed, np.ma.MaskedArray) else normed)
+    rgb = (rgba[:, :, :3] * 255).astype(np.uint8)
+
+    # Set NODATA color if present
+    if mask is not None and nodata_color is not None:
+        rgb[mask] = nodata_color[:3]
+    elif mask is not None:
+        rgb[mask] = 0
+
+    return rgb
+
+
+def test_dem_tif_to_colorReleif_npArray():
+    from datetime import datetime
+    import time
+    data_dir = os.path.expanduser('~/Downloads/tmp')
+    dem_tif = os.path.join(data_dir,'grid_ids_DEM_diff_grid44722.tif')
+    color_txt = os.path.join(data_dir,'dem_diff_color_5to5m.txt')
+    print(datetime.now(), 'start processing ')
+    t0 = time.time()
+    rgb_array = dem_tif_to_colorReleif_npArray(dem_tif, color_txt)
+
+    t1 = time.time()
+    print(datetime.now(),'complete converting to RGB')
+
+    save_rgb = os.path.join(data_dir,'grid_ids_DEM_diff_grid44722_rgb.tif')
+    raster_io.save_numpy_array_to_rasterfile(rgb_array,save_rgb,dem_tif,nodata=255)
+    t2 = time.time()
+
+    print(datetime.now(), 'saved files ')
+    print('to RGB time cost', t1-t0 )
+    print('save file time cost', t2-t1 )
+
+
 
 # def test_dem_tif_to_colorReleif():
 #     dem_diff_list = io_function.get_file_list_by_pattern('./','*.tif')
@@ -135,5 +225,6 @@ if __name__ == '__main__':
                       help="the file name pattern for search rasters in a folder ")
 
     (options, args) = parser.parse_args()
-    main(options, args)
+    # main(options, args)
     # test_dem_tif_to_colorReleif_one()
+    test_dem_tif_to_colorReleif_npArray()
