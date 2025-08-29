@@ -290,6 +290,6 @@ if __name__ == '__main__':
                       help="the file name pattern for search rasters in a folder ")
 
     (options, args) = parser.parse_args()
-    # main(options, args)
+    main(options, args)
     # test_dem_tif_to_colorReleif_one()
-    test_dem_tif_to_colorReleif_npArray()
+    # test_dem_tif_to_colorReleif_npArray()
