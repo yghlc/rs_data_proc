@@ -83,37 +83,78 @@ def make_linear_colormap(values, rgbs):
         cdict['blue'].append((v, rgb[2], rgb[2]))
     return LinearSegmentedColormap('custom_cmap', cdict)
 
-def dem_tif_to_colorReleif_npArray(input, color_relief_txt):
-    # Parse color file (QGIS format)
-    values, rgbs, nodata_color = parse_qgis_color_file(color_relief_txt)
-    cmap = make_linear_colormap(values, rgbs)
+def colormap_numpy(dem, values, colors, nodata_mask=None, nodata_color=None):
+    # dem: (H, W) array
+    # values: (N,) array of breakpoints
+    # colors: (N, 3) array of RGB (0-1 float)
+    dem_flat = dem.ravel()
+    rgb_flat = np.empty((dem_flat.size, 3), dtype=np.float32)
+    for i in range(3):  # R, G, B
+        rgb_flat[:, i] = np.interp(dem_flat, values, colors[:, i])
+    rgb = rgb_flat.reshape(*dem.shape, 3)
+    rgb = (np.clip(rgb, 0, 1) * 255).astype(np.uint8)
+    if nodata_mask is not None and nodata_color is not None:
+        rgb[nodata_mask] = nodata_color[:3]
+    return rgb
 
-    # Read DEM
+def colormap_lut(dem, values, colors, nodata_mask=None, nodata_color=None, bins=65536):
+    # Map the DEM range to bins
+    vmin, vmax = values.min(), values.max()
+    lut = np.empty((bins, 3), dtype=np.uint8)
+    # For each channel, interpolate the color for each bin center
+    bin_centers = np.linspace(vmin, vmax, bins)
+    for i in range(3):  # R, G, B
+        lut[:, i] = np.clip(np.interp(bin_centers, values, colors[:, i]) * 255, 0, 255).astype(np.uint8)
+    # Map dem values to lut indices
+    dem_clip = np.clip(dem, vmin, vmax)
+    indices = ((dem_clip - vmin) / (vmax - vmin) * (bins - 1)).astype(np.int32)
+    rgb = lut[indices]
+    if nodata_mask is not None and nodata_color is not None:
+        rgb[nodata_mask] = nodata_color[:3]
+    return rgb
+
+def colormap_small_lut(dem, values, colors, nodata_mask=None, nodata_color=None):
+    vmin = int(np.floor(values.min()))
+    vmax = int(np.ceil(values.max()))
+    lut_size = vmax - vmin + 1
+    lut = np.empty((lut_size, 3), dtype=np.uint8)
+    bin_centers = np.arange(vmin, vmax + 1)
+    for i in range(3):
+        lut[:, i] = np.clip(np.interp(bin_centers, values, colors[:, i]) * 255, 0, 255).astype(np.uint8)
+    indices = np.clip(dem - vmin, 0, lut_size - 1)
+    rgb = lut[indices]
+    if nodata_mask is not None and nodata_color is not None:
+        rgb[nodata_mask] = nodata_color[:3]
+    return rgb
+
+def colormap_direct(dem, values, colors, nodata_mask=None, nodata_color=None):
+    # dem: (H, W) int16, values: (56,), colors: (56, 3)
+    h, w = dem.shape
+    rgb = np.empty((h, w, 3), dtype=np.uint8)
+    for i in range(3):
+        channel = np.interp(dem, values, colors[:, i]) * 255
+        rgb[:, :, i] = np.clip(channel, 0, 255).astype(np.uint8)
+    if nodata_mask is not None and nodata_color is not None:
+        rgb[nodata_mask] = nodata_color[:3]
+    return rgb
+
+def dem_tif_to_colorReleif_npArray(input, color_relief_txt):
+    t0=time.time()
+    values, rgbs, nodata_color = parse_qgis_color_file(color_relief_txt)
+    t1 = time.time()
     with rasterio.open(input) as src:
         dem = src.read(1)
         nodata = src.nodata
-
-    # Create mask for NODATA
     mask = None
+    t2 = time.time()
     if nodata is not None:
         mask = (dem == nodata)
-        dem = np.ma.masked_where(mask, dem)
-
-    # Normalize DEM to colormap domain
-    vmin, vmax = values.min(), values.max()
-    normed = (dem - vmin) / (vmax - vmin)
-    normed = np.clip(normed, 0, 1)
-
-    # Apply colormap
-    rgba = cmap(normed.filled(0) if isinstance(normed, np.ma.MaskedArray) else normed)
-    rgb = (rgba[:, :, :3] * 255).astype(np.uint8)
-
-    # Set NODATA color if present
-    if mask is not None and nodata_color is not None:
-        rgb[mask] = nodata_color[:3]
-    elif mask is not None:
-        rgb[mask] = 0
-
+    # rgb = colormap_numpy(dem, values, rgbs, mask, nodata_color)
+    # rgb = colormap_lut(dem, values, rgbs, mask, nodata_color)
+    rgb = colormap_small_lut(dem, values, rgbs, mask, nodata_color)  # this is the most efficent.
+    # rgb = colormap_direct(dem, values, rgbs, mask, nodata_color)
+    t3 = time.time()
+    print('time cost in dem_tif_to_colorReleif_npArray', t1-t0, t2-t1, t3-t2)
     return rgb
 
 
@@ -130,6 +171,9 @@ def test_dem_tif_to_colorReleif_npArray():
     t1 = time.time()
     print(datetime.now(),'complete converting to RGB')
 
+    # for this data, colormap_small_lut is the most efficient.
+
+    rgb_array = rgb_array.transpose(2, 0, 1)    # to band_count,height,width, for saving in rasterio.
     save_rgb = os.path.join(data_dir,'grid_ids_DEM_diff_grid44722_rgb.tif')
     raster_io.save_numpy_array_to_rasterfile(rgb_array,save_rgb,dem_tif,nodata=255)
     t2 = time.time()
@@ -225,6 +269,6 @@ if __name__ == '__main__':
                       help="the file name pattern for search rasters in a folder ")
 
     (options, args) = parser.parse_args()
-    # main(options, args)
+    main(options, args)
     # test_dem_tif_to_colorReleif_one()
-    test_dem_tif_to_colorReleif_npArray()
+    # test_dem_tif_to_colorReleif_npArray()
