@@ -127,6 +127,16 @@ def colormap_small_lut(dem, values, colors, nodata_mask=None, nodata_color=None)
         rgb[nodata_mask] = nodata_color[:3]
     return rgb
 
+def build_small_lut_colormap(values, colors):
+    vmin = int(np.floor(values.min()))
+    vmax = int(np.ceil(values.max()))
+    lut_size = vmax - vmin + 1
+    lut = np.empty((lut_size, 3), dtype=np.uint8)
+    bin_centers = np.arange(vmin, vmax + 1)
+    for i in range(3):
+        lut[:, i] = np.clip(np.interp(bin_centers, values, colors[:, i]) * 255, 0, 255).astype(np.uint8)
+    return lut, vmin, lut_size
+
 def colormap_direct(dem, values, colors, nodata_mask=None, nodata_color=None):
     # dem: (H, W) int16, values: (56,), colors: (56, 3)
     h, w = dem.shape
@@ -139,23 +149,34 @@ def colormap_direct(dem, values, colors, nodata_mask=None, nodata_color=None):
     return rgb
 
 def dem_tif_to_colorReleif_npArray(input, color_relief_txt):
-    t0=time.time()
+    # t0=time.time()
     values, rgbs, nodata_color = parse_qgis_color_file(color_relief_txt)
-    t1 = time.time()
+    # t1 = time.time()
     with rasterio.open(input) as src:
         dem = src.read(1)
         nodata = src.nodata
-    mask = None
-    t2 = time.time()
+    nodata_mask = None
+    # t2 = time.time()
     if nodata is not None:
-        mask = (dem == nodata)
-    # rgb = colormap_numpy(dem, values, rgbs, mask, nodata_color)
-    # rgb = colormap_lut(dem, values, rgbs, mask, nodata_color)
-    rgb = colormap_small_lut(dem, values, rgbs, mask, nodata_color)  # this is the most efficent.
+        nodata_mask = (dem == nodata)
+    # rgb = colormap_numpy(dem, values, rgbs, nodata_mask, nodata_color)
+    # rgb = colormap_lut(dem, values, rgbs, nodata_mask, nodata_color)
+    # rgb = colormap_small_lut(dem, values, rgbs, nodata_mask, nodata_color)  # this is the most efficent.
+
+    # built color map
+    lut, vmin, lut_size = build_small_lut_colormap(values,rgbs)
+    # t3 = time.time()
+
+    # to rgb
+    indices = np.clip(dem - vmin, 0, lut_size - 1)
+    rgb = lut[indices]
+    if nodata_mask is not None and nodata_color is not None:
+        rgb[nodata_mask] = nodata_color[:3]
+
     # rgb = colormap_direct(dem, values, rgbs, mask, nodata_color)
-    t3 = time.time()
-    print('time cost in dem_tif_to_colorReleif_npArray', t1-t0, t2-t1, t3-t2)
-    return rgb
+    # t4 = time.time()
+    # print('time cost in dem_tif_to_colorReleif_npArray', t1-t0, t2-t1, t3-t2, t4-t3)
+    return rgb  # its shape is: height,width, band_count
 
 
 def test_dem_tif_to_colorReleif_npArray():
@@ -269,6 +290,6 @@ if __name__ == '__main__':
                       help="the file name pattern for search rasters in a folder ")
 
     (options, args) = parser.parse_args()
-    main(options, args)
+    # main(options, args)
     # test_dem_tif_to_colorReleif_one()
-    # test_dem_tif_to_colorReleif_npArray()
+    test_dem_tif_to_colorReleif_npArray()
