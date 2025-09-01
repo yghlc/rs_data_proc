@@ -119,7 +119,7 @@ def obtain_h3_cells_for_a_polygon(polygon, resolution, finest_res=None ):
 
 
 def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exclude_id_txt= None,
-                                        poly_to_cell_res = None):
+                                        poly_to_cell_res = None,buffer_m=None):
 
     original_gpd = gpd.read_file(input_vector)
     # print(in_gpd)
@@ -136,6 +136,8 @@ def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exc
     for idx, poly in enumerate(in_gpd.geometry.values):
         # poly = poly.buffer(0.000001)
         # print(idx, poly.is_valid)
+        if buffer_m is not None:
+            poly = poly.buffer(buffer_m)
 
         poly_bound = vector_gpd.convert_bounds_to_polygon(vector_gpd.get_polygon_bounding_box(poly))
         cell_ids, cell_polys  = obtain_h3_cells_for_a_polygon(poly_bound, resolution, finest_res=poly_to_cell_res)
@@ -202,9 +204,10 @@ def main(options, args):
     h3_resolution = options.h3_resolution
     exclude_grid_ids_txt = options.exclude_grid_ids
     poly_to_cell_res = options.poly_to_cell_res
+    buffer_meters = options.buffer_meters
 
     obtain_h3_cells_for_overlap_vectors(input_vector, h3_resolution, save_path, exclude_id_txt=exclude_grid_ids_txt,
-                                        poly_to_cell_res=poly_to_cell_res)
+                                        poly_to_cell_res=poly_to_cell_res, buffer_m=buffer_meters)
 
 
 if __name__ == "__main__":
@@ -228,6 +231,10 @@ if __name__ == "__main__":
                   help="the resolution for polygon_to_cells, can be larger than h3_resolution. As "
                        "polygon_to_cells only check centroid of cell contained in a polygons, "
                        "set this to draw cells in finer resolution ")
+
+    parser.add_option("-b", "--buffer_meters",
+                  action="store", dest="buffer_meters",type=float,
+                  help="buffer the input vectors before getting cells, makint it also works for points and lines")
 
     parser.add_option("-e", "--exclude_grid_ids",
                       action="store", dest="exclude_grid_ids",
