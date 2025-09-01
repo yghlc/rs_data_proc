@@ -32,6 +32,8 @@ from shapely.geometry import Polygon
 
 from datetime import datetime
 
+import multiprocessing
+from multiprocessing import Pool
 
 shp_dir = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp')
 overall_coverage = os.path.join(shp_dir,'tiles.shp')
@@ -117,9 +119,13 @@ def obtain_h3_cells_for_a_polygon(polygon, resolution, finest_res=None ):
     return final_c_ids, final_polys
 
 
+def process_one_poly(poly,resolution,poly_to_cell_res):
+    poly_bound = vector_gpd.convert_bounds_to_polygon(vector_gpd.get_polygon_bounding_box(poly))
+    cell_ids, cell_polys = obtain_h3_cells_for_a_polygon(poly_bound, resolution, finest_res=poly_to_cell_res)
+    return cell_ids, cell_polys
 
 def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exclude_id_txt= None,
-                                        poly_to_cell_res = None,buffer_m=None):
+                                        poly_to_cell_res = None,buffer_m=None, process_num=1):
 
     if os.path.isfile(save_path):
         print(datetime.now(), f'{save_path} alreasy exists, skip')
@@ -140,14 +146,22 @@ def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exc
     all_cell_ids = []
     all_cell_polys = []
     print(datetime.now(),f'Loaded {len(in_gpd)} polygons')
-    for idx, poly in enumerate(in_gpd.geometry.values):
-        # poly = poly.buffer(0.000001)
-        # print(idx, poly.is_valid)
-
-        poly_bound = vector_gpd.convert_bounds_to_polygon(vector_gpd.get_polygon_bounding_box(poly))
-        cell_ids, cell_polys  = obtain_h3_cells_for_a_polygon(poly_bound, resolution, finest_res=poly_to_cell_res)
-        all_cell_ids.extend(cell_ids)
-        all_cell_polys.extend(cell_polys)
+    if process_num == 1:
+        for idx, poly in enumerate(in_gpd.geometry.values):
+            # poly = poly.buffer(0.000001)
+            # print(idx, poly.is_valid)
+            cell_ids, cell_polys  = process_one_poly(poly,resolution,poly_to_cell_res)
+            all_cell_ids.extend(cell_ids)
+            all_cell_polys.extend(cell_polys)
+    else:
+        theadPool = Pool(process_num)  # multi processes
+        parameters_list = [(poly,resolution,poly_to_cell_res) for idx, poly in enumerate(in_gpd.geometry.values)]
+        results = theadPool.starmap(process_one_poly, parameters_list)  # need python3
+        for res in  results:
+            cell_ids, cell_polys = res
+            all_cell_ids.extend(cell_ids)
+            all_cell_polys.extend(cell_polys)
+        theadPool.close()
 
     print(datetime.now(), f'Obtained {len(all_cell_ids)} cell at res: {resolution}')
     id_colum_name = f"h3_id_{resolution}"
@@ -210,11 +224,12 @@ def main(options, args):
     exclude_grid_ids_txt = options.exclude_grid_ids
     poly_to_cell_res = options.poly_to_cell_res
     buffer_meters = options.buffer_meters
+    process_num = options.process_num
     if save_path is None:
         save_path = f'h3_cells_res{h3_resolution}_{io_function.get_name_no_ext(input_vector)}.shp'
 
     obtain_h3_cells_for_overlap_vectors(input_vector, h3_resolution, save_path, exclude_id_txt=exclude_grid_ids_txt,
-                                        poly_to_cell_res=poly_to_cell_res, buffer_m=buffer_meters)
+                                        poly_to_cell_res=poly_to_cell_res, buffer_m=buffer_meters, process_num=process_num)
 
 
 if __name__ == "__main__":
@@ -242,6 +257,11 @@ if __name__ == "__main__":
     parser.add_option("-b", "--buffer_meters",
                   action="store", dest="buffer_meters",type=float,
                   help="buffer the input vectors before getting cells, makint it also works for points and lines")
+
+    parser.add_option("-p", "--process_num",
+                      action="store", dest="process_num", type=int, default=16,
+                      help="number of processes to get h3 cells")
+
 
     parser.add_option("-e", "--exclude_grid_ids",
                       action="store", dest="exclude_grid_ids",
