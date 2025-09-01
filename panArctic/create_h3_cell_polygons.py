@@ -209,6 +209,8 @@ def main(options, args):
     exclude_grid_ids_txt = options.exclude_grid_ids
     poly_to_cell_res = options.poly_to_cell_res
     buffer_meters = options.buffer_meters
+    if save_path is None:
+        save_path = f'h3_cells_res{h3_resolution}_{io_function.get_name_no_ext(input_vector)}.shp'
 
     obtain_h3_cells_for_overlap_vectors(input_vector, h3_resolution, save_path, exclude_id_txt=exclude_grid_ids_txt,
                                         poly_to_cell_res=poly_to_cell_res, buffer_m=buffer_meters)
