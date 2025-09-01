@@ -134,11 +134,11 @@ def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exc
     original_gpd = gpd.read_file(input_vector)
     # print(in_gpd)
     original_crs = original_gpd.crs
+    in_gpd = original_gpd.copy()
     if original_gpd.crs != "EPSG:4326":
         if buffer_m is not None:
-            original_gpd['geometry'] = original_gpd['geometry'].buffer(buffer_m)
-
-        in_gpd = original_gpd.to_crs("EPSG:4326")
+            in_gpd['geometry'] = in_gpd['geometry'].buffer(buffer_m)
+        in_gpd = in_gpd.to_crs("EPSG:4326")
     else:
         in_gpd = original_gpd
     # print(in_gpd)
