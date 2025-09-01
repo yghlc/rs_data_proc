@@ -121,6 +121,10 @@ def obtain_h3_cells_for_a_polygon(polygon, resolution, finest_res=None ):
 def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exclude_id_txt= None,
                                         poly_to_cell_res = None,buffer_m=None):
 
+    if os.path.isfile(save_path):
+        print(datetime.now(), f'{save_path} alreasy exists, skip')
+        return
+
     original_gpd = gpd.read_file(input_vector)
     # print(in_gpd)
     original_crs = original_gpd.crs
