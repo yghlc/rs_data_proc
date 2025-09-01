@@ -44,7 +44,7 @@ def xy_to_latlng(coords):
 def latlng_to_xy(coords):
     return [(y, x) for x, y in coords]  # H3: (lat, lng) ->  shapely: (x=lng, y=lat)
 
-def obtain_h3_cells_for_a_polygon(polygon, resolution):
+def obtain_h3_cells_for_a_polygon(polygon, resolution, finest_res=None ):
     """
     Obtain H3 cells (IDs and Shapely polygon boundaries) covering a Shapely polygon in EPSG:4326.
 
@@ -81,9 +81,8 @@ def obtain_h3_cells_for_a_polygon(polygon, resolution):
         print('holes_ll:', holes_ll)
         raise  # Propagate exception for better debugging
 
-    finest_res = 13
     # to get cells that overlap, not just their centroid was contained
-    if resolution < finest_res:
+    if finest_res is not None and resolution < finest_res:
         tmp_ids = h3.polygon_to_cells(h3_poly, finest_res)
         cell_ids = [h3.cell_to_parent(item, res=resolution) for item in tmp_ids]
         cell_ids = list(set(cell_ids))  # Remove duplicates
@@ -91,7 +90,7 @@ def obtain_h3_cells_for_a_polygon(polygon, resolution):
         cell_ids = h3.polygon_to_cells(h3_poly, resolution)
 
     if not cell_ids:
-        return []
+        return [], []
 
     final_c_ids = []
     final_polys = []
@@ -119,7 +118,8 @@ def obtain_h3_cells_for_a_polygon(polygon, resolution):
 
 
 
-def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exclude_id_txt= None):
+def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exclude_id_txt= None,
+                                        poly_to_cell_res = None):
 
     original_gpd = gpd.read_file(input_vector)
     # print(in_gpd)
@@ -138,7 +138,7 @@ def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exc
         # print(idx, poly.is_valid)
 
         poly_bound = vector_gpd.convert_bounds_to_polygon(vector_gpd.get_polygon_bounding_box(poly))
-        cell_ids, cell_polys  = obtain_h3_cells_for_a_polygon(poly_bound, resolution)
+        cell_ids, cell_polys  = obtain_h3_cells_for_a_polygon(poly_bound, resolution, finest_res=poly_to_cell_res)
         all_cell_ids.extend(cell_ids)
         all_cell_polys.extend(cell_polys)
 
@@ -192,7 +192,7 @@ def test_obtain_h3_cells_for_overlap_vectors():
 
     resolution = 7
     save_path = f'h3_res{resolution}_cells_set01.shp'
-    obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exclude_id_txt=None)
+    obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exclude_id_txt=None,poly_to_cell_res=13)
 
 
 def main(options, args):
@@ -201,8 +201,10 @@ def main(options, args):
     save_path = options.save_path
     h3_resolution = options.h3_resolution
     exclude_grid_ids_txt = options.exclude_grid_ids
+    poly_to_cell_res = options.poly_to_cell_res
 
-    obtain_h3_cells_for_overlap_vectors(input_vector, h3_resolution, save_path, exclude_id_txt=exclude_grid_ids_txt)
+    obtain_h3_cells_for_overlap_vectors(input_vector, h3_resolution, save_path, exclude_id_txt=exclude_grid_ids_txt,
+                                        poly_to_cell_res=poly_to_cell_res)
 
 
 if __name__ == "__main__":
@@ -220,6 +222,12 @@ if __name__ == "__main__":
     parser.add_option("-r", "--h3_resolution",
                   action="store", dest="h3_resolution",type=int, default=8,
                   help="the resolution of the h3 geo index")
+
+    parser.add_option("-f", "--poly_to_cell_res",
+                  action="store", dest="poly_to_cell_res",type=int,
+                  help="the resolution for polygon_to_cells, can be larger than h3_resolution. As "
+                       "polygon_to_cells only check centroid of cell contained in a polygons, "
+                       "set this to draw cells in finer resolution ")
 
     parser.add_option("-e", "--exclude_grid_ids",
                       action="store", dest="exclude_grid_ids",
