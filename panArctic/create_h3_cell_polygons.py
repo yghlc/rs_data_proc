@@ -129,6 +129,9 @@ def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exc
     # print(in_gpd)
     original_crs = original_gpd.crs
     if original_gpd.crs != "EPSG:4326":
+        if buffer_m is not None:
+            original_gpd['geometry'] = original_gpd['geometry'].buffer(buffer_m)
+
         in_gpd = original_gpd.to_crs("EPSG:4326")
     else:
         in_gpd = original_gpd
@@ -140,8 +143,6 @@ def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exc
     for idx, poly in enumerate(in_gpd.geometry.values):
         # poly = poly.buffer(0.000001)
         # print(idx, poly.is_valid)
-        if buffer_m is not None:
-            poly = poly.buffer(buffer_m)
 
         poly_bound = vector_gpd.convert_bounds_to_polygon(vector_gpd.get_polygon_bounding_box(poly))
         cell_ids, cell_polys  = obtain_h3_cells_for_a_polygon(poly_bound, resolution, finest_res=poly_to_cell_res)
