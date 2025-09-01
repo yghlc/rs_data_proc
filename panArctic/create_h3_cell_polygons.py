@@ -28,10 +28,9 @@ import geopandas as gpd
 
 import h3
 import shapely
-from shapely.geometry import shape, mapping, Polygon, MultiPolygon
-from shapely.geometry.polygon import orient
-import h3pandas  # registers the .h3 accessor
-from typing import Optional, Union, List, Tuple, Iterable, Set
+from shapely.geometry import Polygon
+
+from datetime import datetime
 
 
 shp_dir = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp')
@@ -41,6 +40,9 @@ overall_coverage = os.path.join(shp_dir,'tiles.shp')
 # Convert Shapely polygon to H3 LatLngPoly
 def xy_to_latlng(coords):
     return [(y, x) for x, y in coords]  # shapely: (x=lng, y=lat) -> H3: (lat, lng)
+
+def latlng_to_xy(coords):
+    return [(y, x) for x, y in coords]  # H3: (lat, lng) ->  shapely: (x=lng, y=lat)
 
 def obtain_h3_cells_for_a_polygon(polygon, resolution):
     """
@@ -79,7 +81,7 @@ def obtain_h3_cells_for_a_polygon(polygon, resolution):
         print('holes_ll:', holes_ll)
         raise  # Propagate exception for better debugging
 
-    finest_res = 14
+    finest_res = 13
     # to get cells that overlap, not just their centroid was contained
     if resolution < finest_res:
         tmp_ids = h3.polygon_to_cells(h3_poly, finest_res)
@@ -95,12 +97,17 @@ def obtain_h3_cells_for_a_polygon(polygon, resolution):
     final_polys = []
 
     for cid in cell_ids:
-        boundary = h3.cell_to_boundary(cid)  # [[lng, lat], ...]
+        boundary = h3.cell_to_boundary(cid)  # [(lat, lng), ...]
         if not boundary or len(boundary) < 3:
             continue
+
+        boundary = latlng_to_xy(boundary)
+
         # Ensure closed ring for Shapely
         if boundary[0] != boundary[-1]:
-            boundary = boundary + tuple([boundary[0]])
+            boundary = boundary + [boundary[0]]
+
+
         poly = Polygon(boundary)
         if poly.is_valid and not poly.is_empty:
             final_c_ids.append(cid)
@@ -114,16 +121,18 @@ def obtain_h3_cells_for_a_polygon(polygon, resolution):
 
 def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exclude_id_txt= None):
 
-    in_gpd = gpd.read_file(input_vector)
+    original_gpd = gpd.read_file(input_vector)
     # print(in_gpd)
-    original_crs = in_gpd.crs
-    if in_gpd.crs != "EPSG:4326":
-        in_gpd = in_gpd.to_crs("EPSG:4326")
+    original_crs = original_gpd.crs
+    if original_gpd.crs != "EPSG:4326":
+        in_gpd = original_gpd.to_crs("EPSG:4326")
+    else:
+        in_gpd = original_gpd
     # print(in_gpd)
 
     all_cell_ids = []
     all_cell_polys = []
-    print(f'Loaded {len(in_gpd)} polygons')
+    print(datetime.now(),f'Loaded {len(in_gpd)} polygons')
     for idx, poly in enumerate(in_gpd.geometry.values):
         # poly = poly.buffer(0.000001)
         # print(idx, poly.is_valid)
@@ -133,23 +142,44 @@ def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exc
         all_cell_ids.extend(cell_ids)
         all_cell_polys.extend(cell_polys)
 
-    print(f'Obtained {len(all_cell_ids)} cell at res: {resolution}')
+    print(datetime.now(), f'Obtained {len(all_cell_ids)} cell at res: {resolution}')
     id_colum_name = f"h3_id_{resolution}"
 
     df = pd.DataFrame({id_colum_name: all_cell_ids, "geometry": all_cell_polys})
     df = df.drop_duplicates(subset=id_colum_name)
-    print(f'After removing duplicates,  {len(df)} cells remains')
+    print(datetime.now(), f'After removing duplicates,  {len(df)} cells remains')
 
     exclude_ids = io_function.read_list_from_txt(exclude_id_txt) if exclude_id_txt is not None else None
     # remove exclude_ids
     if exclude_ids is not None:
-        pass
-
+        start_len = len(df)
+        df = df[~df[id_colum_name].isin(exclude_ids)]
+        print(datetime.now(), f'Removed {start_len - len(df)} cells based on exclude list; {len(df)} remain.')
 
     save_gdf = gpd.GeoDataFrame(df, geometry="geometry", crs="EPSG:4326")
+    # print(save_gdf)
     if original_crs != "EPSG:4326":
         save_gdf = save_gdf.to_crs(original_crs)
+
+    # Perform spatial join to find overlapping or touching geometries
+    overlap_touch = gpd.sjoin(save_gdf, original_gpd, how='inner', predicate='intersects')
+    # Only keep columns from save_gdf
+    overlap_touch = overlap_touch[save_gdf.columns]
+    # Remove duplicate geometries in the result
+    overlap_touch = overlap_touch.drop_duplicates(subset=['geometry'])
+
+    print(datetime.now(), f'After overlap checking with original input vector, kept {len(overlap_touch)} cells')
+    save_gdf = overlap_touch
+
+    # print(save_gdf)
     save_gdf.to_file(save_path)
+    print(datetime.now(), f'Saved {len(save_gdf)} H3 cells to {save_path}')
+
+    # save cell ids
+    cell_ids_txt = os.path.splitext(save_path)[0] + '_cell_ids.txt'
+    save_cell_ids = save_gdf[id_colum_name].to_list()
+    io_function.save_list_to_txt(cell_ids_txt, save_cell_ids)
+
 
 
 
@@ -160,43 +190,40 @@ def test_obtain_h3_cells_for_overlap_vectors():
 
     input_vector = os.path.expanduser('~/Data/published_data/Dai_etal_2025_largeRTS_ArcticDEM/ArcticRTS_epsg3413_ClassInt.shp')
 
-    resolution = 8
+    resolution = 7
     save_path = f'h3_res{resolution}_cells_set01.shp'
     obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exclude_id_txt=None)
 
 
 def main(options, args):
 
-    pass
+    input_vector = args[0]
+    save_path = options.save_path
+    h3_resolution = options.h3_resolution
+    exclude_grid_ids_txt = options.exclude_grid_ids
+
+    obtain_h3_cells_for_overlap_vectors(input_vector, h3_resolution, save_path, exclude_id_txt=exclude_grid_ids_txt)
 
 
 if __name__ == "__main__":
     usage = "usage: %prog [options] vector_file "
     parser = OptionParser(usage=usage, version="1.0 2025-07-13")
-    parser.description = 'Introduction: generating grids covering input vectors '
+    parser.description = 'Introduction: generating h3 cells covering input vectors '
 
-    test_obtain_h3_cells_for_overlap_vectors()
-    sys.exit(0)
+    # test_obtain_h3_cells_for_overlap_vectors()
+    # sys.exit(0)
 
     parser.add_option("-s", "--save_path",
                       action="store", dest="save_path",
-                      help="the path to save the overlap grids")
+                      help="the path to save the overlap h3 cells")
 
-    parser.add_option("-x", "--grid_size_x",
-                  action="store", dest="grid_size_x",type=int, default=20000,
-                  help="the default grid size in x direction")
-
-    parser.add_option("-y", "--grid_size_y",
-                  action="store", dest="grid_size_y", type=int, default=20000,
-                  help="the default grid size in y direction")
-
-    parser.add_option("-c", "--coverage",
-                      action="store", dest="coverage",
-                      help="the overall coverage of the entire study areas, default is the ArcticDEM coverage")
+    parser.add_option("-r", "--h3_resolution",
+                  action="store", dest="h3_resolution",type=int, default=8,
+                  help="the resolution of the h3 geo index")
 
     parser.add_option("-e", "--exclude_grid_ids",
                       action="store", dest="exclude_grid_ids",
-                      help="the grid id lists saved in a txt file to be excluded")
+                      help="the cell id lists saved in a txt file to be excluded")
 
 
     (options, args) = parser.parse_args()
