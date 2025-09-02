@@ -98,10 +98,14 @@ def copy_classify_result_to_sam_result(ext_str, dem_diff_poly_dir,dem_diff_poly_
         print(datetime.now(), f'({idx+1}/{len(sam_classfiy_res.keys())}) Working on {sam_classfiy_res[g_id][0]}')
         filtered= merge_two_shapefile(sam_classfiy_res[g_id][0], sam_classfiy_res[g_id][1])
         all_gpds.append(filtered)
+        # if idx > 10: 
+        #     break
 
     # Merge (concatenate) them:
     merged_gdf = gpd.GeoDataFrame(pd.concat(all_gpds, ignore_index=True))
-    merged_gdf.to_file(f'{ext_str}.gpkg',driver='GPKG')
+    save_path = f'{ext_str}_sam_polys_class_1.gpkg'
+    print(f'saving to {save_path}')
+    merged_gdf.to_file(save_path,driver='GPKG')
 
     io_function.save_text_to_file(done_indicator,f'completed at {datetime.now()}')
 
@@ -115,12 +119,13 @@ def main():
         # os.chdir(org_dir)  # change to original dir, because inside sam_segment_a_big_region, they change to other folder
 
         ext_dir = os.path.dirname(dem_diff_dir)
+        work_folder = os.path.basename(ext_dir)
         basic.outputlogMessage(f'processing {ext_dir}')
         dem_diff_poly_dir = os.path.join(ext_dir, 'grid_dem_diffs_sam_results')
         dem_diff_poly_classify_res_dir = os.path.join(ext_dir, 'grid_dem_diffs_reduction_poly_classify_res')
 
         # select region
-        work_folder_begin_str = ext_dir[:5]
+        work_folder_begin_str = work_folder[:5]
         copy_classify_result_to_sam_result(work_folder_begin_str, dem_diff_poly_dir, dem_diff_poly_classify_res_dir)
 
 
