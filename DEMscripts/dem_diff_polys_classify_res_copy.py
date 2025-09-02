@@ -120,6 +120,6 @@ def main():
 
 
 if __name__ == '__main__':
-    test_merge_two_shapefile()
+    # test_merge_two_shapefile()
 
-    # main()
+    main()
