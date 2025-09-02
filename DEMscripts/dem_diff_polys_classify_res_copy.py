@@ -93,7 +93,12 @@ def copy_classify_result_to_sam_result(ext_str, dem_diff_poly_dir,dem_diff_poly_
         sam_classfiy_res[grid_id].append(shp)
 
     # combine results
-    all_gpds = [ merge_two_shapefile(sam_classfiy_res[g_id][0], sam_classfiy_res[g_id][1]) for g_id in sam_classfiy_res.keys()]
+    all_gpds = []
+    for idx, g_id in enumerate(sam_classfiy_res.keys()):
+        print(datetime.now(), f'({idx+1}/{len(sam_classfiy_res.keys())}) Working on {sam_classfiy_res[g_id][0]}')
+        filtered= merge_two_shapefile(sam_classfiy_res[g_id][0], sam_classfiy_res[g_id][1])
+        all_gpds.append(filtered)
+
     # Merge (concatenate) them:
     merged_gdf = gpd.GeoDataFrame(pd.concat(all_gpds, ignore_index=True))
     merged_gdf.to_file(f'{ext_str}.gpkg',driver='GPKG')
