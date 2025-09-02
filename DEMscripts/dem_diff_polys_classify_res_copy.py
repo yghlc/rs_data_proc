@@ -29,6 +29,7 @@ import pandas as pd
 import geopandas as gpd
 
 def merge_two_shapefile(sam_shp, classify_res_shp, keep_colums=['preClassID'], values=[1]):
+    # t0=time.time()
     sam_res = gpd.read_file(sam_shp)
     class_res = gpd.read_file(classify_res_shp)
     if sam_res.crs != class_res.crs:
@@ -40,9 +41,12 @@ def merge_two_shapefile(sam_shp, classify_res_shp, keep_colums=['preClassID'], v
     if len(keep_colums) != len(values):
         raise ValueError(f'The count in keep_colums ({keep_colums}) and values ({values}) should be the same')
 
+    # t1 = time.time()
     # merge sam_res and class_res,and only keep the columns in keep_colums and values in [1]
     merged = sam_res.join(class_res.drop(columns='geometry'), lsuffix='_sam', rsuffix='_class')
     # print(merged)
+
+    # t2 = time.time()
 
     # Only keep the columns in keep_colums (if they exist in merged)
     columns_to_keep = [col for col in keep_colums if col in merged.columns]
@@ -55,10 +59,14 @@ def merge_two_shapefile(sam_shp, classify_res_shp, keep_colums=['preClassID'], v
 
     filtered = merged[columns_to_keep]
     # print(filtered)
-
+    # t3 = time.time()
     # Filter rows: only keep those where all keep_colums have values in `values`
     mask = filtered[keep_colums].apply(lambda row: all(val in values for val in row), axis=1)
     filtered = filtered[mask]
+    t4 = time.time()
+
+    # print('time cost:', t1-t0, t2-t1, t3-t2, t4-t3)
+
     return filtered
 
 
