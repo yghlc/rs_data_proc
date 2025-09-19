@@ -113,10 +113,11 @@ def main(options, args):
 
     input_vector = args[0]
     coverage = options.coverage if options.coverage else overall_coverage
-    save_path = options.save_path if options.save_path else io_function.get_name_by_adding_tail(input_vector,'grids')
-
     grid_size_x = options.grid_size_x
     grid_size_y = options.grid_size_y
+
+    save_path = options.save_path if options.save_path else io_function.get_name_by_adding_tail(input_vector,f'{grid_size_x}m_grids')
+
     exclude_grid_ids = options.exclude_grid_ids
 
     create_grids_for_overlap_vectors(coverage, input_vector, grid_size_x, grid_size_y, save_path, exclude_id_txt=exclude_grid_ids)
