@@ -127,6 +127,19 @@ def get_valid_pixel_percentage_np(image_np, nodata=0):
     valid_per = 100.0 * valid_pixel_count / total_count
     return valid_per
 
+
+def convert_data_type(image,dtype,product):
+    if np.issubclass_(dtype, np.integer):
+        if 'S2' in product:
+            return image.astype(dtype)
+        elif 'LANDSAT' in product:
+            return (image*10000.0).astype(dtype)
+        else:
+            print('Warning: unknown product %s, do not know how to convert to integer'%product)
+            return image.astype(dtype)
+    else:
+        return image.astype(dtype)
+
 def directly_save_image_to_local(save_file_path, dtype, image, image_features, valid_pixel_percent_thr=None):
     # for small image < 32M ? we can save it directly to local file
 
@@ -154,13 +167,17 @@ def directly_save_image_to_local(save_file_path, dtype, image, image_features, v
     x_new, y_new = transformer.transform(lon, lat)
     # points_news = np.column_stack((x_new, y_new))
 
+    product_id = metadata['id']
+    # print(f'Product id: {product_id}')
 
     # raster data
     raster = OrderedDict()
     for meta in metadata['bands']:
         band = meta['id']
         img = np.atleast_3d(image_features["properties"][band])
-        raster[band] = img.astype(dtype)
+        # print('image shape and type for band %s is %s, %s'%(band,img.shape, img.dtype))
+        # raster[band] = img.astype(dtype)
+        raster[band] = convert_data_type(img,dtype,product_id)
 
 
     img_all = np.concatenate( [raster[key] for key in raster.keys()] , axis=2)
