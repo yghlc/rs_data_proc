@@ -53,7 +53,7 @@ img_speci = {'sentinel2_rgb_sr': {'product': 'COPERNICUS/S2_SR_HARMONIZED', 'ban
             'landsat8_rgb':{'product':'LANDSAT/LC08/C02/T1_L2', 'bands':['SR_B4', 'SR_B3', 'SR_B2'], 'res':30},
              # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C02_T1_L2
             'landsat8_Nrgb':{'product':'LANDSAT/LC08/C02/T1_L2', 'bands':['SR_B5','SR_B4', 'SR_B3', 'SR_B2'], 'res':30},
-            # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LE07_C01_T1_SR
+            # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C02_T1_TOA
              'landsat8_pan':{'product':'LANDSAT/LC08/C02/T1_TOA', 'bands':['B8'], 'res':15},
 
             }

@@ -133,7 +133,10 @@ def convert_data_type(image,dtype,product):
         if 'S2' in product:
             return image.astype(dtype)
         elif 'LANDSAT' in product:
-            return (image*10000.0).astype(dtype)
+            if "T1_TOA" in product:
+                return (image*10000.0).astype(dtype)
+            else:
+                image.astype(dtype)
         else:
             print('Warning: unknown product %s, do not know how to convert to integer'%product)
             return image.astype(dtype)
