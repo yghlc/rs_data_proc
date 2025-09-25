@@ -32,13 +32,29 @@ def get_img_grid_id_from_path(item):
     return re.findall(r'img\d+', os.path.basename(item))[0][3:]
 
 
-def get_image_valid_percent_entropy(image_list, nodata_user=0):
+def get_image_valid_percent_entropy(image_list, nodata_user=0, save_txt='valid_percent_entropy.json'):
+    percent_entropy_dict = {}
+    if os.path.isfile(save_txt):
+        print(f'reading calculated valid percent entropy from {save_txt}')
+        percent_entropy_dict = io_function.read_dict_from_txt_json(save_txt)
+
     valid_percent_list = []
     img_entropy_list = []
     for idx, img in enumerate(tqdm(image_list, desc="Calculating image valid and entropy")):
-        valid_per, entropy = raster_io.get_valid_percent_shannon_entropy(img,nodata_input=nodata_user)
+        if img in percent_entropy_dict.keys():
+            valid_per, entropy = percent_entropy_dict[img]['valid_per'], percent_entropy_dict[img]['entropy']
+        else:
+            valid_per, entropy = raster_io.get_valid_percent_shannon_entropy(img,nodata_input=nodata_user)
+            percent_entropy_dict[img] = {}
+            percent_entropy_dict[img]['valid_per'] = valid_per
+            percent_entropy_dict[img]['entropy'] = entropy
+
         valid_percent_list.append(valid_per)
         img_entropy_list.append(entropy)
+
+    # save updated valid_percent_list, img_entropy_list to disk
+    io_function.save_dict_to_txt_json(save_txt,percent_entropy_dict)
+
     return valid_percent_list, img_entropy_list
 
 
@@ -89,6 +105,7 @@ def main(options, args):
     file_pattern = options.file_pattern
     image_dir = args[1]
     back_up_dir = './deleted_files'
+    valid_entropy_json = image_dir+'_valid_entropy.json'
 
     extent_polygons = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp, 'EPSG:4326')
     extent_ids = vector_gpd.read_attribute_values_list(extent_shp, id_column_name)
@@ -100,7 +117,7 @@ def main(options, args):
 
     image_list = io_function.get_file_list_by_pattern(image_dir,file_pattern)
 
-    valid_percent_list, img_entropy_list = get_image_valid_percent_entropy(image_list)
+    valid_percent_list, img_entropy_list = get_image_valid_percent_entropy(image_list,save_txt=valid_entropy_json)
 
     # mainly use entropy_thr to removed bad images,
     # valid percentage has been checked in gee_common.py, with threshold of 80.
