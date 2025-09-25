@@ -136,7 +136,7 @@ def convert_data_type(image,dtype,product):
             if "T1_TOA" in product:
                 return (image*10000.0).astype(dtype)
             else:
-                image.astype(dtype)
+                return image.astype(dtype)
         else:
             print('Warning: unknown product %s, do not know how to convert to integer'%product)
             return image.astype(dtype)
@@ -171,7 +171,7 @@ def directly_save_image_to_local(save_file_path, dtype, image, image_features, v
     # points_news = np.column_stack((x_new, y_new))
 
     product_id = metadata['id']
-    # print(f'Product id: {product_id}')
+    print(f'Product id: {product_id}')
 
     # raster data
     raster = OrderedDict()
@@ -181,6 +181,7 @@ def directly_save_image_to_local(save_file_path, dtype, image, image_features, v
         # print('image shape and type for band %s is %s, %s'%(band,img.shape, img.dtype))
         # raster[band] = img.astype(dtype)
         raster[band] = convert_data_type(img,dtype,product_id)
+        # print('After convert, image shape and type for band %s is %s, %s'%(band,raster[band].shape, raster[band].dtype))
 
 
     img_all = np.concatenate( [raster[key] for key in raster.keys()] , axis=2)
