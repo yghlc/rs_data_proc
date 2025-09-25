@@ -107,8 +107,11 @@ def to_toUint16(image, product):
     if 'S2' in product:
         image = image.toUint16()
     elif 'LANDSAT' in product:
-        # for Landsat, the surface reflectance is scaled by a factor of 10000
-        image = image.multiply(10000).toUint16()
+        # for Landsat, the top of atmosphere reflectance is scaled by a factor of 10000
+        if "T1_TOA" in product:
+            image = image.multiply(10000).toUint16()
+        else:
+            image = image.toUint16()
     else:
         raise ValueError('%s not supported yet in to_toUint16()'%(product))
     return image
