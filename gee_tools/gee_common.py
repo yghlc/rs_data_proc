@@ -171,7 +171,7 @@ def directly_save_image_to_local(save_file_path, dtype, image, image_features, v
     # points_news = np.column_stack((x_new, y_new))
 
     product_id = metadata['id']
-    print(f'Product id: {product_id}')
+    # print(f'Product id: {product_id}')
 
     # raster data
     raster = OrderedDict()
