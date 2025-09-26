@@ -74,6 +74,7 @@ def main(options, args):
 
     file_pattern = options.file_pattern
     image_dir = args[0]
+    valid_entropy_json = image_dir + '_valid_entropy.json'
 
     vrt_mosaic_path = image_dir + '.vrt'
     image_extents_path = image_dir + '_imgExt.gpkg'
@@ -82,7 +83,7 @@ def main(options, args):
         return
 
     image_list = io_function.get_file_list_by_pattern(image_dir, file_pattern)
-    valid_percent_list, img_entropy_list = get_image_valid_percent_entropy(image_list)
+    valid_percent_list, img_entropy_list = get_image_valid_percent_entropy(image_list,save_txt=valid_entropy_json)
 
     img_list_max_entropy = get_image_list_with_max_entropy(image_list,valid_percent_list,img_entropy_list)
     save_image_extend(img_list_max_entropy,image_extents_path)
