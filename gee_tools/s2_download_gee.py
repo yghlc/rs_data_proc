@@ -56,6 +56,8 @@ img_speci = {'sentinel2_rgb_sr': {'product': 'COPERNICUS/S2_SR_HARMONIZED', 'ban
             # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C02_T1_TOA
              'landsat8_pan':{'product':'LANDSAT/LC08/C02/T1_TOA', 'bands':['B8'], 'res':15},
 
+             # https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LE07_C02_T1_TOA
+            'landsat7_pan':{'product':'LANDSAT/LE07/C02/T1_TOA', 'bands':['B8'], 'res':15},
             }
 
 
