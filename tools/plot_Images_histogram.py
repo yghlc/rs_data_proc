@@ -280,11 +280,11 @@ if __name__ == '__main__':
 
     parser.add_option("-u", "--hist_max_percent",
                       action="store", dest="hist_max_percent",type=float,
-                      help="the upper percent for choosing the max pixel value")
+                      help="the upper percent for choosing the max pixel value, such as 0.98")
 
     parser.add_option("-l", "--hist_min_percent",
                       action="store", dest="hist_min_percent",type=float,
-                      help="the lower percent for choosing the max pixel value")
+                      help="the lower percent for choosing the max pixel value, such as 0.02")
 
     parser.add_option("-b", "--bin_count",
                       action="store", dest="bin_count",type=int, default=500,
