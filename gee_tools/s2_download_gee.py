@@ -197,7 +197,7 @@ def gee_download_images(region_name,start_date, end_date, ext_id, extent, produc
     if os.path.isdir(export_dir) is False:
         io_function.mkdir(export_dir)
 
-    valid_pixel_percent_thr = 80
+    valid_pixel_percent_thr = 60
 
     # first_image = ee.Image(filtercollection.first()).select(band_names)
     # # reproject?
