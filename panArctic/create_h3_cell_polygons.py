@@ -170,7 +170,10 @@ def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exc
     df = df.drop_duplicates(subset=id_colum_name)
     print(datetime.now(), f'After removing duplicates,  {len(df)} cells remains')
 
-    exclude_ids = io_function.read_list_from_txt(exclude_id_txt) if exclude_id_txt is not None else None
+    if exclude_id_txt is not None and os.path.isfile(exclude_id_txt):
+        exclude_ids = io_function.read_list_from_txt(exclude_id_txt)
+    else:
+        exclude_ids = None
     # remove exclude_ids
     if exclude_ids is not None:
         start_len = len(df)
