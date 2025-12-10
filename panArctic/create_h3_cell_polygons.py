@@ -196,7 +196,7 @@ def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exc
     save_gdf = overlap_touch
 
     # print(save_gdf)
-    save_gdf.to_file(save_path)
+    save_gdf.to_file(save_path,driver='GPKG')
     print(datetime.now(), f'Saved {len(save_gdf)} H3 cells to {save_path}')
 
     # save cell ids
@@ -229,7 +229,7 @@ def main(options, args):
     buffer_meters = options.buffer_meters
     process_num = options.process_num
     if save_path is None:
-        save_path = f'h3_cells_res{h3_resolution}_{io_function.get_name_no_ext(input_vector)}.shp'
+        save_path = f'h3_cells_res{h3_resolution}_{io_function.get_name_no_ext(input_vector)}.gpkg'
 
     obtain_h3_cells_for_overlap_vectors(input_vector, h3_resolution, save_path, exclude_id_txt=exclude_grid_ids_txt,
                                         poly_to_cell_res=poly_to_cell_res, buffer_m=buffer_meters, process_num=process_num)
