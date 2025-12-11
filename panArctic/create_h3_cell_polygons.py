@@ -46,7 +46,49 @@ def xy_to_latlng(coords):
 def latlng_to_xy(coords):
     return [(y, x) for x, y in coords]  # H3: (lat, lng) ->  shapely: (x=lng, y=lat)
 
-def obtain_h3_cells_for_a_polygon(polygon, resolution, finest_res=None ):
+
+def find_covered_or_max_overlapping(polygon, final_c_ids, final_polys):
+    """
+    Args:
+        polygon (Polygon): The reference Shapely polygon.
+        final_c_ids (List): List of IDs for candidate polygons.
+        final_polys (List[Polygon]): List of candidate Shapely polygons.
+
+    Returns:
+        new_c_ids (List): IDs of polygons covered or max-overlapping.
+        new_c_polys (List[Polygon]): Corresponding polygons.
+    """
+    covered_ids = []
+    covered_polys = []
+
+    # 1. Check for polygons completely covered by 'polygon'
+    for c_id, c_poly in zip(final_c_ids, final_polys):
+        if polygon.covers(c_poly):  # .covers() is True if c_poly is within or on boundary of polygon
+            covered_ids.append(c_id)
+            covered_polys.append(c_poly)
+
+    if covered_ids:
+        # Return all covered polygons
+        return covered_ids, covered_polys
+    else:
+        # 2. If none are covered, find the polygon with maximum overlap area
+        max_overlap = 0
+        max_id = None
+        max_poly = None
+        for c_id, c_poly in zip(final_c_ids, final_polys):
+            inter_area = polygon.intersection(c_poly).area
+            if inter_area > max_overlap:
+                max_overlap = inter_area
+                max_id = c_id
+                max_poly = c_poly
+        if max_id is not None:
+            return [max_id], [max_poly]
+        else:
+            raise ValueError(f'No overlaps at all for {polygon} and {final_c_ids}')
+            # return [], []  # No overlaps at all
+
+
+def obtain_h3_cells_for_a_polygon(polygon, resolution, finest_res=None,b_less_cell=False):
     """
     Obtain H3 cells (IDs and Shapely polygon boundaries) covering a Shapely polygon in EPSG:4326.
 
@@ -116,16 +158,26 @@ def obtain_h3_cells_for_a_polygon(polygon, resolution, finest_res=None ):
         else:
             print(f'Warning: The cell polygon is empty or invalid ({poly}), with id: {cid}')
 
+    if b_less_cell and len(final_c_ids) > 1:
+        # find the polygon with maximum overlap or these totally covered by "polygon"
+        final_c_ids, final_polys = find_covered_or_max_overlapping(polygon,final_c_ids, final_polys)
+
+
+
     return final_c_ids, final_polys
 
 
-def process_one_poly(poly,resolution,poly_to_cell_res):
+def process_one_poly(poly,resolution,poly_to_cell_res,b_less_cell):
     poly_bound = vector_gpd.convert_bounds_to_polygon(vector_gpd.get_polygon_bounding_box(poly))
-    cell_ids, cell_polys = obtain_h3_cells_for_a_polygon(poly_bound, resolution, finest_res=poly_to_cell_res)
+    cell_ids, cell_polys = obtain_h3_cells_for_a_polygon(poly_bound, resolution, finest_res=poly_to_cell_res,
+                                                         b_less_cell=b_less_cell)
     return cell_ids, cell_polys
 
 def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exclude_id_txt= None,
-                                        poly_to_cell_res = None,buffer_m=None, process_num=1):
+                                        poly_to_cell_res = None,buffer_m=None, process_num=1, b_less_cell=False):
+
+    # if b_less_cell is true, try to only keep one cell for each vector, with maximum overlap
+    # if the cells were totally cover by the polygon, then keep all the cells that are totally covered
 
     if os.path.isfile(save_path):
         print(datetime.now(), f'{save_path} alreasy exists, skip')
@@ -150,12 +202,12 @@ def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exc
         for idx, poly in enumerate(in_gpd.geometry.values):
             # poly = poly.buffer(0.000001)
             # print(idx, poly.is_valid)
-            cell_ids, cell_polys  = process_one_poly(poly,resolution,poly_to_cell_res)
+            cell_ids, cell_polys  = process_one_poly(poly,resolution,poly_to_cell_res,b_less_cell)
             all_cell_ids.extend(cell_ids)
             all_cell_polys.extend(cell_polys)
     else:
         theadPool = Pool(process_num)  # multi processes
-        parameters_list = [(poly,resolution,poly_to_cell_res) for idx, poly in enumerate(in_gpd.geometry.values)]
+        parameters_list = [(poly,resolution,poly_to_cell_res,b_less_cell) for idx, poly in enumerate(in_gpd.geometry.values)]
         results = theadPool.starmap(process_one_poly, parameters_list)  # need python3
         for res in  results:
             cell_ids, cell_polys = res
@@ -209,14 +261,31 @@ def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exc
 
 
 def test_obtain_h3_cells_for_overlap_vectors():
-    input_vector = os.path.expanduser('~/Data/published_data/'
-    'Yili_Yang_etal_ARTS_The-Arctic-Retrogressive-Thaw-Slumps-Data-Set/ARTS_main_dataset_v.3.1.0_ClassInt_org_c1.gpkg')
+    # input_vector = os.path.expanduser('~/Data/published_data/'
+    # 'Yili_Yang_etal_ARTS_The-Arctic-Retrogressive-Thaw-Slumps-Data-Set/ARTS_main_dataset_v.3.1.0_ClassInt_org_c1.gpkg')
 
-    input_vector = os.path.expanduser('~/Data/published_data/Dai_etal_2025_largeRTS_ArcticDEM/ArcticRTS_epsg3413_ClassInt.shp')
+    # input_vector = os.path.expanduser('~/Data/published_data/Dai_etal_2025_largeRTS_ArcticDEM/ArcticRTS_epsg3413_ClassInt.shp')
 
-    resolution = 7
-    save_path = f'h3_res{resolution}_cells_set01.shp'
-    obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exclude_id_txt=None,poly_to_cell_res=13)
+    # this one contain 2747 polygons
+    input_vector = os.path.expanduser(
+        '~/Data/published_data/Dai_etal_2025_largeRTS_ArcticDEM/ArcticRTS_epsg3413_ClassInt.shp')
+
+
+
+    resolution = 8
+    process_num = 8
+    # buffer_meters = 100  # for ArcticRTS_epsg3413_ClassInt.shp, got 3728 h3 grids
+    # buffer_meters = 10  # for ArcticRTS_epsg3413_ClassInt.shp, got 3719 h3 grids
+    buffer_meters = None  # for ArcticRTS_epsg3413_ClassInt.shp, got 3711 h3 grids
+    # buffer_meters don't affect the grid count a lot when res=8.
+
+    # save_path = f'h3_res{resolution}_cells_set01.shp'
+    # save_path = f'h3_res{resolution}_cells_ArcticRTS_epsg3413_buff10.gpkg'
+    # save_path = f'h3_res{resolution}_cells_ArcticRTS_epsg3413.gpkg'
+    b_less_h3_grid = True # got 2469 grids, less than original polygons count
+    save_path = f'h3_res{resolution}_cells_ArcticRTS_epsg3413_less_grids.gpkg'
+    obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exclude_id_txt=None,poly_to_cell_res=13,
+                                        buffer_m=buffer_meters,process_num=process_num,b_less_cell=b_less_h3_grid)
 
 
 def main(options, args):
@@ -250,6 +319,12 @@ if __name__ == "__main__":
     parser.add_option("-r", "--h3_resolution",
                   action="store", dest="h3_resolution",type=int, default=8,
                   help="the resolution of the h3 geo index")
+
+    parser.add_option("", "--b_less_h3_grid",
+                      action="store_true", dest="b_less_h3_grid", default=False,
+                      help="if set, try to only find maximum one H3 cell for one polygon, with maximum overlap, "
+                           "or those H3 cells totally covered by the polygon ")
+
 
     parser.add_option("-f", "--poly_to_cell_res",
                   action="store", dest="poly_to_cell_res",type=int,
