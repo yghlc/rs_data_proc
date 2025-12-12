@@ -29,6 +29,7 @@ import geopandas as gpd
 import h3
 import shapely
 from shapely.geometry import Polygon
+from shapely.validation import explain_validity
 
 from datetime import datetime
 
@@ -84,8 +85,8 @@ def find_covered_or_max_overlapping(polygon, final_c_ids, final_polys):
         if max_id is not None:
             return [max_id], [max_poly]
         else:
-            raise ValueError(f'No overlaps at all for {polygon} and {final_c_ids}')
-            # return [], []  # No overlaps at all
+            basic.outputlogMessage(f'No overlaps at all for {polygon} and {final_c_ids}')
+            return [], []  # No overlaps at all
 
 
 def obtain_h3_cells_for_a_polygon(polygon, resolution, finest_res=None,b_less_cell=False):
@@ -127,7 +128,20 @@ def obtain_h3_cells_for_a_polygon(polygon, resolution, finest_res=None,b_less_ce
 
     # to get cells that overlap, not just their centroid was contained
     if finest_res is not None and resolution < finest_res:
-        tmp_ids = h3.polygon_to_cells(h3_poly, finest_res)
+        try:
+            tmp_ids = h3.polygon_to_cells(h3_poly, finest_res)
+        except Exception as e:
+            # finest_res=12, has h3._cy.error_system.H3FailedError for "panArctic_s2_rgb_2018_object_detection_s2_exp5_post_1.shp", 
+            # not sure why (Dec 12, 2025), so change to finest_res=13
+            print("Error with h3_poly:", h3_poly)
+            print("Error with polygon:", polygon)
+            print("Resolution:", finest_res)
+            print("Exception:", e)
+            if not polygon.is_valid:
+                print("Invalid geometry:", explain_validity(polygon))
+            if polygon.area < 1e-10:
+                print("Polygon area too small:", polygon.area)
+            raise
         cell_ids = [h3.cell_to_parent(item, res=resolution) for item in tmp_ids]
         cell_ids = list(set(cell_ids))  # Remove duplicates
     else:
