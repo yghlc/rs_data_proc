@@ -6,6 +6,18 @@ __pycache__/
 .idea
 .vscode
 workspace.code-workspace
+.DS_Store
+*.txt
+*.gpkg
+*.shp
+*.cpg
+*.prj
+*.shx
+*.dbf
+*.xml
+*.tif
+*.zip
+*.gz
 
 # C extensions
 *.so
