@@ -194,7 +194,7 @@ def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exc
     # if the cells were totally cover by the polygon, then keep all the cells that are totally covered
 
     if os.path.isfile(save_path):
-        print(datetime.now(), f'{save_path} alreasy exists, skip')
+        print(datetime.now(), f'{save_path} already exists, skip')
         return
 
     original_gpd = gpd.read_file(input_vector)
