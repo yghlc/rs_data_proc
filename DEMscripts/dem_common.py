@@ -101,6 +101,9 @@ grid_20_id_raster = os.path.expanduser('~/Data/Arctic/ArcticDEM/grid_shp/ArcticD
 dem_strip_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/BROWSE_SERVER/indexes/ArcticDEM_Strip_Index_Rel7/ArcticDEM_Strip_Index_Rel7.shp')
 dem_tile_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/BROWSE_SERVER/indexes/ArcticDEM_Tile_Index_Rel7/ArcticDEM_Tile_Index_Rel7.shp')
 
+if os.path.isfile(setting_ini):
+    dem_strip_shp = parameters.get_file_path_parameters(setting_ini,'dem_strip_shp')
+
 
 # some log and information files
 subset_message_dir = os.path.join(ArcticDEM_tmp_dir, 'subset_message_dir')
