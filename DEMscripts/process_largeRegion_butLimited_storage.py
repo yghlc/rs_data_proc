@@ -21,6 +21,7 @@ import basic_src.map_projection as map_projection
 import basic_src.basic as basic
 import basic_src.timeTools as timeTools
 import raster_io
+import parameters
 import scp_communicate
 
 import re
@@ -883,9 +884,10 @@ def main(options, args):
                     break
 
     b_preProc_complete = False
+    local_machine_name = parameters.get_string_parameters_None_if_absence('setting.ini','local_machine_name')
     while True:
         # on tesia, uist, vpn-connected laptop
-        if machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
+        if machine_name == local_machine_name or machine_name == 'ubuntu' or machine_name == 'uist-int-colorado-edu' or 'colorado.edu' in machine_name or 'MacBook' in machine_name:
 
             # if subset_id for download is far more ahead than processing (curc), then wait, in case occupy too much storage
             while True and b_no_slurm is False:
