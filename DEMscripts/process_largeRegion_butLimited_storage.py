@@ -225,6 +225,11 @@ def build_dict_of_dem_cover_grid_ids(dem_info_shp,grid_20_shp,save_dict_txt):
         raise ValueError('%s and %s do not have the same projection'% (dem_info_shp, grid_20_shp))
 
     # read DEM info
+    dem_file_id_name = 'name'
+    # in the new dem_info_shp, the id name change from "name" to "dem_id"
+    if vector_gpd.is_field_name_in_shp(dem_info_shp, dem_file_id_name) is False:
+        dem_file_id_name = 'dem_id'
+
     dem_polygons, dem_names = vector_gpd.read_polygons_attributes_list(dem_info_shp, 'name',b_fix_invalid_polygon=False)
     # dem_name: eg. SETSM_GE01_20090818_1050410001E0CF00_1050410001D80200_seg1_2m_v3.0  or 11_27_2_1_2m_v3.0
     dem_poly_count = len(dem_polygons)

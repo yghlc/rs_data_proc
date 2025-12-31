@@ -103,6 +103,7 @@ dem_tile_shp = os.path.expanduser('~/Data/Arctic/ArcticDEM/BROWSE_SERVER/indexes
 
 if os.path.isfile(setting_ini):
     dem_strip_shp = parameters.get_file_path_parameters(setting_ini,'dem_strip_shp')
+    dem_tile_shp = parameters.get_file_path_parameters(setting_ini,'dem_tile_shp')
 
 
 # some log and information files
