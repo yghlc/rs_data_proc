@@ -69,6 +69,43 @@ def wget_file_url(url,save_path):
     status, result = basic.exec_command_string(cmd_str)
     return status, result
 
+def aws_s3_sync(url, save_dir):
+    # download the files from aws
+    aws_s3 = "s3://pgc-opendata-dems/arcticdem"
+
+    tmp = urlparse(url)
+    filename = os.path.basename(tmp.path) # e.g.,'SETSM_s2s041_WV03_20170901_10400100312CCF00_10400100317E2200_2m_seg1.tar.gz'
+    tar_base = filename[:-7]            # such as SETSM_s2s041_WV03_20170901_10400100312CCF00_10400100317E2200_2m_seg1
+    out_dir = os.path.join(save_dir,tar_base)   # aws will create the directory if not existing
+    # out_dir = 'download_tmp'   # aws will create the directory if not existing
+    folder_list = tmp.path.split('/')
+    mid_dirs = '/'.join(folder_list[5:9]) # eg., 'strips/s2s041/2m/n60e118'
+    # print(mid_dirs)
+    # print(tmp)
+    # print(filename)
+    # print(tar_base)
+
+    aws_url = aws_s3 + '/' + mid_dirs + '/'
+
+    cmd_str = 'aws s3 sync ' + aws_url + ' ' + out_dir  + ' --no-sign-request '
+    # The AWS CLI does not have a built-in wildcard for cp or sync
+    # --exclude tells AWS CLI to skip files matching a pattern.
+    # --include tells AWS CLI to include files that match a pattern, even if they were excluded by a previous pattern.
+    cmd_str +=  ' --exclude "*" ' + f' --include "{tar_base}*"'
+
+    status, result = basic.exec_command_string(cmd_str)
+    return status, result
+
+
+
+def test_aws_s3_sync():
+    tar_url = "https://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/strips/s2s041/2m/n60e118/SETSM_s2s041_WV03_20170901_10400100312CCF00_10400100317E2200_2m_seg1.tar.gz"
+
+    save_dir = './'
+    status, result = aws_s3_sync(tar_url, save_dir)
+
+
+
 def run_a_process_download(url, tar_path, save_tif_dir, process_num=1, b_unpack=False):
     status, result = wget_file_url(url,tar_path)
     # try new url if it exists
@@ -300,6 +337,9 @@ def main(options, args):
 
 
 if __name__ == "__main__":
+
+    test_aws_s3_sync()
+    sys.exit(0)
 
     usage = "usage: %prog [options] extent_shp dem_indexes_shp"
     parser = OptionParser(usage=usage, version="1.0 2020-12-25")
