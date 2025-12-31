@@ -255,7 +255,7 @@ def main(options, args):
     global max_task_count
     max_task_count = options.max_process_num
 
-    if 'Tile' in os.path.basename(dem_index_shp):
+    if 'Tile' in os.path.basename(dem_index_shp) or 'Mosaic' in os.path.basename(dem_index_shp):
         save_folder =arcticDEM_tile_tarball_dir
         reg_tif_dir = arcticDEM_tile_reg_tif_dir
         b_arcticDEM_tile = True
@@ -271,7 +271,7 @@ def main(options, args):
     save_folder = os.path.abspath(save_folder)  # change to absolute path
 
     pre_name = os.path.splitext(os.path.basename(extent_shp))[0]
-    pre_name += '_Tile' if 'Tile' in os.path.basename(dem_index_shp) else '_Strip'
+    pre_name += '_Tile' if b_arcticDEM_tile else '_Strip'
 
     # extent polygons and projection (proj4)
     extent_shp_prj = map_projection.get_raster_or_vector_srs_info_proj4(extent_shp)
