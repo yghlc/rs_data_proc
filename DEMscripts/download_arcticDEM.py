@@ -152,7 +152,6 @@ def run_a_process_download(url, tar_path, save_tif_dir, process_num=1, b_unpack=
 
 def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg_tif_dir=None, poly_ids=None,b_arcticDEM_tile=False):
 
-    basic.outputlogMessage('%d dem polygons in %s' % (len(dem_polygons), dem_index_shp))
 
     dem_tar_ball_list = []
     reg_tifs_list = []
@@ -181,6 +180,7 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
             # read dem polygons and url
             dem_polygons, dem_urls = vector_gpd.read_polygons_attributes_list(dem_index_shp, 'fileurl',
                                                                               b_fix_invalid_polygon=False)
+            basic.outputlogMessage('%d dem polygons in %s' % (len(dem_polygons), dem_index_shp))
             # get fileurl
             dem_poly_ids = vector_gpd.get_poly_index_within_extent(dem_polygons,ext_poly)
             basic.outputlogMessage('find %d DEM within %d th extent' % (len(dem_poly_ids), (idx )))
