@@ -23,7 +23,7 @@ import basic_src.io_function as io_function
 import basic_src.basic as basic
 
 import re
-
+# apply_setsm_registration.py were looking for "*reg.txt", then apply it to tif, if not existing, do nothing
 reg_py=os.path.expanduser('~/codes/github_public_repositories/pgcdemtools/apply_setsm_registration.py')
 
 machine_name = os.uname()[1]
