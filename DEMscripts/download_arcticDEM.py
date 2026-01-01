@@ -233,6 +233,9 @@ def download_dem_tarball(dem_index_shp, extent_polys, save_folder, pre_name, reg
                     continue
 
                 if os.path.isfile(save_dem_path) and os.path.getsize(save_dem_path) > 1:
+                    # this is not good, because in some cases, downloading stop in the middle.
+                    # however, if multiple nodes are downloading the same file, would cause problem
+                    # so, just remove these tarball (not too much), then run the downloading again.
                     basic.outputlogMessage('warning, %s already exists, skip downloading'%filename)
                 else:
                     # download the dem
