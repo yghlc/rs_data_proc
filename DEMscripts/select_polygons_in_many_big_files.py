@@ -285,10 +285,11 @@ def main(options, args):
     num_samples = options.num_samples  # Number of polygons to select
 
     # Step 1: Load feature counts
-    file_names, feature_counts = load_feature_counts(feature_count_file)
-    total_count = sum(feature_counts)
-
     if len(args)==1:
+
+        file_names, feature_counts = load_feature_counts(feature_count_file)
+        total_count = sum(feature_counts)
+
         # Step 2: Generate random global indices
         random_indices = generate_random_indices(total_count, num_samples)
 
@@ -309,6 +310,9 @@ def main(options, args):
         samp_counts_in_files = [len(file_to_indices[item]) for item in file_to_indices.keys()]
         random_select_polygons_in_multi_gpkg(file_names, samp_counts_in_files, output_file)
     else:
+        if len(options.input_files) > 0:
+            file_names = options.input_files
+
         extent_vector = args[1]
         select_polygon_within_extent_in_multi_gpkg(file_names, extent_vector, output_file)
 
@@ -324,6 +328,10 @@ if __name__ == '__main__':
     parser.add_option("-s", "--save_path",
                       action="store", dest="save_path", default='random_polygons.shp',
                       help="the folder to save the output")
+
+    parser.add_option("-i", "--input_files",
+                      action="append", dest="input_files",  default=[],
+                      help="the input files, for multiple input, set this option for multiple times. if set, will ignore feature-count.txt ")
 
     parser.add_option("-n", "--num_samples",
                       action="store", dest="num_samples", type=int, default=1000,
