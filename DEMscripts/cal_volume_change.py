@@ -207,7 +207,7 @@ if __name__ == "__main__":
                       action="store", dest="save_path",
                       help="The path to save the output as a new file")
 
-    parser.add_option("", "--process_num",
+    parser.add_option("-p", "--process_num",
                       action="store", dest="process_num", type=int, default=8,
                       help="number of processes to create the mosaic")
 
