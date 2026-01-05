@@ -54,6 +54,9 @@ def cal_volume(in_array, nodata,res_x, res_y,range=None, scale=1.0):
     valid_count = total_size - nodata_count - nan_count
     not_in_range_c = size_3 - size_4
 
+    if data_1d.size < 1:
+        return 0, 0, 0, 0, 0
+
     # print(data_1d)
     volume = np.sum(np.abs(data_1d)*res_x*res_y)
 
@@ -131,7 +134,10 @@ def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,save_p
                                                 nodata=nodata, range=range,all_touched=all_touched,
                                                 tile_min_overlap=tile_min_overlap,scale=scale)
             volume_res_list.append(out_volume)
-            in_range_per.append(100*(pixel_count-not_in_range_c)/pixel_count)
+            if pixel_count > 0:
+                in_range_per.append(100*(pixel_count-not_in_range_c)/pixel_count)
+            else:
+                in_range_per.append(0)
             dem_diff_min.append(min_v)
             dem_diff_max.append(max_v)
 
@@ -145,7 +151,10 @@ def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,save_p
         for res in results:
             out_volume, pixel_count, not_in_range_c, min_v, max_v = res
             volume_res_list.append(out_volume)
-            in_range_per.append(100 * (pixel_count - not_in_range_c) / pixel_count)
+            if pixel_count > 0:
+                in_range_per.append(100 * (pixel_count - not_in_range_c) / pixel_count)
+            else:
+                in_range_per.append(0)
             dem_diff_min.append(min_v)
             dem_diff_max.append(max_v)
         threadpool.close()
