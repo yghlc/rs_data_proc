@@ -212,7 +212,7 @@ if __name__ == "__main__":
     parser = OptionParser(usage=usage, version="1.0 2026-01-04")
     parser.description = 'Introduction: calculate volume change   '
 
-    parser.add_option("-d", "--save_path",
+    parser.add_option("-s", "--save_path",
                       action="store", dest="save_path",
                       help="The path to save the output as a new file")
 
