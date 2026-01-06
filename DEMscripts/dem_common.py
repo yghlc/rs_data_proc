@@ -45,7 +45,10 @@ download_ahead_proc = 3
 
 # need to set this as absulute path, so can be used when subprocesses chanage working dir
 # not a best solution, but work for now. Better way is to pass the setting parameters to each script
-setting_ini = os.path.expanduser('~/Data/dem_processing/setting.ini')
+if os.path.isfile('setting.ini'):
+    setting_ini = os.path.abspath('setting.ini')
+else:
+    setting_ini = os.path.expanduser('~/Data/dem_processing/setting.ini')
 if os.path.isfile(setting_ini):
     ArcticDEM_tmp_dir = parameters.get_directory(setting_ini,'ArcticDEM_tmp_dir')
     data_dir = parameters.get_directory(setting_ini,'data_dir')
