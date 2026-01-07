@@ -17,7 +17,7 @@ import vector_gpd
 # import basic_src.map_projection as map_projection
 import basic_src.io_function as io_function
 import basic_src.timeTools as timeTools
-# import basic_src.basic as basic
+import basic_src.basic as basic
 
 from datetime import datetime
 
@@ -81,7 +81,7 @@ def download_dem_within_polygon(client,collection_id, poly_extent, date_start='2
     items_gdf = gpd.GeoDataFrame.from_features(search.item_collection().to_dict(), crs="epsg:4326").to_crs(save_crs_code)
 
     items_gdf.to_file(search_save)
-    print(f'saved search results to {search_save}')
+    basic.outputlogMessage(f'saved search results to {search_save}')
 
     stack = stackstac.stack(items, epsg=save_crs_code, bounds_latlon=bbox)
     # print(stack)
@@ -103,9 +103,10 @@ def download_dem_within_polygon(client,collection_id, poly_extent, date_start='2
         dt_str = timeTools.datetime2str(dt_obj,format='%Y%m%d_%H%M%S')
         # print(dt_str)
         for band, d_type in zip(bands_to_save, data_types):
+            # print(band,d_type)
             img_save_path = os.path.join(save_dir,f'{collection_id}_{dt_str}_{band}.tif')
             if os.path.isfile(img_save_path):
-                print(f'warning, {img_save_path} exist, skip downloading')
+                basic.outputlogMessage(f'warning, {img_save_path} exist, skip downloading')
                 continue
 
             selected = stack.sel(band=band, time=img_time)
@@ -115,7 +116,7 @@ def download_dem_within_polygon(client,collection_id, poly_extent, date_start='2
             # Save to GeoTIFF
             selected = selected.astype(d_type)
             selected.rio.to_raster(img_save_path, compress="LZW")
-            print(f'saved geotiff to {img_save_path}')
+            basic.outputlogMessage(f'saved geotiff to {img_save_path}')
 
         # break   # for testing
 
@@ -138,7 +139,7 @@ def main(options, args):
     # print(collection_client)
 
     for idx, poly in enumerate(ext_polys):
-        search_save = base_name + f'_poly_{idx+1}.gpkg'
+        search_save = os.path.join(data_dir, base_name + f'_poly_{idx+1}.gpkg')
         save_dir = os.path.join(data_dir, base_name + f'_poly_{idx+1}')
         download_dem_within_polygon(client,collection_id,  poly, date_start='2008-01-01',
                                     date_end='2026-12-31', search_save=search_save, save_dir=save_dir)
