@@ -282,6 +282,9 @@ def main(options, args):
 
         reg_tifs = io_function.get_file_list_by_ext('.tif',arcticDEM_reg_tif_dir,bsub_folder=False)
         reg_tifs = [tif for tif in reg_tifs if 'matchtag' not in tif]  # remove matchtag
+        reg_tifs = [tif for tif in reg_tifs if tif.endswith('_matchtag.tif') is False ]  # remove matchtag in new version
+        reg_tifs = [tif for tif in reg_tifs if tif.endswith('_mask.tif') is False ]  # remove mask in new version
+
         # crop, mosacic, difference
         out_dem_diffs = produce_dem_diff_grids(grid_polys, grid_ids_no_demDiff, grid_base_name,reg_tifs,b_apply_matchtag,b_mosaic_id,b_mosaic_date,
                                                keep_dem_percent,o_res,process_num=process_num)
