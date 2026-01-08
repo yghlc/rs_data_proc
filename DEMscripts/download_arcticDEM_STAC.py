@@ -111,7 +111,7 @@ def save_one_image_to_local(stack,selected,d_type,img_save_path):
     basic.outputlogMessage(f'saved geotiff to {img_save_path}')
 
 def download_dem_within_polygon(client,collection_id, poly_extent, ext_id, date_start='2008-01-01', date_end='2026-12-31',
-                                search_save='tmp.gpkg', save_crs_code=3413,save_dir='data_save'):
+                                search_save='tmp.gpkg', save_crs_code=3413,save_dir='data_save',b_unique_grid=False):
 
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
@@ -151,7 +151,10 @@ def download_dem_within_polygon(client,collection_id, poly_extent, ext_id, date_
     for img_time, img_id in zip(stack['time'].values,stack['id'].values):
         # print(img_id, type(img_id)) # numpy.str_
         for band, d_type in zip(bands_to_save, data_types):
-            img_save_path = os.path.join(save_dir,f'{img_id}_sub{ext_id}_{band}.tif')
+            if b_unique_grid:
+                img_save_path = os.path.join(save_dir, f'{img_id}_grid{ext_id}_{band}.tif')
+            else:
+                img_save_path = os.path.join(save_dir,f'{img_id}_sub{ext_id}_{band}.tif')
             if os.path.isfile(img_save_path):
                 basic.outputlogMessage(f'warning, {img_save_path} exist, skip downloading')
                 continue
@@ -165,7 +168,7 @@ def download_dem_within_polygon(client,collection_id, poly_extent, ext_id, date_
 
 
 def download_dem_stac(client,collection_id,extent_polys, output_dir, date_start,date_end,pre_name,
-                      poly_ids=None,save_prj_code=3413):
+                      poly_ids=None,save_prj_code=3413,b_unique_grid=False):
 
     # download data through STAC, not need to unpack
     b_save_grid_id_noDEM = True
@@ -174,7 +177,10 @@ def download_dem_stac(client,collection_id,extent_polys, output_dir, date_start,
         b_save_grid_id_noDEM = False    # if poly_ids is not the global unique id, then don't save it.
 
     for count, (idx, ext_poly) in enumerate(zip(poly_ids, extent_polys)):
-        search_save = os.path.join(output_dir, pre_name + f'_poly_{idx+1}.gpkg')
+        if b_unique_grid:
+            search_save = os.path.join(output_dir, pre_name + f'_grid{idx}.gpkg')
+        else:
+            search_save = os.path.join(output_dir, pre_name + f'_poly_{idx}.gpkg')
         # save_dir = os.path.join(output_dir, pre_name + f'_poly_{idx+1}')
 
         # # for testing, output information, will quit after running this
@@ -182,7 +188,8 @@ def download_dem_stac(client,collection_id,extent_polys, output_dir, date_start,
         #                             date_end=date_end, search_save=search_save,save_crs_code=save_prj_code)
 
         res = download_dem_within_polygon(client,collection_id, ext_poly, idx, date_start=date_start,
-                                    date_end=date_end, search_save=search_save, save_dir=output_dir,save_crs_code=save_prj_code)
+                                    date_end=date_end, search_save=search_save, save_dir=output_dir,save_crs_code=save_prj_code,
+                                          b_unique_grid=b_unique_grid)
 
         # if res is False, mean no data found
         if res is False and b_save_grid_id_noDEM is True:
@@ -226,6 +233,7 @@ def main(options, args):
 
     # read 'grid_id' if the extent shp is from grid shp file, if not, grid_id_list will be None
     grid_id_list = vector_gpd.read_attribute_values_list(extent_shp,'grid_id')
+    b_unique_grid = False if grid_id_list is None else True
     if len(ext_polys) < 1:
         raise ValueError('No polygons in %s'%extent_shp)
     else:
@@ -244,7 +252,7 @@ def main(options, args):
     # print(collection_client)
 
     download_dem_stac(client, collection_id, ext_polys, reg_tif_dir, date_start, date_end, pre_name,
-                      poly_ids=None, save_prj_code=save_prj_code)
+                      poly_ids=grid_id_list, save_prj_code=save_prj_code,b_unique_grid=b_unique_grid)
 
 
 
