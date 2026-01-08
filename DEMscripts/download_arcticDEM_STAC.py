@@ -101,9 +101,14 @@ def get_bands_to_save(collection_id):
     else:
         raise ValueError(f'Unknown correction id: {collection_id}')
 
-def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=None,crop_poly=None):
+def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=None,crop_poly=None,
+                            out_res=None):
     # Ensure the DataArray has spatial metadata
     selected.rio.write_crs(stack.attrs['crs'], inplace=True)  # or use arr.rio.crs if available
+
+    if out_res is not None:
+        # in the output we to resolution of 2.01, 2.023, ect, be consistent, reproject to 2.0
+        selected = selected.rio.reproject(selected.rio.crs,resolution=out_res)
 
     # Crop to polygon if provided
     if crop_poly is not None:
@@ -119,7 +124,7 @@ def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=Non
     basic.outputlogMessage(f'saved geotiff to {img_save_path}')
 
 def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext_id, date_start='2008-01-01', date_end='2026-12-31',
-                                search_save='tmp.gpkg', save_crs_code=3413,save_dir='data_save',b_unique_grid=False):
+                                search_save='tmp.gpkg', save_crs_code=3413,save_dir='data_save',b_unique_grid=False,out_res=None):
 
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
@@ -169,7 +174,7 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
                 continue
 
             selected = stack.sel(band=band, time=img_time)
-            save_one_image_to_local(stack, selected, d_type, img_save_path, nodata_value=nodata, crop_poly=poly_prj)
+            save_one_image_to_local(stack, selected, d_type, img_save_path, nodata_value=nodata, crop_poly=poly_prj,out_res=out_res)
 
         # break # for testing
 
@@ -177,7 +182,7 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
 
 
 def download_dem_stac(client,collection_id,extent_polys_latlon,extent_polys_prj , output_dir, date_start,date_end,pre_name,
-                      poly_ids=None,save_prj_code=3413,b_unique_grid=False):
+                      poly_ids=None,save_prj_code=3413,b_unique_grid=False, out_res=None):
 
     # download data through STAC, not need to unpack
     b_save_grid_id_noDEM = True
@@ -198,7 +203,7 @@ def download_dem_stac(client,collection_id,extent_polys_latlon,extent_polys_prj 
 
         res = download_dem_within_polygon(client,collection_id, ext_poly_ll,poly_prj, idx, date_start=date_start,
                                     date_end=date_end, search_save=search_save, save_dir=output_dir,save_crs_code=save_prj_code,
-                                          b_unique_grid=b_unique_grid)
+                                          b_unique_grid=b_unique_grid,out_res=out_res)
 
         # if res is False, mean no data found
         if res is False and b_save_grid_id_noDEM is True:
@@ -259,6 +264,7 @@ def main(options, args):
 
     # projection for ArcticDEM products
     save_prj_code = 3413
+    out_resolution = options.out_res
 
     client = pystac_client.Client.open(pgc_stac)
 
@@ -267,7 +273,7 @@ def main(options, args):
     # print(collection_client)
 
     download_dem_stac(client, collection_id, ext_polys_latlon, ext_polys_3413, reg_tif_dir, date_start, date_end, pre_name,
-                      poly_ids=grid_id_list, save_prj_code=save_prj_code,b_unique_grid=b_unique_grid)
+                      poly_ids=grid_id_list, save_prj_code=save_prj_code,b_unique_grid=b_unique_grid,out_res=out_resolution)
 
 
 
@@ -301,6 +307,9 @@ if __name__ == '__main__':
                       action="store", dest="date_end", type=str, default='2026-12-31',
                       help="the end date for downloading data")
 
+    parser.add_option("-r", "--out_res",
+                      action="store", dest="out_res", type=float, default=2.0,
+                      help="the spatial resolution for output (2.0)")
 
     parser.add_option("-p", "--max_process_num",
                       action="store", dest="max_process_num", type=int, default=8,
