@@ -101,9 +101,13 @@ def get_bands_to_save(collection_id):
     else:
         raise ValueError(f'Unknown correction id: {collection_id}')
 
-def save_one_image_to_local(stack,selected,d_type,img_save_path):
+def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=None):
     # Ensure the DataArray has spatial metadata
     selected.rio.write_crs(stack.attrs['crs'], inplace=True)  # or use arr.rio.crs if available
+
+    # Set nodata value if provided
+    if nodata_value is not None:
+        selected = selected.rio.write_nodata(nodata_value)
 
     # Save to GeoTIFF
     selected = selected.astype(d_type)
@@ -146,11 +150,12 @@ def download_dem_within_polygon(client,collection_id, poly_extent, ext_id, date_
     bands_to_save = get_bands_to_save(collection_id)
     bands_to_save_idx = [stack['band'].values.tolist().index(item) for item in bands_to_save]
     data_types = [ stack['data_type'].values.tolist()[idx] for idx in bands_to_save_idx]
+    nodata_list = [ stack['nodata'].values.tolist()[idx] for idx in bands_to_save_idx]
 
     # file name use image ID
     for img_time, img_id in zip(stack['time'].values,stack['id'].values):
         # print(img_id, type(img_id)) # numpy.str_
-        for band, d_type in zip(bands_to_save, data_types):
+        for band, d_type,nodata in zip(bands_to_save, data_types,nodata_list):
             if b_unique_grid:
                 img_save_path = os.path.join(save_dir, f'{img_id}_grid{ext_id}_{band}.tif')
             else:
@@ -160,7 +165,7 @@ def download_dem_within_polygon(client,collection_id, poly_extent, ext_id, date_
                 continue
 
             selected = stack.sel(band=band, time=img_time)
-            save_one_image_to_local(stack, selected, d_type, img_save_path)
+            save_one_image_to_local(stack, selected, d_type, img_save_path, nodata_value=nodata)
 
         # break # for testing
 
