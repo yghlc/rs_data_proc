@@ -399,13 +399,13 @@ def mask_crop_dem_by_matchtag(org_dem_tif_list, crop_dem_list, extent_poly, exte
             matchtag_crop_tif_list.append(crop_tif)
 
         # masking
-        crop_dem_mask = io_function.get_name_by_adding_tail(crop_dem,'mask')
+        crop_dem_mask = io_function.get_name_by_adding_tail(crop_dem,'RMmatchtag')
         if os.path.isfile(crop_dem_mask):
-            basic.outputlogMessage('%s exists, skip masking' % crop_dem_mask)
+            basic.outputlogMessage('%s exists, skip masking pixel using matchtag' % crop_dem_mask)
             mask_crop_dem_list.append(crop_dem_mask)
         else:
             if mask_dem_by_matchtag(crop_dem,save_crop_path,crop_dem_mask) is False:
-                raise ValueError('warning, masking %s failed' % crop_dem)
+                raise ValueError('warning, masking (matchtag) %s failed' % crop_dem)
             mask_crop_dem_list.append(crop_dem_mask)
 
     return mask_crop_dem_list, matchtag_crop_tif_list
@@ -538,6 +538,8 @@ def mask_dem_by_surface_water(crop_dem_list, extent_poly, extent_id, crop_tif_di
 
         io_function.copy_file_to_dst(strip_dem,save_path,overwrite=True)
         nodata = raster_io.get_nodata(save_path)
+        if nodata is None:
+            raise ValueError(f'nodata is not set in {save_path}, will cause error for gdal_rasterize')
         if raster_io.burn_polygon_to_raster_oneband(save_path,water_mask_shp,nodata) is False:
             continue
         mask_dem_list.append(save_path)
