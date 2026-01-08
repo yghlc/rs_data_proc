@@ -196,7 +196,7 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
                     job_count = basic.alive_process_count(download_tasks)
                     if job_count >= max_task_count:
                         print(datetime.now(),f'You are running {max_task_count} or more tasks in parallel on {machine_name}, wait ')
-                        time.sleep(60)  #
+                        time.sleep(30)  #
                         continue
                     break
                 # start the processing
@@ -212,7 +212,7 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
         job_count = basic.alive_process_count(download_tasks)
         if job_count > 0:
             print(machine_name, datetime.now(), 'wait until all task are completed, alive task account: %d ' % job_count)
-            time.sleep(60)  #
+            time.sleep(30)  #
         else:
             break
 
