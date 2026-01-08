@@ -20,6 +20,8 @@ import basic_src.timeTools as timeTools
 import basic_src.basic as basic
 
 from datetime import datetime
+import multiprocessing
+from multiprocessing import Process
 
 import time
 pgc_stac = "https://stac.pgc.umn.edu/api/v1/"
@@ -28,6 +30,11 @@ pgc_stac = "https://stac.pgc.umn.edu/api/v1/"
 from dem_common import arcticDEM_reg_tif_dir,arcticDEM_tile_reg_tif_dir
 
 from download_arcticDEM import save_id_grid_no_dem
+
+machine_name = os.uname()[1]
+# the maximum number of processes for downloading in parallel
+max_task_count = 1
+download_tasks = []
 
 def get_collection_for_search(collection_id='arcticdem-strips-s2s041-2m'):
 
@@ -103,7 +110,11 @@ def get_bands_to_save(collection_id):
 
 def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=None,crop_poly=None,
                             out_res=None):
-    # Ensure the DataArray has spatial metadata
+    # for the case runing this function in sub-process
+    if multiprocessing.current_process().name != 'MainProcess':
+        import rioxarray
+
+        # Ensure the DataArray has spatial metadata
     selected.rio.write_crs(stack.attrs['crs'], inplace=True)  # or use arr.rio.crs if available
 
     if out_res is not None:
@@ -174,7 +185,36 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
                 continue
 
             selected = stack.sel(band=band, time=img_time)
-            save_one_image_to_local(stack, selected, d_type, img_save_path, nodata_value=nodata, crop_poly=poly_prj,out_res=out_res)
+
+            if max_task_count == 1:
+            ########### download one by one ######################
+                save_one_image_to_local(stack, selected, d_type, img_save_path, nodata_value=nodata, crop_poly=poly_prj,out_res=out_res)
+            else:
+            ################ parallel download ###############
+                basic.check_exitcode_of_process(download_tasks)  # if there is one former job failed, then quit
+                while True:
+                    job_count = basic.alive_process_count(download_tasks)
+                    if job_count >= max_task_count:
+                        print(datetime.now(),f'You are running {max_task_count} or more tasks in parallel on {machine_name}, wait ')
+                        time.sleep(60)  #
+                        continue
+                    break
+                # start the processing
+
+                sub_process = Process(target=save_one_image_to_local, args=(stack, selected, d_type, img_save_path,nodata,poly_prj,out_res))
+                sub_process.start() # start a process, don't wait
+                download_tasks.append(sub_process)
+
+                basic.close_remove_completed_process(download_tasks)
+
+    # wait until all task complete
+    while True:
+        job_count = basic.alive_process_count(download_tasks)
+        if job_count > 0:
+            print(machine_name, datetime.now(), 'wait until all task are completed, alive task account: %d ' % job_count)
+            time.sleep(60)  #
+        else:
+            break
 
         # break # for testing
 
@@ -312,7 +352,7 @@ if __name__ == '__main__':
                       help="the spatial resolution for output (2.0)")
 
     parser.add_option("-p", "--max_process_num",
-                      action="store", dest="max_process_num", type=int, default=8,
+                      action="store", dest="max_process_num", type=int, default=4,
                       help="the maximum number of processes for downloading in parallel")
 
     parser.add_option("-m", "--b_arcticDEM_mosaic",
