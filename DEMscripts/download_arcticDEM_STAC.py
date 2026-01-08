@@ -54,6 +54,16 @@ def get_collection_for_search(collection_id='arcticdem-strips-s2s041-2m'):
     # print(data_collection)
     return data_collection
 
+
+def save_one_image_to_local(stack,selected,d_type,img_save_path):
+    # Ensure the DataArray has spatial metadata
+    selected.rio.write_crs(stack.attrs['crs'], inplace=True)  # or use arr.rio.crs if available
+
+    # Save to GeoTIFF
+    selected = selected.astype(d_type)
+    selected.rio.to_raster(img_save_path, compress="LZW")
+    basic.outputlogMessage(f'saved geotiff to {img_save_path}')
+
 def download_dem_within_polygon(client,collection_id, poly_extent, date_start='2008-01-01', date_end='2026-12-31',
                                 search_save='tmp.gpkg', save_crs_code=3413,save_dir='data_save'):
 
@@ -85,40 +95,49 @@ def download_dem_within_polygon(client,collection_id, poly_extent, date_start='2
 
     stack = stackstac.stack(items, epsg=save_crs_code, bounds_latlon=bbox)
     # print(stack)
-    # attr_list = ["band","time", 'data_type', 'nodata','unit', 'epsg' ]
+    # attr_list = ["band","time", 'data_type', 'nodata','unit', 'epsg', 'id']
     # for att in attr_list:
-    #     print('Attribute:',att,':')
+    #     print('Attribute:',att,':', type(stack[att].values))
     #     print(stack[att].values)
+    # sys.exit(0)
     bands_to_save = ['dem','mask']
     bands_to_save_idx = [stack['band'].values.tolist().index(item) for item in bands_to_save]
     data_types = [ stack['data_type'].values.tolist()[idx] for idx in bands_to_save_idx]
     # print(data_types)
 
 
-    for img_time in stack['time'].values:
-        # print(img_time,type(img_time))
-        # img_time is "np.datetime64",  astype(str) to str, astype(datetime) to datetime.
-        dt_obj = timeTools.isoformat_str_2_datetime(img_time.astype(str))
-        # dt_obj = img_time.astype(datetime)
-        dt_str = timeTools.datetime2str(dt_obj,format='%Y%m%d_%H%M%S')
-        # print(dt_str)
+    # # saved based on image time
+    # for img_time in stack['time'].values:
+    #     # print(img_time,type(img_time))
+    #     # img_time is "np.datetime64",  astype(str) to str, astype(datetime) to datetime.
+    #     dt_obj = timeTools.isoformat_str_2_datetime(img_time.astype(str))
+    #     # dt_obj = img_time.astype(datetime)
+    #     dt_str = timeTools.datetime2str(dt_obj,format='%Y%m%d_%H%M%S')
+    #     # print(dt_str)
+    #     for band, d_type in zip(bands_to_save, data_types):
+    #         # print(band,d_type)
+    #         img_save_path = os.path.join(save_dir,f'{collection_id}_{dt_str}_{band}.tif')
+    #         if os.path.isfile(img_save_path):
+    #             basic.outputlogMessage(f'warning, {img_save_path} exist, skip downloading')
+    #             continue
+    #
+    #         selected = stack.sel(band=band, time=img_time)
+    #         save_one_image_to_local(stack, selected, d_type, img_save_path)
+    #     break   # for testing
+
+    # file name use image ID
+    for img_time, img_id in zip(stack['time'].values,stack['id'].values):
+        # print(img_id, type(img_id)) # numpy.str_
         for band, d_type in zip(bands_to_save, data_types):
-            # print(band,d_type)
-            img_save_path = os.path.join(save_dir,f'{collection_id}_{dt_str}_{band}.tif')
+            img_save_path = os.path.join(save_dir,f'{img_id}_{band}.tif')
             if os.path.isfile(img_save_path):
                 basic.outputlogMessage(f'warning, {img_save_path} exist, skip downloading')
                 continue
 
             selected = stack.sel(band=band, time=img_time)
-            # Ensure the DataArray has spatial metadata
-            selected.rio.write_crs(stack.attrs['crs'], inplace=True)  # or use arr.rio.crs if available
+            save_one_image_to_local(stack, selected, d_type, img_save_path)
 
-            # Save to GeoTIFF
-            selected = selected.astype(d_type)
-            selected.rio.to_raster(img_save_path, compress="LZW")
-            basic.outputlogMessage(f'saved geotiff to {img_save_path}')
-
-        # break   # for testing
+        # break # for testing
 
 
 
