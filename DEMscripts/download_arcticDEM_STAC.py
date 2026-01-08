@@ -105,8 +105,9 @@ def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=Non
     # Ensure the DataArray has spatial metadata
     selected.rio.write_crs(stack.attrs['crs'], inplace=True)  # or use arr.rio.crs if available
 
+    # Crop to polygon if provided
     if crop_poly is not None:
-        selected = selected.rio.clip(crop_poly, stack.attrs['crs'])
+        selected = selected.rio.clip([crop_poly], stack.attrs['crs'])
 
     # Set nodata value if provided
     if nodata_value is not None:
@@ -117,13 +118,13 @@ def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=Non
     selected.rio.to_raster(img_save_path, compress="LZW")
     basic.outputlogMessage(f'saved geotiff to {img_save_path}')
 
-def download_dem_within_polygon(client,collection_id, poly_extent, ext_id, date_start='2008-01-01', date_end='2026-12-31',
+def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext_id, date_start='2008-01-01', date_end='2026-12-31',
                                 search_save='tmp.gpkg', save_crs_code=3413,save_dir='data_save',b_unique_grid=False):
 
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
 
-    bbox = vector_gpd.get_polygon_bounding_box(poly_extent)
+    bbox = vector_gpd.get_polygon_bounding_box(poly_latlon)
     search = client.search(
         collections=[collection_id],
         bbox=bbox,
@@ -168,23 +169,23 @@ def download_dem_within_polygon(client,collection_id, poly_extent, ext_id, date_
                 continue
 
             selected = stack.sel(band=band, time=img_time)
-            save_one_image_to_local(stack, selected, d_type, img_save_path, nodata_value=nodata, crop_poly=poly_extent)
+            save_one_image_to_local(stack, selected, d_type, img_save_path, nodata_value=nodata, crop_poly=poly_prj)
 
         # break # for testing
 
     return True
 
 
-def download_dem_stac(client,collection_id,extent_polys, output_dir, date_start,date_end,pre_name,
+def download_dem_stac(client,collection_id,extent_polys_latlon,extent_polys_prj , output_dir, date_start,date_end,pre_name,
                       poly_ids=None,save_prj_code=3413,b_unique_grid=False):
 
     # download data through STAC, not need to unpack
     b_save_grid_id_noDEM = True
     if poly_ids is None:
-        poly_ids = [idx for idx in range(len(extent_polys)) ]
+        poly_ids = [idx for idx in range(len(extent_polys_latlon)) ]
         b_save_grid_id_noDEM = False    # if poly_ids is not the global unique id, then don't save it.
 
-    for count, (idx, ext_poly) in enumerate(zip(poly_ids, extent_polys)):
+    for count, (idx, ext_poly_ll, poly_prj) in enumerate(zip(poly_ids, extent_polys_latlon, extent_polys_prj)):
         if b_unique_grid:
             search_save = os.path.join(output_dir, pre_name + f'_grid{idx}.gpkg')
         else:
@@ -195,7 +196,7 @@ def download_dem_stac(client,collection_id,extent_polys, output_dir, date_start,
         # get_collection_examples_meta(client,collection_id, ext_poly, idx, date_start=date_start,
         #                             date_end=date_end, search_save=search_save,save_crs_code=save_prj_code)
 
-        res = download_dem_within_polygon(client,collection_id, ext_poly, idx, date_start=date_start,
+        res = download_dem_within_polygon(client,collection_id, ext_poly_ll,poly_prj, idx, date_start=date_start,
                                     date_end=date_end, search_save=search_save, save_dir=output_dir,save_crs_code=save_prj_code,
                                           b_unique_grid=b_unique_grid)
 
@@ -226,7 +227,13 @@ def main(options, args):
     reg_tif_dir = os.path.abspath(reg_tif_dir)  # change to absolute path
 
     # STAC need lat/lon for searching?
-    ext_polys = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp,'EPSG:4326')
+    ext_polys_latlon = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp,'EPSG:4326')
+    prj_code = vector_gpd.get_projection(extent_shp)
+    if prj_code != 3413:
+        basic.outputlogMessage(f'Map projection of {extent_shp} is not EPSG:3413, will convert to it')
+        ext_polys_3413 = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp, 'EPSG:3413')
+    else:
+        ext_polys_3413 = vector_gpd.read_polygons_gpd(extent_shp)
 
 
     if b_arcticDEM_mosaic:
@@ -242,10 +249,10 @@ def main(options, args):
     # read 'grid_id' if the extent shp is from grid shp file, if not, grid_id_list will be None
     grid_id_list = vector_gpd.read_attribute_values_list(extent_shp,'grid_id')
     b_unique_grid = False if grid_id_list is None else True
-    if len(ext_polys) < 1:
+    if len(ext_polys_latlon) < 1:
         raise ValueError('No polygons in %s'%extent_shp)
     else:
-        basic.outputlogMessage('read %d extent polygons in %s for downloading using STAC'%(len(ext_polys),extent_shp))
+        basic.outputlogMessage('read %d extent polygons in %s for downloading using STAC'%(len(ext_polys_latlon),extent_shp))
 
     date_start = options.date_start
     date_end = options.date_end
@@ -259,7 +266,7 @@ def main(options, args):
     # collection_client = get_collection_for_search(collection_id='arcticdem-strips-s2s041-2m')
     # print(collection_client)
 
-    download_dem_stac(client, collection_id, ext_polys, reg_tif_dir, date_start, date_end, pre_name,
+    download_dem_stac(client, collection_id, ext_polys_latlon, ext_polys_3413, reg_tif_dir, date_start, date_end, pre_name,
                       poly_ids=grid_id_list, save_prj_code=save_prj_code,b_unique_grid=b_unique_grid)
 
 
