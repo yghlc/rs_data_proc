@@ -101,9 +101,12 @@ def get_bands_to_save(collection_id):
     else:
         raise ValueError(f'Unknown correction id: {collection_id}')
 
-def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=None):
+def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=None,crop_poly=None):
     # Ensure the DataArray has spatial metadata
     selected.rio.write_crs(stack.attrs['crs'], inplace=True)  # or use arr.rio.crs if available
+
+    if crop_poly is not None:
+        selected = selected.rio.clip(crop_poly, stack.attrs['crs'])
 
     # Set nodata value if provided
     if nodata_value is not None:
@@ -165,7 +168,7 @@ def download_dem_within_polygon(client,collection_id, poly_extent, ext_id, date_
                 continue
 
             selected = stack.sel(band=band, time=img_time)
-            save_one_image_to_local(stack, selected, d_type, img_save_path, nodata_value=nodata)
+            save_one_image_to_local(stack, selected, d_type, img_save_path, nodata_value=nodata, crop_poly=poly_extent)
 
         # break # for testing
 
