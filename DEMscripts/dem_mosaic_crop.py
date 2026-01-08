@@ -371,10 +371,19 @@ def mask_crop_dem_by_matchtag(org_dem_tif_list, crop_dem_list, extent_poly, exte
     mask_crop_dem_list = []
     for o_tif, crop_dem in zip(org_dem_tif_list,crop_dem_list):
         # find matchtag
-        matchtag_tif = o_tif.replace('_dem_reg.tif','_matchtag_reg.tif')
+        if o_tif.endswith('_dem_reg.tif'):
+            matchtag_tif = o_tif.replace('_dem_reg.tif','_matchtag_reg.tif')
+        elif o_tif.endswith('_dem.tif'):  # new version of ArcticDEM
+            matchtag_tif = o_tif.replace('_dem.tif', '_matchtag.tif')
+        else:
+            raise IOError(f'unrecognized file name: {o_tif}')
+
+        if matchtag_tif == o_tif:
+            raise ValueError('After replacing, matchtag_tif == o_tif')
+
         # io_function.is_file_exist(matchtag_tif)
         if os.path.isfile(matchtag_tif) is False:
-            basic.outputlogMessage('Warning, %s not exists, skip'%matchtag_tif)
+            basic.outputlogMessage('Warning, %s not exists, skip mask_crop_dem_by_matchtag'%matchtag_tif)
             continue
 
         # crop matchtag
