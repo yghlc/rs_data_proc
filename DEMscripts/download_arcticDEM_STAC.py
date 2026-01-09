@@ -109,8 +109,8 @@ def get_bands_to_save(collection_id):
         raise ValueError(f'Unknown correction id: {collection_id}')
 
 def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=None,crop_poly=None,
-                            out_res=None):
-    # for the case runing this function in sub-process
+                            out_res=None,save_txt=None):
+    # for the case running this function in sub-process
     if multiprocessing.current_process().name != 'MainProcess':
         import rioxarray
 
@@ -133,6 +133,18 @@ def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=Non
     selected = selected.astype(d_type)
     selected.rio.to_raster(img_save_path, compress="LZW")
     basic.outputlogMessage(f'saved geotiff to {img_save_path}')
+    # for the case running this function in sub-process
+    # print('debugging:',multiprocessing.current_process().name)
+    # if multiprocessing.current_process().name != 'MainProcess':
+    #     with open(save_file_list_txt_a_poly,'a') as f_obj:
+    #         f_obj.writelines(img_save_path + '\n')
+    # else:
+    #     return img_save_path
+    if save_txt is not None:
+        with open(save_txt, 'a') as f_obj:
+            f_obj.writelines(img_save_path + '\n')
+
+    return img_save_path
 
 def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext_id, date_start='2008-01-01', date_end='2026-12-31',
                                 search_save='tmp.gpkg', save_crs_code=3413,save_dir='data_save',b_unique_grid=False,out_res=None):
@@ -172,7 +184,10 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
     data_types = [ stack['data_type'].values.tolist()[idx] for idx in bands_to_save_idx]
     nodata_list = [ stack['nodata'].values.tolist()[idx] for idx in bands_to_save_idx]
 
+    save_file_list_txt = os.path.join(os.path.dirname(search_save), io_function.get_name_no_ext(search_save) + '.txt')
+
     # file name use image ID
+    saved_file_list = []
     for img_time, img_id in zip(stack['time'].values,stack['id'].values):
         # print(img_id, type(img_id)) # numpy.str_
         for band, d_type,nodata in zip(bands_to_save, data_types,nodata_list):
@@ -188,7 +203,9 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
 
             if max_task_count == 1:
             ########### download one by one ######################
-                save_one_image_to_local(stack, selected, d_type, img_save_path, nodata_value=nodata, crop_poly=poly_prj,out_res=out_res)
+                res_path = save_one_image_to_local(stack, selected, d_type, img_save_path, nodata_value=nodata, crop_poly=poly_prj,
+                                                   out_res=out_res,save_txt=save_file_list_txt)
+                saved_file_list.append(res_path)
             else:
             ################ parallel download ###############
                 basic.check_exitcode_of_process(download_tasks)  # if there is one former job failed, then quit
@@ -201,7 +218,8 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
                     break
                 # start the processing
 
-                sub_process = Process(target=save_one_image_to_local, args=(stack, selected, d_type, img_save_path,nodata,poly_prj,out_res))
+                sub_process = Process(target=save_one_image_to_local, args=(stack, selected, d_type, img_save_path,nodata,
+                                                                            poly_prj,out_res,save_file_list_txt))
                 sub_process.start() # start a process, don't wait
                 download_tasks.append(sub_process)
 
@@ -216,7 +234,13 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
         else:
             break
 
-        # break # for testing
+    if max_task_count != 1:
+        saved_file_list = io_function.read_list_from_txt(save_file_list_txt)
+
+    # checking file count
+    if item_count*len(bands_to_save) != len(saved_file_list):
+        raise ValueError(f'STAC downloading for polygon {ext_id} is not completed')
+
 
     return True
 
