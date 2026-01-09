@@ -219,6 +219,14 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
                         time.sleep(30)  #
                         continue
                     break
+                while True:
+                    avail_per = basic.get_available_cpu_mem_per()
+                    if avail_per < 10:
+                        print(datetime.now(),f'available CPU memory is less than 10%: {avail_per}, wail 10 seconds')
+                        time.sleep(10)
+                    else:
+                        break
+
                 # start the processing
 
                 sub_process = Process(target=save_one_image_to_local, args=(stack, selected, d_type, img_save_path,nodata,
