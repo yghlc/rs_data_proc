@@ -197,6 +197,7 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
                 img_save_path = os.path.join(save_dir,f'{img_id}_sub{ext_id}_{band}.tif')
             if os.path.isfile(img_save_path):
                 basic.outputlogMessage(f'warning, {img_save_path} exist, skip downloading')
+                saved_file_list.append(img_save_path)
                 continue
 
             selected = stack.sel(band=band, time=img_time)
@@ -235,7 +236,12 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
             break
 
     if max_task_count != 1:
-        saved_file_list = io_function.read_list_from_txt(save_file_list_txt)
+        if os.path.isfile(save_file_list_txt):
+            tmp_list = io_function.read_list_from_txt(save_file_list_txt)
+            saved_file_list.extend(tmp_list)
+        else:
+            # save the list
+            io_function.save_list_to_txt(save_file_list_txt,saved_file_list)
 
     # checking file count
     if item_count*len(bands_to_save) != len(saved_file_list):
