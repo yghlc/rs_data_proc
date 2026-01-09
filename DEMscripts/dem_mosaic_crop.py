@@ -419,7 +419,7 @@ def dem_keep_goodPixel_bitmask(input_dem, bitmask_tif, save_path):
         raise ValueError('size different between %s and %s'%(input_dem, bitmask_tif))
 
     if count != 1:
-        raise ValueError('DEM and Matchtag should only have one band')
+        raise ValueError('DEM and BigMask should only have one band')
 
     dem_data, nodata = raster_io.read_raster_one_band_np(input_dem)
     matchdata, mask_nodata = raster_io.read_raster_one_band_np(bitmask_tif)
