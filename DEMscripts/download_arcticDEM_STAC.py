@@ -235,6 +235,7 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
                 download_tasks.append(sub_process)
 
                 basic.close_remove_completed_process(download_tasks)
+                time.sleep(1)  # wait a little bit, avoid request data at the same time.
 
     # wait until all task complete
     while True:
