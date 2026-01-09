@@ -221,8 +221,8 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
                     break
                 while True:
                     avail_per = basic.get_available_cpu_mem_per()
-                    if avail_per < 10:
-                        print(datetime.now(),f'available CPU memory is less than 10%: {avail_per}, wail 10 seconds')
+                    if avail_per < 30:
+                        print(datetime.now(),f'available CPU memory is less than 30%: {avail_per}, wail 10 seconds')
                         time.sleep(10)
                     else:
                         break
