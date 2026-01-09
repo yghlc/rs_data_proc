@@ -185,6 +185,8 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
     nodata_list = [ stack['nodata'].values.tolist()[idx] for idx in bands_to_save_idx]
 
     save_file_list_txt = os.path.join(os.path.dirname(search_save), io_function.get_name_no_ext(search_save) + '.txt')
+    if os.path.isfile(save_file_list_txt):
+        io_function.delete_file_or_dir(save_file_list_txt)
 
     # file name use image ID
     saved_file_list = []
