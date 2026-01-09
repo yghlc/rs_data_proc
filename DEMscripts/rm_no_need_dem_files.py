@@ -35,7 +35,7 @@ def remove_on_need_stac_dem_after_DEM_diff():
             for tif in tif_list:
                 io_function.delete_file_or_dir(tif)
 
-
+    basic.outputlogMessage('completed: remove_on_need_stac_dem_after_DEM_diff')
 
 
     pass
