@@ -410,6 +410,76 @@ def mask_crop_dem_by_matchtag(org_dem_tif_list, crop_dem_list, extent_poly, exte
 
     return mask_crop_dem_list, matchtag_crop_tif_list
 
+def dem_keep_goodPixel_bitmask(input_dem, bitmask_tif, save_path):
+    # check band, with, height
+    height, width, count, dtype = raster_io.get_height_width_bandnum_dtype(input_dem)
+    height_mask, width_mask, count_mask, dtype_mask = raster_io.get_height_width_bandnum_dtype(bitmask_tif)
+
+    if height_mask!=height or width_mask!=width or count_mask!=count:
+        raise ValueError('size different between %s and %s'%(input_dem, bitmask_tif))
+
+    if count != 1:
+        raise ValueError('DEM and Matchtag should only have one band')
+
+    dem_data, nodata = raster_io.read_raster_one_band_np(input_dem)
+    matchdata, mask_nodata = raster_io.read_raster_one_band_np(bitmask_tif)
+
+    # mask as nodata, only keep good data (0), other as nodata
+    dem_data[ matchdata != 0 ] = nodata
+    # save to file
+    raster_io.save_numpy_array_to_rasterfile(dem_data,save_path,input_dem,compress='lzw',tiled='yes',bigtiff='if_safer')
+
+    return save_path
+
+def mask_dem_by_bitmask(org_dem_tif_list, crop_dem_list, extent_poly, extent_id, crop_tif_dir, o_res,process_num):
+
+    # applying bit mask to dem: https://github.com/PolarGeospatialCenter/setsm_postprocessing_python/blob/master/documents/PGC%20SETSM%20v4%20Strip%20DEM%20Documentation.pdf
+    # 0 is good data, other are not
+
+    bitmask_crop_tif_list = []
+    mask_crop_dem_list = []
+    for o_tif, crop_dem in zip(org_dem_tif_list,crop_dem_list):
+        # find bit mask
+        if o_tif.endswith('_dem_reg.tif'):
+            bitmask_tif = o_tif.replace('_dem_reg.tif','_mask.tif')
+        elif o_tif.endswith('_dem.tif'):  # new version of ArcticDEM
+            bitmask_tif = o_tif.replace('_dem.tif', '_mask.tif')
+        else:
+            raise IOError(f'unrecognized file name: {o_tif}')
+
+        if bitmask_tif == o_tif:
+            raise ValueError('After replacing, bitmask_tif == o_tif')
+
+        # io_function.is_file_exist(matchtag_tif)
+        if os.path.isfile(bitmask_tif) is False:
+            raise IOError(f'{bitmask_tif} not exists, skip mask_dem_by_bitmask'%bitmask_tif)
+            # basic.outputlogMessage('Warning, %s not exists, skip mask_dem_by_bitmask'%bitmask_tif)
+            # continue
+
+        # crop bitmask
+        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(bitmask_tif, 'sub_poly_%d' % extent_id)) )
+        if os.path.isfile(save_crop_path):
+            basic.outputlogMessage('%s exists, skip cropping' % save_crop_path)
+            bitmask_crop_tif_list.append(save_crop_path)
+        else:
+            crop_tif = subset_image_by_polygon_box(bitmask_tif, save_crop_path, extent_poly, resample_m='near',
+                            o_format='VRT', out_res=o_res,same_extent=True,thread_num=process_num)
+            if crop_tif is False:
+                raise ValueError('warning, crop %s failed' % bitmask_tif)
+            bitmask_crop_tif_list.append(crop_tif)
+
+        # masking, and only keep the good pixels
+        crop_dem_mask = io_function.get_name_by_adding_tail(crop_dem,'GoodPixel')
+        if os.path.isfile(crop_dem_mask):
+            basic.outputlogMessage('%s exists, skip masking pixel using bitmask' % crop_dem_mask)
+            mask_crop_dem_list.append(crop_dem_mask)
+        else:
+            if dem_keep_goodPixel_bitmask(crop_dem,save_crop_path,crop_dem_mask) is False:
+                raise ValueError('Applying bitmask %s failed' % crop_dem)
+            mask_crop_dem_list.append(crop_dem_mask)
+
+    return mask_crop_dem_list, bitmask_crop_tif_list
+
 
 def mask_strip_dem_outlier_by_ArcticDEM_mosaic(crop_strip_dem_list, extent_poly, extent_id, crop_tif_dir, o_res, process_num):
 
@@ -549,7 +619,7 @@ def mask_dem_by_surface_water(crop_dem_list, extent_poly, extent_id, crop_tif_di
 
 def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id, b_mosaic_date, process_num,
                          keep_dem_percent, o_res, pre_name, resample_method='average', b_mask_matchtag=False,
-                    b_mask_stripDEM_outlier=False,b_mask_surface_water=False,b_mosaic_year=False):
+                    b_mask_stripDEM_outlier=False,b_mask_surface_water=False,b_mosaic_year=False,b_apply_bitmask=False):
 
     org_dem_tif_list = dem_tif_list.copy()
 
@@ -595,6 +665,10 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
         else:
             dem_tif_list = mask_water_tifs
 
+    # only keep the good data (0) in bitmask:
+    if b_apply_bitmask:
+        bitmask_dem_list, bitmask_crop_tif_list = mask_dem_by_bitmask(org_dem_tif_list, dem_tif_list, extent_poly, extent_id, crop_tif_dir, o_res,process_num)
+        dem_tif_list = bitmask_dem_list
 
     # area pixel count
     area_pixel_count = int(extent_poly.area / (o_res*o_res))
