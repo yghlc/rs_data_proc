@@ -202,7 +202,26 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
                 saved_file_list.append(img_save_path)
                 continue
 
+            # in rare case, img_time is duplicate, end in multime bands with same time stamp
+            # caused problem in the later DEM proessing. 
             selected = stack.sel(band=band, time=img_time)
+            # to select by band and id instead of time, however, id is not in coordinate
+            # print('debuging 1:',selected.dims, selected.shape, ', using: the band and time:', band, img_time)
+
+            # if more than one image, then filter by the ID. 
+            if selected.ndim != 2:
+                # drop=True to drop the unused dimension, non-matching entries and reduce dimensionality
+                selected = selected.where(selected['id'] == img_id, drop=True)
+                # print('debuging 2:',selected.dims, selected.shape, ', using: the band and time:', band, img_time)
+                # remove the single-dimensional entries from the shape of an array.
+                selected = selected.squeeze()
+                # print('debuging 3:',selected.dims, selected.shape, ', using: the band and time:', band, img_time)
+
+            if selected.size < 1:
+                raise ValueError(f'Selection failed: empty data for band {band}, time {img_time}, id {img_id}')
+            if selected.ndim != 2:
+                raise ValueError(f'Selection failed: not 2D data for band {band}, time {img_time}, id {img_id}, Dims: {selected.dims}, Shape: {selected.shape}') 
+
 
             if max_task_count == 1:
             ########### download one by one ######################
