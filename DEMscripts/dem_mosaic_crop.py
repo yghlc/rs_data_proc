@@ -352,7 +352,7 @@ def mask_dem_by_matchtag(input_dem, mask_tif, save_path):
         raise ValueError('size different between %s and %s'%(input_dem, mask_tif))
 
     if count != 1:
-        raise ValueError('DEM and Matchtag should only have one band')
+        raise ValueError(f'DEM: {input_dem} and Matchtag: {mask_tif} should only have one band')
 
     dem_data, nodata = raster_io.read_raster_one_band_np(input_dem)
     matchdata, mask_nodata = raster_io.read_raster_one_band_np(mask_tif)
