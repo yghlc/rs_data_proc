@@ -15,6 +15,7 @@ sys.path.insert(0, deeplabforRS)
 import basic_src.io_function as io_function
 import basic_src.basic as basic
 import basic_src.timeTools as timeTools
+import raster_io
 
 
 from process_largeRegion_butLimited_storage import remove_no_need_dem_files
@@ -46,7 +47,19 @@ def remove_on_need_stac_dem_after_DEM_diff(bak_dir=None):
     basic.outputlogMessage('completed: remove_on_need_stac_dem_after_DEM_diff')
 
 
-    pass
+def remove_dem_files_with_two_bands():
+    # this is to remove files that caused by a bug in the STAC downloading script, which a tif files contain two or more bands. 
+    # each DEM file should only contain one band.   Jan 10, 2026. 
+    bak_tif_dir = os.path.join(arcticDEM_reg_tif_dir, f'rm_two_or_more_bands_{timeTools.get_now_date_str()}')
+    io_function.mkdir(bak_tif_dir)
+    tif_list = io_function.get_file_list_by_pattern(arcticDEM_reg_tif_dir,f'*.tif')
+    for tif in tif_list:
+         height, width, count, dtype = raster_io.get_height_width_bandnum_dtype(tif)
+         if count > 1:
+            basic.outputlogMessage(f'The tif file has {count} bands: {tif}, move it to backup folder: {bak_tif_dir}')
+            io_function.movefiletodir(tif,bak_tif_dir,overwrite=False,b_verbose=False)
+
+
 
 def main():
     basic.setlogfile('rm_no_need_dem_files.log')
@@ -54,6 +67,10 @@ def main():
     # update_complete_grid_list(grid_ids, task_list)  # need to update complete list on the main pre-processing workstation first.
     # this remove tarball and tif download from PGC.
     # remove_no_need_dem_files()
+
+    # # just run once on Jan 10, 2026
+    # remove_dem_files_with_two_bands()
+    # sys.exit(0)
 
     backup_folder = os.path.join(arcticDEM_reg_tif_dir, f'rm_{timeTools.get_now_date_str()}')
     io_function.mkdir(backup_folder)
