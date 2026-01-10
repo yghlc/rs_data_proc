@@ -250,7 +250,7 @@ def main(options, args):
     process_num = options.process_num
     keep_dem_percent = options.keep_dem_percent
     o_res = options.out_res
-    basic.setlogfile('produce_DEM_diff_ArcticDEM_log_%s.txt'%timeTools.get_now_time_str())
+    basic.setlogfile('produce_DEM_diff_ArcticDEM_log_%s.txt'%timeTools.get_now_date_str())
     if os.path.isdir(grid_dem_diffs_dir) is  False:
         io_function.mkdir(grid_dem_diffs_dir)
 
