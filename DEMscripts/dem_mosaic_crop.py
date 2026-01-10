@@ -452,7 +452,7 @@ def mask_dem_by_bitmask(org_dem_tif_list, crop_dem_list, extent_poly, extent_id,
 
         # io_function.is_file_exist(matchtag_tif)
         if os.path.isfile(bitmask_tif) is False:
-            raise IOError(f'{bitmask_tif} not exists, skip mask_dem_by_bitmask'%bitmask_tif)
+            raise IOError(f'{bitmask_tif} not exists, skip mask_dem_by_bitmask')
             # basic.outputlogMessage('Warning, %s not exists, skip mask_dem_by_bitmask'%bitmask_tif)
             # continue
 
