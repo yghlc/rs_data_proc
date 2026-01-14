@@ -167,14 +167,14 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
         basic.outputlogMessage(f'Warning, can not find DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}  ')
         return False
 
-    if item_count > 300:
-        basic.outputlogMessage(f'error, too many DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}')
-        raise ValueError(f'error, too many DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}')
-
     items_gdf = gpd.GeoDataFrame.from_features(search.item_collection().to_dict(), crs="epsg:4326").to_crs(save_crs_code)
 
     items_gdf.to_file(search_save)
     basic.outputlogMessage(f'saved search results to {search_save}')
+
+    if item_count > 300:
+        basic.outputlogMessage(f'error, too many ({item_count}) DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}')
+        raise ValueError(f'error, too many ({item_count}) DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}')
 
     stack = stackstac.stack(items, epsg=save_crs_code, bounds_latlon=bbox)
     # print(stack)
