@@ -206,6 +206,9 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
                 saved_file_list.append(img_save_path)
                 continue
 
+            # check if enough disk space available
+            io_function.wait_until_enough_disk_space(save_dir, min_disk_GB=5)
+
             # in rare case, img_time is duplicate, end in multime bands with same time stamp
             # caused problem in the later DEM proessing. 
             selected = stack.sel(band=band, time=img_time)
