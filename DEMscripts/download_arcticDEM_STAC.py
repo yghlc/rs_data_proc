@@ -184,6 +184,11 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
 
+    done_indicator = os.path.join(save_dir,io_function.get_name_no_ext(search_save) + f'_poly{ext_id}_download.done')
+    if os.path.isfile(done_indicator):
+        print(f'data for extent: {ext_id} has completed')
+        return True
+
     bbox = vector_gpd.get_polygon_bounding_box(poly_latlon)
     search = client.search(
         collections=[collection_id],
@@ -326,6 +331,7 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
     if len(items)*len(bands_to_save) != len(saved_file_list):
         raise ValueError(f'STAC downloading for polygon {ext_id} is not completed')
 
+    io_function.save_text_to_file(done_indicator,f'completed downloading {len(saved_file_list)} files')
 
     return True
 
