@@ -214,7 +214,7 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
     basic.outputlogMessage(f'saved search results to {search_save}')
     # sys.exit(1)
 
-    if len(items) > 300:
+    if len(items) > 600:
         basic.outputlogMessage(f'error, too many ({len(items)}) DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}')
         raise ValueError(f'error, too many ({len(items)}) DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}')
 
