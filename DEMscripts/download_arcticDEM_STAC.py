@@ -78,9 +78,8 @@ def get_collection_examples_meta(client,collection_id, poly_extent, ext_id, date
 
     # fetch the items that fit our search parameters
     items = list(search.items())
-    item_count = len(items)
-    print(f'Found {item_count} items')
-    if item_count < 1:
+    print(f'Found {len(items)} items')
+    if len(items) < 1:
         basic.outputlogMessage(
             f'Warning, can not find DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}  ')
         return False
@@ -194,8 +193,8 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
 
     # fetch the items that fit our search parameters
     items = list(search.items())
-    item_count = len(items)
-    print(f'Found {item_count} items')
+
+    print(f'Found {len(items)} items')
 
     search_result_dict = search.item_collection().to_dict()
     # io_function.save_dict_to_txt_json(f'search_result_poly_{ext_id}.json', search_result_dict) # for debugging
@@ -205,7 +204,7 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
 
     # sys.exit(1)
 
-    if item_count < 1:
+    if len(items) < 1:
         basic.outputlogMessage(f'Warning, can not find DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}  ')
         return False
 
@@ -215,9 +214,9 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
     basic.outputlogMessage(f'saved search results to {search_save}')
     # sys.exit(1)
 
-    if item_count > 300:
-        basic.outputlogMessage(f'error, too many ({item_count}) DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}')
-        raise ValueError(f'error, too many ({item_count}) DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}')
+    if len(items) > 300:
+        basic.outputlogMessage(f'error, too many ({len(items)}) DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}')
+        raise ValueError(f'error, too many ({len(items)}) DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}')
 
     stack = stackstac.stack(items, epsg=save_crs_code, bounds_latlon=bbox)
     # print(stack)
@@ -324,7 +323,7 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
             io_function.save_list_to_txt(save_file_list_txt,saved_file_list)
 
     # checking file count
-    if item_count*len(bands_to_save) != len(saved_file_list):
+    if len(items)*len(bands_to_save) != len(saved_file_list):
         raise ValueError(f'STAC downloading for polygon {ext_id} is not completed')
 
 
