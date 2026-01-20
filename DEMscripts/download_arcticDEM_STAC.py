@@ -146,6 +146,39 @@ def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=Non
 
     return img_save_path
 
+def filter_search_results_by_polygon(items, search_result_dict, poly_latlon, poly_prj, prj_crs_code, min_overlap_per=0.1):
+
+    # search_result_dict contain two elements: 'type', 'features' 
+
+    items_gdf = gpd.GeoDataFrame.from_features(search_result_dict, crs="epsg:4326").to_crs(prj_crs_code)
+    print('Total items before filtering:', len(items_gdf), len(items), len(search_result_dict['features']))
+    select_items = []
+    select_search_result_dict = {'type': search_result_dict['type'], 'features': []}
+    for item, search_dict, item_poly in zip(items,search_result_dict['features'],items_gdf.geometry):
+        # print(item)
+        # print(search_dict)
+        # print(item_poly)
+        inter_geo = item_poly.intersection(poly_prj)
+        if inter_geo.is_empty:
+            # print('No intersection, skip this item')
+            continue
+        inter_area = inter_geo.area
+        poly_area = poly_prj.area
+        overlap_per = inter_area / poly_area
+        # print(f'overlap area: {inter_area}, polygon area: {poly_area}, overlap percentage: {overlap_per}')
+        if overlap_per >= min_overlap_per:
+            select_items.append(item)
+            select_search_result_dict['features'].append(search_dict)
+            # print('Selected this item')
+        else:
+            # print('Not enough overlap, skip this item')
+            pass
+    print(f'Total items after filtering minimum {100*min_overlap_per}% overlap:', len(select_items), len(select_search_result_dict['features']))
+
+    return select_items, select_search_result_dict
+
+
+
 def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext_id, date_start='2008-01-01', date_end='2026-12-31',
                                 search_save='tmp.gpkg', save_crs_code=3413,save_dir='data_save',b_unique_grid=False,out_res=None):
 
@@ -163,14 +196,24 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
     items = list(search.items())
     item_count = len(items)
     print(f'Found {item_count} items')
+
+    search_result_dict = search.item_collection().to_dict()
+    # io_function.save_dict_to_txt_json(f'search_result_poly_{ext_id}.json', search_result_dict) # for debugging
+
+    # filter the results by checking geometry if they are overlap more than 10%  of the poly_extent
+    items, search_result_dict = filter_search_results_by_polygon(items, search_result_dict, poly_latlon, poly_prj, save_crs_code, min_overlap_per=0.05)
+
+    # sys.exit(1)
+
     if item_count < 1:
         basic.outputlogMessage(f'Warning, can not find DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}  ')
         return False
 
-    items_gdf = gpd.GeoDataFrame.from_features(search.item_collection().to_dict(), crs="epsg:4326").to_crs(save_crs_code)
+    items_gdf = gpd.GeoDataFrame.from_features(search_result_dict, crs="epsg:4326").to_crs(save_crs_code)
 
     items_gdf.to_file(search_save)
     basic.outputlogMessage(f'saved search results to {search_save}')
+    # sys.exit(1)
 
     if item_count > 300:
         basic.outputlogMessage(f'error, too many ({item_count}) DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}')
