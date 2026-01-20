@@ -186,7 +186,7 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
 
     done_indicator = os.path.join(save_dir,io_function.get_name_no_ext(search_save) + f'_poly{ext_id}_download.done')
     if os.path.isfile(done_indicator):
-        print(f'data for extent: {ext_id} has completed')
+        print(f'downloading data for extent: {ext_id} has completed')
         return True
 
     bbox = vector_gpd.get_polygon_bounding_box(poly_latlon)
