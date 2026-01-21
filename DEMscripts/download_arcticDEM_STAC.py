@@ -184,7 +184,7 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
     if os.path.isdir(save_dir) is False:
         io_function.mkdir(save_dir)
 
-    done_indicator = os.path.join(save_dir,io_function.get_name_no_ext(search_save) + f'_poly{ext_id}_download.done')
+    done_indicator = os.path.join(save_dir,io_function.get_name_no_ext(search_save) + f'_download.done')
     if os.path.isfile(done_indicator):
         print(f'downloading data for extent: {ext_id} has completed')
         return True
