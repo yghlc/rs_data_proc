@@ -150,7 +150,7 @@ def filter_search_results_by_polygon(items, search_result_dict, poly_latlon, pol
     # search_result_dict contain two elements: 'type', 'features' 
 
     items_gdf = gpd.GeoDataFrame.from_features(search_result_dict, crs="epsg:4326").to_crs(prj_crs_code)
-    print('Total items before filtering:', len(items_gdf), len(items), len(search_result_dict['features']))
+    basic.outputlogMessage(f'Total items before filtering: {len(items_gdf), len(items), len(search_result_dict['features'])}')
     select_items = []
     select_search_result_dict = {'type': search_result_dict['type'], 'features': []}
     for item, search_dict, item_poly in zip(items,search_result_dict['features'],items_gdf.geometry):
@@ -172,7 +172,7 @@ def filter_search_results_by_polygon(items, search_result_dict, poly_latlon, pol
         else:
             # print('Not enough overlap, skip this item')
             pass
-    print(f'Total items after filtering minimum {100*min_overlap_per}% overlap:', len(select_items), len(select_search_result_dict['features']))
+    basic.outputlogMessage(f'Total items after filtering minimum {100*min_overlap_per}% overlap: {len(select_items), len(select_search_result_dict['features'])}')
 
     return select_items, select_search_result_dict
 
