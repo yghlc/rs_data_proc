@@ -20,7 +20,7 @@ import basic_src.timeTools as timeTools
 import basic_src.basic as basic
 
 from datetime import datetime
-from dateutil import parser
+from dateutil import parser as datetime_parser # chnange the name to avoid conflict with OptionParser parser
 import multiprocessing
 from multiprocessing import Process
 
@@ -207,7 +207,7 @@ def select_search_results_each_month(items, search_result_dict, poly_latlon, pol
         if gdf_row['datetime'] is None:
             basic.outputlogMessage(f'Warning, datetime is None for {gdf_row["title"]}, skip it')
             continue
-        dt = parser.isoparse(gdf_row['datetime'])
+        dt = datetime_parser.isoparse(gdf_row['datetime'])
         year_month = dt.strftime('%Y-%m')
         # print('Year_Month:',year_month)
 
