@@ -246,6 +246,7 @@ def select_search_results_each_month(items, search_result_dict, poly_latlon, pol
         # selected_count = 0
         selected_round = 0
         b_selected = [0]*len(sorted_item_info_list)    # to mark if selected, 1 is selected
+        select_coverage_per_list = []
         while selected_round < max_select_cover_per_month:
             # select the item with the largest valid_area_percent and non-overlapping with former selected items
             coverage_poly = None
@@ -283,15 +284,18 @@ def select_search_results_each_month(items, search_result_dict, poly_latlon, pol
                     # nearly full coverage, break
                     break
 
+            select_coverage_per_list.append(coverage_per)
             selected_round += 1
             # print(f'for year-month {year_month}, accumated cover: {selected_round:.6f} ')
             if b_selected.count(1) == len(sorted_item_info_list):
                 # all items have been selected
                 break
+                
+        select_coverage_per_list_str = [f'{per:.6f}' for per in select_coverage_per_list]
+        basic.outputlogMessage(f'For year-month {year_month}, selected {b_selected.count(1)} from {len(item_info_list)} items, '
+                               f'coverage percentages: {select_coverage_per_list_str}')        
 
-        basic.outputlogMessage(f'For year-month {year_month}, selected {b_selected.count(1)} from {len(item_info_list)} items')        
-
-    basic.outputlogMessage(f'Total items after select max three each month: {len(items_gdf), len(items), len(search_result_dict["features"])}')
+    basic.outputlogMessage(f'Total items after select max three each month: {len(select_items), len(select_search_result_dict["features"])}')
 
     return select_items, select_search_result_dict
 
