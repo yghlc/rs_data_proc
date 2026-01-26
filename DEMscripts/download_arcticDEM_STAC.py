@@ -20,6 +20,7 @@ import basic_src.timeTools as timeTools
 import basic_src.basic as basic
 
 from datetime import datetime
+from dateutil import parser
 import multiprocessing
 from multiprocessing import Process
 
@@ -145,25 +146,33 @@ def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=Non
 
     return img_save_path
 
+def cal_overlap_percentage(in_geom, poly_prj):
+    inter_geo = in_geom.intersection(poly_prj)
+    if inter_geo.is_empty:
+        # print('No intersection, skip this item')
+        return 0.0, inter_geo
+    inter_area = inter_geo.area
+    poly_area = poly_prj.area
+    overlap_per = inter_area / poly_area
+    return overlap_per, inter_geo
+
 def filter_search_results_by_polygon(items, search_result_dict, poly_latlon, poly_prj, prj_crs_code, min_overlap_per=0.1):
 
     # search_result_dict contain two elements: 'type', 'features' 
 
     items_gdf = gpd.GeoDataFrame.from_features(search_result_dict, crs="epsg:4326").to_crs(prj_crs_code)
-    basic.outputlogMessage(f'Total items before filtering: {len(items_gdf), len(items), len(search_result_dict['features'])}')
+    basic.outputlogMessage(f'Total items before filtering: {len(items_gdf), len(items), len(search_result_dict["features"])}')
     select_items = []
     select_search_result_dict = {'type': search_result_dict['type'], 'features': []}
     for item, search_dict, item_poly in zip(items,search_result_dict['features'],items_gdf.geometry):
         # print(item)
         # print(search_dict)
         # print(item_poly)
-        inter_geo = item_poly.intersection(poly_prj)
+        overlap_per, inter_geo = cal_overlap_percentage(item_poly, poly_prj)
         if inter_geo.is_empty:
             # print('No intersection, skip this item')
             continue
-        inter_area = inter_geo.area
-        poly_area = poly_prj.area
-        overlap_per = inter_area / poly_area
+
         # print(f'overlap area: {inter_area}, polygon area: {poly_area}, overlap percentage: {overlap_per}')
         if overlap_per >= min_overlap_per:
             select_items.append(item)
@@ -172,51 +181,138 @@ def filter_search_results_by_polygon(items, search_result_dict, poly_latlon, pol
         else:
             # print('Not enough overlap, skip this item')
             pass
-    basic.outputlogMessage(f'Total items after filtering minimum {100*min_overlap_per}% overlap: {len(select_items), len(select_search_result_dict['features'])}')
+    basic.outputlogMessage(f'Total items after filtering minimum {100*min_overlap_per}% overlap: {len(select_items), len(select_search_result_dict["features"])}')
 
     return select_items, select_search_result_dict
 
-def select_search_results_each_month(items, search_result_dict, poly_prj, prj_crs_code, min_overlap_per=0.1):
+def select_search_results_each_month(items, search_result_dict, poly_latlon, poly_prj, prj_crs_code):
 
     # search_result_dict contain two elements: 'type', 'features'
 
     items_gdf = gpd.GeoDataFrame.from_features(search_result_dict, crs="epsg:4326").to_crs(prj_crs_code)
-    basic.outputlogMessage(f'Total items before filtering: {len(items_gdf), len(items), len(search_result_dict['features'])}')
+
     select_items = []
     select_search_result_dict = {'type': search_result_dict['type'], 'features': []}
 
     # group by year-month
+    item_month_dict = {}
+    # loop through each row, calculate overlap, group by year-month
+    for idx, gdf_row in items_gdf.iterrows():
+        
+        # print('idx:',idx, type(gdf_row), len(gdf_row))
+        # print(gdf_row)
+        # print(gdf_row['datetime'], type(gdf_row['datetime']))
 
-    # for gdf_row in items_gdf.iterrows():
-    #
-    #
-    #
-    #
-    # for item, search_dict, item_poly, i_datetime in zip(items,search_result_dict['features'],items_gdf.geometry,items_gdf['datetime']):
-    #     # pgc:valid_area_percent
-    #
-    #     # print(item)
-    #     # print(search_dict)
-    #     # print(item_poly)
-    #     # print(i_datetime)
-    #     inter_geo = item_poly.intersection(poly_prj)
-    #     if inter_geo.is_empty:
-    #         # print('No intersection, skip this item')
-    #         continue
-    #     inter_area = inter_geo.area
-    #     poly_area = poly_prj.area
-    #     overlap_per = inter_area / poly_area
-    #     # print(f'overlap area: {inter_area}, polygon area: {poly_area}, overlap percentage: {overlap_per}')
-    #     if overlap_per >= min_overlap_per:
-    #         select_items.append(item)
-    #         select_search_result_dict['features'].append(search_dict)
-    #         # print('Selected this item')
-    #     else:
-    #         # print('Not enough overlap, skip this item')
-    #         pass
-    # basic.outputlogMessage(f'Total items after filtering minimum {100*min_overlap_per}% overlap: {len(select_items), len(select_search_result_dict['features'])}')
-    #
-    # return select_items, select_search_result_dict
+        # print(gdf_row['datetime']), if datetime is None, using start_datetime or end_datetime?
+        if gdf_row['datetime'] is None:
+            basic.outputlogMessage(f'Warning, datetime is None for {gdf_row["title"]}, skip it')
+            continue
+        dt = parser.isoparse(gdf_row['datetime'])
+        year_month = dt.strftime('%Y-%m')
+        # print('Year_Month:',year_month)
+
+        # overlap_per = 0
+        overlap_per, inter_geo = cal_overlap_percentage(gdf_row.geometry, poly_prj)
+        valid_area_percent = gdf_row['pgc:valid_area_percent']
+        is_xtrack = gdf_row['pgc:is_xtrack']
+        # print(is_xtrack, type(is_xtrack))
+        # item_info = {'idx': idx, 'valid_area_percent': valid_area_percent, 'is_xtrack': is_xtrack, 'overlap_per': overlap_per}
+        item_info = {'idx': idx, 'valid_area_percent': valid_area_percent, 'is_xtrack': is_xtrack, 'overlap_per': overlap_per,'overlap_poly':inter_geo}
+        item_month_dict.setdefault(year_month, []).append(item_info)
+
+
+    # print('item_month_dict:', item_month_dict)
+    # io_function.save_dict_to_txt_json('item_month_dict.json', item_month_dict) # for debugging
+
+    # select maximum three items for each month
+    max_select_cover_per_month = 3
+    for year_month, item_info_list in item_month_dict.items():
+        # if not too many items, select all
+        if len(item_info_list) <= max_select_cover_per_month:
+            # select all
+            # print(f'Year-Month: {year_month}, sorted items:', sorted_item_info_list,'\n')
+            for item_info in item_info_list:
+                idx = item_info['idx']
+                select_items.append(items[idx])
+                select_search_result_dict['features'].append(search_result_dict['features'][idx])
+            continue
+
+
+        #  False (which is 0) before True (which is 1): ascending, valid_area_percent: descending (largest first).
+        sorted_item_info_list = sorted(item_info_list, key=lambda x: (x['valid_area_percent']), reverse=True)
+        # print(f'Year-Month: {year_month}, sorted items:', sorted_item_info_list,'\n')
+        # continue
+
+        # selected_count = 0
+        selected_round = 0
+        b_selected = [0]*len(sorted_item_info_list)    # to mark if selected, 1 is selected
+        while selected_round < max_select_cover_per_month:
+            # select the item with the largest valid_area_percent and non-overlapping with former selected items
+            coverage_poly = None
+            coverage_per = 0
+            for i, item_info in enumerate(sorted_item_info_list):
+                if b_selected[i] == 1:
+                    # already selected
+                    continue
+                if item_info['overlap_per'] < 0.0001:
+                    b_selected[i] = 1 # too small overlap, mark as selected to skip it
+                    continue  
+
+                # check if overlapping with former selected items
+                if coverage_poly is None:
+                    coverage_poly = item_info['overlap_poly']
+                else:
+                    # select it if it can expand the coverage
+                    item_overlap = item_info['overlap_poly']
+                    union_geo = coverage_poly.union(item_overlap)
+                    union_per, _ = cal_overlap_percentage(coverage_poly, poly_prj)
+
+                    if union_per - coverage_per < 0.05:
+                        continue    # if the new item can not increase coverage more than 5%, skip it, may check it new round
+                    else:
+                        coverage_poly = union_geo
+             
+                # select this item
+                idx = item_info['idx']
+                select_items.append(items[idx])
+                select_search_result_dict['features'].append(search_result_dict['features'][idx])
+                b_selected[i] = 1
+                coverage_per, _ = cal_overlap_percentage(coverage_poly, poly_prj)
+                # print(f'selected item idx {item_info["idx"]} for year-month {year_month},  selected cover: {coverage_per:.6f} ')
+                if coverage_per > 0.95:
+                    # nearly full coverage, break
+                    break
+
+            selected_round += 1
+            # print(f'for year-month {year_month}, accumated cover: {selected_round:.6f} ')
+            if b_selected.count(1) == len(sorted_item_info_list):
+                # all items have been selected
+                break
+
+        basic.outputlogMessage(f'For year-month {year_month}, selected {b_selected.count(1)} from {len(item_info_list)} items')        
+
+    basic.outputlogMessage(f'Total items after select max three each month: {len(items_gdf), len(items), len(search_result_dict["features"])}')
+
+    return select_items, select_search_result_dict
+
+def test_select_search_results_each_month():
+    
+    search_json_res = os.path.expanduser('~/Data/dem_processing/search_result_poly_25125.json')
+    search_result_dict = io_function.read_dict_from_txt_json(search_json_res)
+
+    ext_shp = os.path.expanduser('~/data3/ArcticDEM_tmp_dir/subset_message_dir/subset_grids_shp_valid_json_files_20251222_TP/valid_json_files_20251222_TP_sub274.shp')
+
+    polys, grid_ids = vector_gpd.read_polygons_attributes_list(ext_shp, 'grid_id')
+    # print(polys)
+    # print(grid_ids)
+    selct_poly_test = None
+    for p, gid in zip(polys, grid_ids):
+        if gid == 25125:
+            selct_poly_test = p
+            break
+
+    select_search_results_each_month('items', search_result_dict, 'poly_latlon', selct_poly_test, 3413)
+
 
 def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext_id, date_start='2008-01-01', date_end='2026-12-31',
                                 search_save='tmp.gpkg', save_crs_code=3413,save_dir='data_save',b_unique_grid=False,out_res=None):
@@ -242,12 +338,13 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
     print(f'Found {len(items)} items')
 
     search_result_dict = search.item_collection().to_dict()
-    # io_function.save_dict_to_txt_json(f'search_result_poly_{ext_id}.json', search_result_dict) # for debugging
+    io_function.save_dict_to_txt_json(f'search_result_poly_{ext_id}.json', search_result_dict) # for debugging
 
     # filter the results by checking geometry if they are overlap more than min_overlap_per of the poly_extent
     items, search_result_dict = filter_search_results_by_polygon(items, search_result_dict, poly_latlon, poly_prj, save_crs_code, min_overlap_per=0.05)
 
     # select results: maximum three coverage each month
+    items, search_result_dict = select_search_results_each_month(items, search_result_dict, poly_latlon, poly_prj, save_crs_code)
 
     # sys.exit(1)
 
@@ -483,6 +580,9 @@ if __name__ == '__main__':
     import xarray as xr
     import rioxarray
 
+
+    # test_select_search_results_each_month()
+    # sys.exit(0)
 
     usage = "usage: %prog [options] extent_shp "
     parser = OptionParser(usage=usage, version="1.0 2026-01-06")
