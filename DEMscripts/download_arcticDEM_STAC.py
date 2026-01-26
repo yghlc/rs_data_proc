@@ -176,7 +176,47 @@ def filter_search_results_by_polygon(items, search_result_dict, poly_latlon, pol
 
     return select_items, select_search_result_dict
 
+def select_search_results_each_month(items, search_result_dict, poly_prj, prj_crs_code, min_overlap_per=0.1):
 
+    # search_result_dict contain two elements: 'type', 'features'
+
+    items_gdf = gpd.GeoDataFrame.from_features(search_result_dict, crs="epsg:4326").to_crs(prj_crs_code)
+    basic.outputlogMessage(f'Total items before filtering: {len(items_gdf), len(items), len(search_result_dict['features'])}')
+    select_items = []
+    select_search_result_dict = {'type': search_result_dict['type'], 'features': []}
+
+    # group by year-month
+
+    # for gdf_row in items_gdf.iterrows():
+    #
+    #
+    #
+    #
+    # for item, search_dict, item_poly, i_datetime in zip(items,search_result_dict['features'],items_gdf.geometry,items_gdf['datetime']):
+    #     # pgc:valid_area_percent
+    #
+    #     # print(item)
+    #     # print(search_dict)
+    #     # print(item_poly)
+    #     # print(i_datetime)
+    #     inter_geo = item_poly.intersection(poly_prj)
+    #     if inter_geo.is_empty:
+    #         # print('No intersection, skip this item')
+    #         continue
+    #     inter_area = inter_geo.area
+    #     poly_area = poly_prj.area
+    #     overlap_per = inter_area / poly_area
+    #     # print(f'overlap area: {inter_area}, polygon area: {poly_area}, overlap percentage: {overlap_per}')
+    #     if overlap_per >= min_overlap_per:
+    #         select_items.append(item)
+    #         select_search_result_dict['features'].append(search_dict)
+    #         # print('Selected this item')
+    #     else:
+    #         # print('Not enough overlap, skip this item')
+    #         pass
+    # basic.outputlogMessage(f'Total items after filtering minimum {100*min_overlap_per}% overlap: {len(select_items), len(select_search_result_dict['features'])}')
+    #
+    # return select_items, select_search_result_dict
 
 def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext_id, date_start='2008-01-01', date_end='2026-12-31',
                                 search_save='tmp.gpkg', save_crs_code=3413,save_dir='data_save',b_unique_grid=False,out_res=None):
@@ -204,8 +244,10 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
     search_result_dict = search.item_collection().to_dict()
     # io_function.save_dict_to_txt_json(f'search_result_poly_{ext_id}.json', search_result_dict) # for debugging
 
-    # filter the results by checking geometry if they are overlap more than 10%  of the poly_extent
+    # filter the results by checking geometry if they are overlap more than min_overlap_per of the poly_extent
     items, search_result_dict = filter_search_results_by_polygon(items, search_result_dict, poly_latlon, poly_prj, save_crs_code, min_overlap_per=0.05)
+
+    # select results: maximum three coverage each month
 
     # sys.exit(1)
 
