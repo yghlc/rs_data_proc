@@ -342,7 +342,7 @@ def download_dem_within_polygon(client,collection_id, poly_latlon, poly_prj, ext
     print(f'Found {len(items)} items')
 
     search_result_dict = search.item_collection().to_dict()
-    io_function.save_dict_to_txt_json(f'search_result_poly_{ext_id}.json', search_result_dict) # for debugging
+    # io_function.save_dict_to_txt_json(f'search_result_poly_{ext_id}.json', search_result_dict) # for debugging
 
     # filter the results by checking geometry if they are overlap more than min_overlap_per of the poly_extent
     items, search_result_dict = filter_search_results_by_polygon(items, search_result_dict, poly_latlon, poly_prj, save_crs_code, min_overlap_per=0.05)
