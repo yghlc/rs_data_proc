@@ -224,7 +224,7 @@ def select_search_results_each_month(items, search_result_dict, poly_latlon, pol
     # print('item_month_dict:', item_month_dict)
     # io_function.save_dict_to_txt_json('item_month_dict.json', item_month_dict) # for debugging
 
-    # select maximum three items for each month
+    # select maximum three coverages for each month
     max_select_cover_per_month = 3
     for year_month, item_info_list in item_month_dict.items():
         # if not too many items, select all
@@ -238,7 +238,7 @@ def select_search_results_each_month(items, search_result_dict, poly_latlon, pol
             continue
 
 
-        #  False (which is 0) before True (which is 1): ascending, valid_area_percent: descending (largest first).
+        #  valid_area_percent: descending (largest first).
         sorted_item_info_list = sorted(item_info_list, key=lambda x: (x['valid_area_percent']), reverse=True)
         # print(f'Year-Month: {year_month}, sorted items:', sorted_item_info_list,'\n')
         # continue
@@ -262,11 +262,12 @@ def select_search_results_each_month(items, search_result_dict, poly_latlon, pol
                 # check if overlapping with former selected items
                 if coverage_poly is None:
                     coverage_poly = item_info['overlap_poly']
+                    coverage_per = item_info['overlap_per']
                 else:
                     # select it if it can expand the coverage
                     item_overlap = item_info['overlap_poly']
                     union_geo = coverage_poly.union(item_overlap)
-                    union_per, _ = cal_overlap_percentage(coverage_poly, poly_prj)
+                    union_per, _ = cal_overlap_percentage(union_geo, poly_prj)
 
                     if union_per - coverage_per < 0.05:
                         continue    # if the new item can not increase coverage more than 5%, skip it, may check it new round
@@ -286,7 +287,6 @@ def select_search_results_each_month(items, search_result_dict, poly_latlon, pol
 
             select_coverage_per_list.append(coverage_per)
             selected_round += 1
-            # print(f'for year-month {year_month}, accumated cover: {selected_round:.6f} ')
             if b_selected.count(1) == len(sorted_item_info_list):
                 # all items have been selected
                 break
