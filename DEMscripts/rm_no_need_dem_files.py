@@ -35,14 +35,20 @@ def remove_on_need_stac_dem_after_DEM_diff(bak_dir=None):
         if len(tif_list) > 0:
             if bak_dir is None:
                 # remove them directly
-                basic.outputlogMessage(f'To remove {len(tif_list)} tifs for grid: {g_id}')
+                basic.outputlogMessage(f'To remove/unlink {len(tif_list)} tifs for grid: {g_id}')
                 for tif in tif_list:
-                    io_function.delete_file_or_dir(tif)
+                    if os.path.islink(tif):
+                        os.unlink(tif)  # If it's a symbolic link, just unlink (remove the link)
+                    else:
+                        io_function.delete_file_or_dir(tif)
             else:
                 # move to the backup directory
-                basic.outputlogMessage(f'To move {len(tif_list)} tifs for grid: {g_id} to folder: {bak_dir}')
+                basic.outputlogMessage(f'To move/unlink {len(tif_list)} tifs for grid: {g_id} to folder: {bak_dir}')
                 for tif in tif_list:
-                    io_function.movefiletodir(tif,bak_dir,overwrite=False,b_verbose=False)
+                    if os.path.islink(tif): # If it's a symbolic link, just unlink (remove the link)
+                        os.unlink(tif)
+                    else:
+                        io_function.movefiletodir(tif,bak_dir,overwrite=False,b_verbose=False)
 
     basic.outputlogMessage('completed: remove_on_need_stac_dem_after_DEM_diff')
 
