@@ -40,7 +40,8 @@ def remove_on_need_stac_dem_after_DEM_diff(bak_dir=None):
                     if os.path.islink(tif):
                         os.unlink(tif)  # If it's a symbolic link, just unlink (remove the link)
                     else:
-                        io_function.delete_file_or_dir(tif)
+                        if os.path.isfile(tif): # check file exist before move (when parallel running, the file may have been removed by others)
+                            io_function.delete_file_or_dir(tif)
             else:
                 # move to the backup directory
                 basic.outputlogMessage(f'To move/unlink {len(tif_list)} tifs for grid: {g_id} to folder: {bak_dir}')
@@ -48,7 +49,8 @@ def remove_on_need_stac_dem_after_DEM_diff(bak_dir=None):
                     if os.path.islink(tif): # If it's a symbolic link, just unlink (remove the link)
                         os.unlink(tif)
                     else:
-                        io_function.movefiletodir(tif,bak_dir,overwrite=False,b_verbose=False)
+                        if os.path.isfile(tif):  # check file exist before move (when parallel running, the file may have been removed by others)
+                            io_function.movefiletodir(tif,bak_dir,overwrite=False,b_verbose=False)
 
     basic.outputlogMessage('completed: remove_on_need_stac_dem_after_DEM_diff')
 
@@ -79,7 +81,8 @@ def main():
     # sys.exit(0)
 
     backup_folder = os.path.join(arcticDEM_reg_tif_dir, f'rm_{timeTools.get_now_date_str()}')
-    io_function.mkdir(backup_folder)
+    if os.path.isdir(backup_folder) is False:
+        io_function.mkdir(backup_folder)
 
     # remove the file download by stac
     remove_on_need_stac_dem_after_DEM_diff(bak_dir=backup_folder)
