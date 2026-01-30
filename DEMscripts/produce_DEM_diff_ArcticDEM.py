@@ -213,7 +213,8 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
 
 
         # get subset of tifs
-        dem_poly_index = vector_gpd.get_poly_index_within_extent(dem_ext_polys, grid_poly)
+        # overlap at least 1%, to avoid some dem tif for the adjacent grids
+        dem_poly_index = vector_gpd.get_poly_index_within_extent(dem_ext_polys, grid_poly, min_overlap_area=grid_poly.area*0.01)
         if len(dem_poly_index) < 1:
             basic.outputlogMessage('warning, no dem tifs within %d grid, skip' % grid_id)
             save_id_grid_no_valid_dem(grid_id)
