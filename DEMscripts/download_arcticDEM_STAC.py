@@ -134,7 +134,10 @@ def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=Non
     # selected.rio.to_raster(img_save_path, compress="LZW")
     # as learnt from pdemtools, they used ZSTD, as high compress rates.
     # a quick test: two tif files with LZW: 99.9 MB and 73.5 MB, but with ZSTD, they were: 40.1 MB and 28.5 MB. (Feb 1, 2025)
-    selected.rio.to_raster(img_save_path, compress='ZSTD', predictor=3, zlevel=1)
+    if d_type in ['float32','float64']:
+        selected.rio.to_raster(img_save_path, compress='ZSTD', predictor=3, zlevel=1)
+    else:
+        selected.rio.to_raster(img_save_path, compress="LZW")
     basic.outputlogMessage(f'saved geotiff to {img_save_path}')
     # for the case running this function in sub-process
     # print('debugging:',multiprocessing.current_process().name)
