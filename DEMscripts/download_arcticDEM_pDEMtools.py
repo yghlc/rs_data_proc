@@ -14,59 +14,81 @@ from optparse import OptionParser
 deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
 import vector_gpd
-# import basic_src.map_projection as map_projection
 import basic_src.io_function as io_function
-import basic_src.timeTools as timeTools
 import basic_src.basic as basic
 
-from datetime import datetime
 from dateutil import parser as datetime_parser # chnange the name to avoid conflict with OptionParser parser
-import multiprocessing
-from multiprocessing import Process
-
-import time
-pgc_stac = "https://stac.pgc.umn.edu/api/v1/"
-
 
 from dem_common import arcticDEM_reg_tif_dir,arcticDEM_tile_reg_tif_dir
 
 from download_arcticDEM import save_id_grid_no_dem
 
 machine_name = os.uname()[1]
-# the maximum number of processes for downloading in parallel
-max_task_count = 1
-download_tasks = []
+# # the maximum number of processes for downloading in parallel
+# max_task_count = 1
+# download_tasks = []
 
-    # # select results: maximum three coverage each month
-    # items, search_result_dict = select_search_results_each_month(items, search_result_dict, poly_latlon, poly_prj, save_crs_code)
-
-    # if len(items) < 1:
-    #     basic.outputlogMessage(f'Warning, can not find DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}  ')
-    #     return False
-    #
-    # items_gdf = gpd.GeoDataFrame.from_features(search_result_dict, crs="epsg:4326").to_crs(save_crs_code)
-    #
-    # items_gdf.to_file(search_save)
-    # basic.outputlogMessage(f'saved search results to {search_save}')
-    #
-    # if len(items) > 600:
-    #     basic.outputlogMessage(f'error, too many ({len(items)}) DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}')
-    #     raise ValueError(f'error, too many ({len(items)}) DEMs within {ext_id} th extent with: {collection_id} from {date_start} to {date_end}')
 
 def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_start='2008-01-01', date_end='2026-12-31',
-                               baseline_max_hours = 24, min_aoi_frac = 0.1,search_save='tmp.gpkg',b_unique_grid=False):
+                               baseline_max_hours = 24, min_aoi_frac = 0.1,search_save='tmp.gpkg',out_res=None, b_unique_grid=False,
+                               mask_coreg=False,custom_mask_fpath = None, geoid_correct = False):
     # this function is modified from: https://github.com/trchudley/pdemtools/blob/bb1e9d29721caf460ba56c1ea9b6ba9e388e5bb4/batch/batch_download_and_coregister_is2.py
 
     # bounds = (xmin, ymin, xmax, ymax)
     # dataset = "arcticdem" or  "rema"
+    # mask_coreg: option to coregister only against stable ground, defaults to False
+
+    # custom_mask_fpath:
+    # filepath of custom mask of stable ground, if operating outside of Antarctica/Greenland
+    # # This should be provided as a shapefile or equivalent geopandas-readable vector.
+    # # Default is `None`, which will extract from BedMachine Greenland/Antarctica instead.
+
+    # Filepath to BedMachine v5 netcdf file, if operating in Greenland/Antarctica. This
+    # will allow for automated extraction of a stable ground mask for coregistration,
+    # as well as a geoid for geoid correction. Leave blank if operating outside of
+    # Greenland/Antarctica and/or providing your own mask and geoid data.
+    #  - Download for Greenland: https://nsidc.org/data/idbmg4/versions/5
+    #  - Download for Antarctica: https://nsidc.org/data/nsidc-0756/versions/3
+    # bedmachine_fpath = ".../data/bedmachine_5/BedMachineGreenland-v5.nc"
+    bedmachine_fpath = None
+
+    # geoid_correct: option to geoid-correct data using the bedmachine geoid, defaults to False
+
+    # filepath to custom geoid geotiff. Default is `None`, which will extract from BedMachine
+    # Greenland/Antarctica instead.
+    custom_geoid_fpath = None
+
+    # this script will check
+    override_datecheck = True
+
+    date_start = date_start.replace('-','')
+    date_end = date_end.replace('-','')
 
     dates = f"{date_start}/{date_end}"
+
+    # sanity check date string:
+    first_date_str = dates.split("/")[0]
+    first_date = to_datetime(first_date_str, format="%Y%m%d")
+    cutoff_date = to_datetime("2018-10-04")
+    if first_date < cutoff_date:
+        if override_datecheck:
+            basic.outputlogMessage("Warning, "
+                f"You have searched for data beginning {first_date_str}. No ICESat-2 data "
+                "exists prior to 2018-10-04. As `override_datecheck` is set to True, "
+                "any data prior to this date will be downloaded (uncorrected) anyway."
+            )
+        else:
+            raise ValueError(
+                f"You have searched for data beginning {first_date_str}. No ICESat-2 data "
+                "exists prior to 2018-10-04. To override this check and download the (uncorrected) "
+                "data anyway, set `override_datecheck = True`"
+            )
 
     if not os.path.exists(outdir):
         os.mkdir(outdir)
 
     # Search for DEM strips
-    print("\nSearching for DEM strips...")
+    basic.outputlogMessage("\nSearching for DEM strips...")
     gdf = pdt.search(
         dataset=dataset,
         bounds=bounds,
@@ -78,9 +100,13 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
         # accuracy=2,
         min_aoi_frac=min_aoi_frac,
     )
+    search_str = f'dataset:{dataset}, bounds: {bounds}, dates:{dates},baseline_max_hours:{baseline_max_hours}, min_aoi_frac:{min_aoi_frac}'
+    if gdf is None:
+        basic.outputlogMessage(f'Warning, NO search results for: {search_str}' )
+        return
 
     n_strips = len(gdf)
-    print(f"{n_strips} strips found")
+    basic.outputlogMessage(f"{n_strips} strips found, with query conditions: {search_str}")
 
     gdf.to_file(search_save)
     basic.outputlogMessage(f'saved search results to {search_save}')
@@ -91,8 +117,9 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
 
     i = 1
 
-    print("\nDownloading DEM strips...")
+    basic.outputlogMessage("Downloading DEM strips...")
 
+    # because the script need to run the first loop, so many be not good to run in parallel
     first_loop = True
 
     for _, row in gdf.iterrows():
@@ -114,7 +141,7 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
         # If the file doesn't yet exist, download.
         if len(glob(f"{out_fname}*")) == 0:
 
-            print(f"\nDownloading {i}/{n_strips} {os.path.basename(out_fname)}...")
+            basic.outputlogMessage(f"\nDownloading {i}/{n_strips} {os.path.basename(out_fname)}...")
 
             # download DEM
             dem = pdt.load.from_search(row, bounds=bounds, bitmask=True)
@@ -150,21 +177,27 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
 
                 first_loop = False
 
-            # get the IS2 coregistration data
-            print("Getting IS2 coregistration data...")
-            is2_gdf = pdt.data.icesat2_atl06(dem, date, stable_mask=bedrock_mask)
+            if to_datetime(date) < cutoff_date:
+                metadata = {"coreg_status":"failed",
+                            "remark":f'the date is {date}. No ICESat-2 data exists prior to 2018-10-04'
+                            }
+                basic.outputlogMessage(f"Warning, For {dem_id}, the date is {date}. No ICESat-2 data exists prior to 2018-10-04.")
+            else:
+                # get the IS2 coregistration data
+                basic.outputlogMessage("Getting IS2 coregistration data...")
+                is2_gdf = pdt.data.icesat2_atl06(dem, date, stable_mask=bedrock_mask)
 
-            # coregister DEM, with return_stats=True.
-            dem, metadata = dem.pdt.coregister_is2(
-                is2_gdf,
-                stable_mask=bedrock_mask,
-                max_horiz_offset=50,
-                return_stats=True,
-            )
+                # coregister DEM, with return_stats=True.
+                dem, metadata = dem.pdt.coregister_is2(
+                    is2_gdf,
+                    stable_mask=bedrock_mask,
+                    max_horiz_offset=50,
+                    return_stats=True,
+                )
 
             # geoid correct if necessary
             if geoid_correct:
-                print("Geoid-correcting...")
+                basic.outputlogMessage("Geoid-correcting...")
                 dem = dem.pdt.geoid_correct(geoid)
 
             # check whether coreg worked, and construct filename appropriately
@@ -175,32 +208,36 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
             elif metadata["coreg_status"] == "dz_only":
                 out_fpath = out_fname + "_coreg_dz.tif"
             else:
-                warn(
-                    f"Unknown coregistration status {metadata['coreg_status']}. Saving wihtout extension.",
-                    UserWarning,
-                    stacklevel=2,
-                )
+                basic.outputlogMessage(f"Unknown coregistration status {metadata['coreg_status']}. Saving wihtout extension.")
                 out_fpath = out_fname + ".tif"
 
             # Export to geotiff
             dem.rio.to_raster(out_fpath, compress="ZSTD", predictor=3, zlevel=1)
             del dem
 
+
             # Export metadata as json
             json_fpath = out_fpath.rsplit(".", 1)[0] + ".json"
             with open(json_fpath, "w") as json_file:
                 json.dump(metadata, json_file, indent=4)
 
+            # quick check the resolution
+            with rasterio.open(out_fpath) as src:
+                dem_res_x, dem_res_y = src.res
+            if abs(out_res - dem_res_x) > 0.000001:
+                basic.outputlogMessage(f'Error, the resolution {dem_res_x} in file: {out_fpath} is not consistent with the settting: {out_res}')
+                raise ValueError(f'Error, the resolution {dem_res_x} in file: {out_fpath} is not consistent with the settting: {out_res}')
+        else:
+            basic.outputlogMessage(f"Files exists: {out_fname}*, skip")
         i += 1
 
-    print("Finished")
-
-    pass
+    basic.outputlogMessage(f"Finished downloading and co-registration for extent: {ext_id}")
 
 
 
 def download_dem_pDENtools(extent_bounds_list, output_dir, date_start,date_end,pre_name,
-                      poly_ids=None,save_prj_code=3413,b_unique_grid=False, out_res=None):
+                      poly_ids=None,save_prj_code=3413,b_unique_grid=False, out_res=None,
+                           baseline_max_hours=24, min_overlap_per=0.05):
 
     # download data through STAC, not need to unpack
     b_save_grid_id_noDEM = True
@@ -211,13 +248,14 @@ def download_dem_pDENtools(extent_bounds_list, output_dir, date_start,date_end,p
     for count, (idx, ext_bound) in enumerate(zip(poly_ids, extent_bounds_list)):
         if b_unique_grid:
             search_save = os.path.join(output_dir, pre_name + f'_grid{idx}.gpkg')
+            ext_tif_save_dir = os.path.join(output_dir, f'dem_grid{idx}')
         else:
             search_save = os.path.join(output_dir, pre_name + f'_poly_{idx}.gpkg')
+            ext_tif_save_dir = os.path.join(output_dir, f'dem_poly_{idx}')
 
-
-        res = download_dem_within_polygon(client,collection_id, ext_poly_ll,poly_prj, idx, date_start=date_start,
-                                    date_end=date_end, search_save=search_save, save_dir=output_dir,save_crs_code=save_prj_code,
-                                          b_unique_grid=b_unique_grid,out_res=out_res)
+        res = download_dem_within_bounds(ext_bound,ext_tif_save_dir, idx, date_start=date_start,date_end=date_end,
+                                     baseline_max_hours = baseline_max_hours, min_aoi_frac = min_overlap_per, search_save=search_save,out_res=out_res,
+                                         b_unique_grid=b_unique_grid)
 
         # if res is False, mean no data found
         if res is False and b_save_grid_id_noDEM is True:
@@ -225,12 +263,17 @@ def download_dem_pDENtools(extent_bounds_list, output_dir, date_start,date_end,p
 
 
 def main(options, args):
+
+    basic.setlogfile(f'pDEMtools_log_pID{os.getpid()}.txt')
+
     extent_shp = args[0]
-    print('input extent:', extent_shp)
+    basic.outputlogMessage(f'input extent: {extent_shp}')
     b_arcticDEM_mosaic = options.b_arcticDEM_mosaic # default is False
 
-    global max_task_count
-    max_task_count = options.max_process_num
+    # global max_task_count
+    # max_task_count = options.max_process_num
+    min_overlap_per = options.min_overlap_per
+    baseline_max_hours = options.baseline_max_hours
 
     # reg_tif_dir is the folder to save tifs
     if b_arcticDEM_mosaic:
@@ -245,8 +288,6 @@ def main(options, args):
         io_function.mkdir(reg_tif_dir)
     reg_tif_dir = os.path.abspath(reg_tif_dir)  # change to absolute path
 
-    # STAC need lat/lon for searching?
-    ext_polys_latlon = vector_gpd.read_shape_gpd_to_NewPrj(extent_shp,'EPSG:4326')
     prj_code = vector_gpd.get_projection(extent_shp)
     if prj_code != 3413:
         basic.outputlogMessage(f'Map projection of {extent_shp} is not EPSG:3413, will convert to it')
@@ -254,17 +295,24 @@ def main(options, args):
     else:
         ext_polys_3413 = vector_gpd.read_polygons_gpd(extent_shp)
 
+    # pDEMtools need bounds of polygons? for grid cells (rectangles), they should be the same
+    ext_bounds_3413 = [vector_gpd.get_polygon_bounding_box(item) for item in ext_polys_3413]
 
     pre_name = os.path.splitext(os.path.basename(extent_shp))[0]
     pre_name += '_Mosaic' if b_arcticDEM_mosaic else '_Strip'
 
     # read 'grid_id' if the extent shp is from grid shp file, if not, grid_id_list will be None
-    grid_id_list = vector_gpd.read_attribute_values_list(extent_shp,'grid_id')
+    if vector_gpd.is_field_name_in_shp(extent_shp,'grid_id'):
+        grid_id_list = vector_gpd.read_attribute_values_list(extent_shp,'grid_id')
+    elif vector_gpd.is_field_name_in_shp(extent_shp,'RowCol_id'):
+        grid_id_list = vector_gpd.read_attribute_values_list(extent_shp, 'RowCol_id')
+    else:
+        grid_id_list = None
     b_unique_grid = False if grid_id_list is None else True
-    if len(ext_polys_latlon) < 1:
+    if len(ext_bounds_3413) < 1:
         raise ValueError('No polygons in %s'%extent_shp)
     else:
-        basic.outputlogMessage('read %d extent polygons in %s for downloading using STAC'%(len(ext_polys_latlon),extent_shp))
+        basic.outputlogMessage('read %d extent polygons in %s for downloading using pDEMtools'%(len(ext_bounds_3413),extent_shp))
 
     date_start = options.date_start
     date_end = options.date_end
@@ -274,13 +322,9 @@ def main(options, args):
     out_resolution = options.out_res
 
 
-    ref_to:
-    #https://github.com/trchudley/pdemtools/blob/bb1e9d29721caf460ba56c1ea9b6ba9e388e5bb4/batch/batch_download_and_coregister_is2.py
-
-
-
-    download_dem_stac(client, collection_id, ext_polys_latlon, ext_polys_3413, reg_tif_dir, date_start, date_end, pre_name,
-                      poly_ids=grid_id_list, save_prj_code=save_prj_code,b_unique_grid=b_unique_grid,out_res=out_resolution)
+    download_dem_pDENtools(ext_bounds_3413, reg_tif_dir, date_start, date_end, pre_name,
+                      poly_ids=grid_id_list, save_prj_code=save_prj_code,b_unique_grid=b_unique_grid,out_res=out_resolution,
+                           baseline_max_hours=baseline_max_hours, min_overlap_per=min_overlap_per)
 
 
 
@@ -293,10 +337,13 @@ if __name__ == '__main__':
     from math import isnan
     from pandas import to_datetime
 
-    import geopandas as gpd
-    import stackstac
-    import xarray as xr
-    import rioxarray
+    import numpy as np
+    import json
+    import rasterio
+
+    # import geopandas as gpd
+    # import xarray as xr
+    # import rioxarray
 
 
     # test_select_search_results_each_month()
@@ -310,10 +357,6 @@ if __name__ == '__main__':
                       action="store", dest="save_dir",
                       help="the folder to save DEMs")
 
-    parser.add_option("-c", "--collection_id",
-                      action="store", dest="collection_id",
-                      help="the collection id, set this allow to download other products from PGC")
-
     parser.add_option("-s", "--date_start",
                       action="store", dest="date_start", type=str, default='2008-01-01',
                       help="the start date for downloading data")
@@ -326,9 +369,18 @@ if __name__ == '__main__':
                       action="store", dest="out_res", type=float, default=2.0,
                       help="the spatial resolution for output (2.0)")
 
-    parser.add_option("-p", "--max_process_num",
-                      action="store", dest="max_process_num", type=int, default=4,
-                      help="the maximum number of processes for downloading in parallel")
+    parser.add_option("-o", "--min_overlap_per",
+                      action="store", dest="min_overlap_per", type=float, default=0.05,
+                      help="the threshold of minimum overlap between bounds and DEM files")
+
+    parser.add_option("-b", "--baseline_max_hours",
+                      action="store", dest="baseline_max_hours", type=float, default=720,
+                      help="the maximum time baseline for query, ideally, one day, but low this to 30 days for more data")
+
+
+    # parser.add_option("-p", "--max_process_num",
+    #                   action="store", dest="max_process_num", type=int, default=4,
+    #                   help="the maximum number of processes for downloading in parallel")
 
     parser.add_option("-m", "--b_arcticDEM_mosaic",
                       action="store_true", dest="b_arcticDEM_mosaic",default=False,
