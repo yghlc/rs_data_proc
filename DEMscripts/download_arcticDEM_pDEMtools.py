@@ -191,14 +191,18 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
                 # get the IS2 coregistration data
                 basic.outputlogMessage("Getting IS2 coregistration data...")
                 is2_gdf = pdt.data.icesat2_atl06(dem, date, stable_mask=bedrock_mask)
-
-                # coregister DEM, with return_stats=True.
-                dem, metadata = dem.pdt.coregister_is2(
-                    is2_gdf,
-                    stable_mask=bedrock_mask,
-                    max_horiz_offset=50,
-                    return_stats=True,
-                )
+                if len(is2_gdf) >= 2:
+                    # coregister DEM, with return_stats=True.
+                    dem, metadata = dem.pdt.coregister_is2(
+                        is2_gdf,
+                        stable_mask=bedrock_mask,
+                        max_horiz_offset=50,
+                        return_stats=True,
+                    )
+                else:
+                    metadata = {"coreg_status": "failed",
+                                "remark": f'Not enough ICESat-2 data (only found {len(is2_gdf)} points) '
+                                }
 
             # geoid correct if necessary
             if geoid_correct:
