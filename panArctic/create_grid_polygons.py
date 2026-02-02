@@ -69,7 +69,7 @@ def create_grids_for_overlap_vectors(coverage,input_vector,grid_size_x,grid_size
     print(datetime.now(), f'obtained {len(grid_cells)} grid cells for the coverage area')    
 
     # Step 2: Convert grid cells to a GeoDataFrame
-    grid_gdf = gpd.GeoDataFrame({'geometry': grid_cells, 'RowCol_id': grid_ids}, crs=cover_prj)
+    grid_gdf = gpd.GeoDataFrame({'geometry': grid_cells, 'RowCol_id': grid_ids, 'grid_id': grid_ids}, crs=cover_prj)
 
 
     # Step 3: Perform spatial join to find intersecting grid cells
