@@ -87,6 +87,11 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
     if not os.path.exists(outdir):
         os.mkdir(outdir)
 
+    done_indicator = outdir + f'_download.done'
+    if os.path.isfile(done_indicator):
+        print(f'downloading data for extent: {ext_id} has completed')
+        return True
+
     # Search for DEM strips
     basic.outputlogMessage("\nSearching for DEM strips...")
     gdf = pdt.search(
@@ -232,6 +237,13 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
         i += 1
 
     basic.outputlogMessage(f"Finished downloading and co-registration for extent: {ext_id}")
+
+    saved_file_list = io_function.get_file_list_by_pattern(outdir,'*.tif')
+    # checking file count
+    if n_strips != len(saved_file_list):
+        raise ValueError(f'downloading for polygon {ext_id} is not completed')
+
+    io_function.save_text_to_file(done_indicator, f'completed downloading {len(saved_file_list)} files')
 
 
 
