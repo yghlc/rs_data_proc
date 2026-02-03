@@ -129,7 +129,7 @@ def get_existing_dem_diff(dem_diff_dir, grid_base_name, grid_ids):
         #     existing_tif.append(dem_diff)
         #     continue
 
-        dem_diff_files = io_function.get_file_list_by_pattern(dem_diff_dir, '*_DEM_diff_grid%d.tif'%id)
+        dem_diff_files = io_function.get_file_list_by_pattern(dem_diff_dir, f'*_DEM_diff_grid{id}.tif')
         if len(dem_diff_files) == 1:
             existing_tif.append(dem_diff_files[0])
             continue
@@ -143,7 +143,7 @@ def get_existing_dem_diff(dem_diff_dir, grid_base_name, grid_ids):
 
         grid_id_no_dem_tiff.append(id)
     if len(existing_tif) > 0:
-        basic.outputlogMessage('%d existing grid dem diff files for the input grid_ids or extent'%len(existing_tif))
+        basic.outputlogMessage(f'{len(existing_tif)} existing grid dem diff files for the input grid_ids or extent')
     else:
         basic.outputlogMessage('no existing grid dem diff files')
     return existing_tif, grid_id_no_dem_tiff
@@ -233,8 +233,8 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
         # dem co-registration (cancel, the result in not good with the default setting)
 
         # dem differencing
-        save_dem_diff = os.path.join(grid_dem_diffs_dir, pre_name + '_DEM_diff_grid%d.tif'%grid_id)
-        save_date_diff = os.path.join(grid_dem_diffs_dir, pre_name + '_date_diff_grid%d.tif'%grid_id)
+        save_dem_diff = os.path.join(grid_dem_diffs_dir, pre_name + f'_DEM_diff_grid{grid_id}.tif')
+        save_date_diff = os.path.join(grid_dem_diffs_dir, pre_name + f'_date_diff_grid{grid_id}.tif')
 
         if dem_diff_newest_oldest(mosaic_tif_list, save_dem_diff, save_date_diff, process_num,
                                b_max_subsidence=b_max_subsidence,b_save_cm=True):
@@ -243,6 +243,41 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
             save_id_grid_dem_less_2(grid_id)
             grid_id_less2dem_list.append(grid_id)
     return dem_diff_tifs
+
+
+def produce_dem_diff_grids_RowCol_id(extent_grid_shp, process_num,keep_dem_percent,o_res):
+    # produce DEM diff using the new version of grid id (RowCol id), 10 km by 10 km, donwload by pDEMtools
+
+    if vector_gpd.is_field_name_in_shp(extent_grid_shp, 'RowCol_id') is False:
+        raise ValueError(f'RowCol_id is not in {extent_grid_shp}')
+
+    grid_base_name = 'ArcticDEM_s2s041'  # to change in the future
+
+    grid_polys, grid_ids = vector_gpd.read_polygons_attributes_list(extent_grid_shp, 'RowCol_id')
+    grid_dem_tifs, grid_ids_no_demDiff = get_existing_dem_diff(grid_dem_diffs_dir, "", grid_ids)
+    if len(grid_ids_no_demDiff) > 0:
+        # refine grid_polys
+        if len(grid_ids) > len(grid_ids_no_demDiff):
+            id_index = [grid_ids.index(id) for id in grid_ids_no_demDiff]
+            grid_polys = [grid_polys[idx] for idx in id_index]
+
+        # because each dem file of each grid was put to differnt folder, so need to go through one by one
+        for g_poly, g_id in zip(grid_polys, grid_ids_no_demDiff):
+            reg_tifs_dir = os.path.join(arcticDEM_reg_tif_dir,f'dem_grid{g_id}')
+            reg_tifs = io_function.get_file_list_by_ext('.tif', reg_tifs_dir, bsub_folder=False)
+
+            # legcy code, just keep here
+            reg_tifs = [tif for tif in reg_tifs if 'matchtag' not in tif]  # remove matchtag
+            reg_tifs = [tif for tif in reg_tifs if tif.endswith('_matchtag.tif') is False]  # remove matchtag in new version
+            reg_tifs = [tif for tif in reg_tifs if tif.endswith('_mask.tif') is False]  # remove mask in new version
+
+            # crop, mosaic, difference
+            out_dem_diffs = produce_dem_diff_grids([g_poly], [g_id], grid_base_name, reg_tifs,
+                                               b_apply_matchtag, b_mosaic_id, b_mosaic_date,
+                                               keep_dem_percent, o_res, process_num=process_num)
+            grid_dem_tifs.extend(out_dem_diffs)
+    pass
+
 
 
 
@@ -254,6 +289,12 @@ def main(options, args):
     basic.setlogfile('produce_DEM_diff_ArcticDEM_log_%s.txt'%timeTools.get_now_date_str())
     if os.path.isdir(grid_dem_diffs_dir) is  False:
         io_function.mkdir(grid_dem_diffs_dir)
+
+    # if the input is a vector file and "RowCol_id" exist in the column
+    # then processing the grid cells directly (don't have to be 20 km by 20 km grids)
+    if extent_shp_or_ids_txt.endswith('.txt') is False and \
+            vector_gpd.is_field_name_in_shp(extent_shp_or_ids_txt,'RowCol_id'):
+        produce_dem_diff_grids_RowCol_id(extent_shp_or_ids_txt, process_num,keep_dem_percent,o_res)
 
     # read grids and ids
     time0 = time.time()
