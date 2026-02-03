@@ -221,6 +221,7 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
                 out_fpath = out_fname + ".tif"
 
             # Export to geotiff
+            out_fpath = io_function.get_name_by_adding_tail(out_fpath,'dem') # add dem in the end, for existing working flow
             dem.rio.to_raster(out_fpath, compress="ZSTD", predictor=3, zlevel=1)
             del dem
 
