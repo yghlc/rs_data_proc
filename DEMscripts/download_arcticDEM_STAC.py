@@ -138,6 +138,7 @@ def save_one_image_to_local(stack,selected,d_type,img_save_path,nodata_value=Non
         selected.rio.to_raster(img_save_path, compress='ZSTD', predictor=3, zlevel=1)
     else:
         selected.rio.to_raster(img_save_path, compress="LZW")
+    del selected
     basic.outputlogMessage(f'saved geotiff to {img_save_path}')
     # for the case running this function in sub-process
     # print('debugging:',multiprocessing.current_process().name)
