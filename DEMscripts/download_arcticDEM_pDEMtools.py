@@ -116,7 +116,7 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
     gdf.to_file(search_save)
     basic.outputlogMessage(f'saved search results to {search_save}')
 
-    if len(gdf) > 300:
+    if len(gdf) > 500:
         basic.outputlogMessage(f'error, too many ({len(gdf)}) DEMs within {ext_id} th extent with: {dataset} from {date_start} to {date_end}')
         raise ValueError(f'error, too many ({len(gdf)}) DEMs within {ext_id} th extent with: {dataset} from {date_start} to {date_end}')
 
