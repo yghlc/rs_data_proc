@@ -196,10 +196,10 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
     for grid_id, grid_poly in zip(grid_ids, grid_polys):
 
         if grid_id in grid_id_less2dem_list:
-            basic.outputlogMessage('skip grid %d, previous processing shows that, the count of DEM is smaller than 2'%grid_id)
+            basic.outputlogMessage(f'skip grid {grid_id}, previous processing shows that, the count of DEM is smaller than 2')
             continue
 
-        save_dir = 'grid_%d_tmp_files'%grid_id
+        save_dir = f'grid_{grid_id}_tmp_files'
 
         # check free disk space
         work_dir = './'
@@ -216,7 +216,7 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
         # overlap at least 1%, to avoid some dem tif for the adjacent grids
         dem_poly_index = vector_gpd.get_poly_index_within_extent(dem_ext_polys, grid_poly, min_overlap_area=grid_poly.area*0.01)
         if len(dem_poly_index) < 1:
-            basic.outputlogMessage('warning, no dem tifs within %d grid, skip' % grid_id)
+            basic.outputlogMessage(f'warning, no dem tifs within {grid_id} grid, skip')
             save_id_grid_no_valid_dem(grid_id)
             continue
         dem_list_sub = [reg_tifs[index] for index in dem_poly_index]
@@ -247,6 +247,12 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
 
 def produce_dem_diff_grids_RowCol_id(extent_grid_shp, process_num,keep_dem_percent,o_res):
     # produce DEM diff using the new version of grid id (RowCol id), 10 km by 10 km, donwload by pDEMtools
+
+    # becuase pDEMtools already applied bitmask, so set the following two as Flase, Feb 4, 2026
+    global b_applied_bitmask
+    b_applied_bitmask = False
+    global b_apply_matchtag
+    b_apply_matchtag = False
 
     if vector_gpd.is_field_name_in_shp(extent_grid_shp, 'RowCol_id') is False:
         raise ValueError(f'RowCol_id is not in {extent_grid_shp}')
@@ -295,6 +301,7 @@ def main(options, args):
     if extent_shp_or_ids_txt.endswith('.txt') is False and \
             vector_gpd.is_field_name_in_shp(extent_shp_or_ids_txt,'RowCol_id'):
         produce_dem_diff_grids_RowCol_id(extent_shp_or_ids_txt, process_num,keep_dem_percent,o_res)
+        return
 
     # read grids and ids
     time0 = time.time()

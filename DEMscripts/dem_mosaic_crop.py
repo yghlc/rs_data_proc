@@ -383,11 +383,12 @@ def mask_crop_dem_by_matchtag(org_dem_tif_list, crop_dem_list, extent_poly, exte
 
         # io_function.is_file_exist(matchtag_tif)
         if os.path.isfile(matchtag_tif) is False:
-            basic.outputlogMessage('Warning, %s not exists, skip mask_crop_dem_by_matchtag'%matchtag_tif)
+            basic.outputlogMessage('Warning, %s not exists, do not apply mask_crop_dem_by_matchtag'%matchtag_tif)
+            mask_crop_dem_list.append(crop_dem) # return the original cropped dem (Feb 4, 2026)
             continue
 
         # crop matchtag
-        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(matchtag_tif, 'sub_poly_%d' % extent_id)) )
+        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(matchtag_tif, f'sub_poly_{extent_id}')) )
         if os.path.isfile(save_crop_path):
             basic.outputlogMessage('%s exists, skip cropping' % save_crop_path)
             matchtag_crop_tif_list.append(save_crop_path)
@@ -457,7 +458,7 @@ def mask_dem_by_bitmask(org_dem_tif_list, crop_dem_list, extent_poly, extent_id,
             # continue
 
         # crop bitmask
-        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(bitmask_tif, 'sub_poly_%d' % extent_id)) )
+        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(bitmask_tif, f'sub_poly_{extent_id}')) )
         if os.path.isfile(save_crop_path):
             basic.outputlogMessage('%s exists, skip cropping' % save_crop_path)
             bitmask_crop_tif_list.append(save_crop_path)
@@ -493,7 +494,7 @@ def mask_strip_dem_outlier_by_ArcticDEM_mosaic(crop_strip_dem_list, extent_poly,
     sub_mosaic_dem_tifs = [arcticDEM_mosaic_reg_tifs[item] for item in overlap_index]
     mosaic_crop_tif_list = []
     for tif in sub_mosaic_dem_tifs:
-        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(tif, 'sub_poly_%d' % extent_id)) )
+        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(tif, f'sub_poly_{extent_id}')) )
         if os.path.isfile(save_crop_path):
             basic.outputlogMessage('%s exists, skip cropping' % save_crop_path)
             mosaic_crop_tif_list.append(save_crop_path)
@@ -504,11 +505,11 @@ def mask_strip_dem_outlier_by_ArcticDEM_mosaic(crop_strip_dem_list, extent_poly,
                 raise ValueError('warning, crop %s failed' % tif)
             mosaic_crop_tif_list.append(crop_tif)
     if len(mosaic_crop_tif_list) < 1:
-        basic.outputlogMessage('No mosaic version of ArcticDEM for %d grid, skip mask_strip_dem_outlier_by_ArcticDEM_mosaic'%extent_id)
+        basic.outputlogMessage(f'No mosaic version of ArcticDEM for {extent_id} grid, skip mask_strip_dem_outlier_by_ArcticDEM_mosaic')
         return False
 
     # create mosaic, can handle only input one file, but is slow
-    save_dem_mosaic = os.path.join(crop_tif_dir, 'ArcticDEM_tiles_grid%d.tif'%extent_id)
+    save_dem_mosaic = os.path.join(crop_tif_dir, f'ArcticDEM_tiles_grid{extent_id}.tif')
     result = RSImageProcess.mosaic_crop_images_gdalwarp(mosaic_crop_tif_list, save_dem_mosaic, resampling_method='average',o_format='GTiff',
                                                compress='lzw', tiled='yes', bigtiff='if_safer',thread_num=process_num)
     if result is False:
@@ -564,7 +565,7 @@ def mask_dem_by_surface_water(crop_dem_list, extent_poly, extent_id, crop_tif_di
     sub_mosaic_dem_tifs = [water_mask_tifs[item] for item in overlap_index]
     water_mask_crop_tif_list = []
     for tif in sub_mosaic_dem_tifs:
-        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(tif, 'sub_poly_%d' % extent_id)) )
+        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(tif, f'sub_poly_{extent_id}')) )
         if os.path.isfile(save_crop_path):
             basic.outputlogMessage('%s exists, skip' % save_crop_path)
             water_mask_crop_tif_list.append(save_crop_path)
@@ -575,19 +576,19 @@ def mask_dem_by_surface_water(crop_dem_list, extent_poly, extent_id, crop_tif_di
                 raise ValueError('warning, crop %s failed' % tif)
             water_mask_crop_tif_list.append(crop_tif)
     if len(water_mask_crop_tif_list) < 1:
-        basic.outputlogMessage('No water mask for %d grid'%extent_id)
+        basic.outputlogMessage(f'No water mask for {extent_id} grid')
         save_id_grid_no_watermask(extent_id)
         return None
 
     # create mosaic, can handle only input one file, but is slow
-    save_water_mask_mosaic = os.path.join(crop_tif_dir, 'global_surface_water_grid%d.tif'%extent_id)
+    save_water_mask_mosaic = os.path.join(crop_tif_dir, f'global_surface_water_grid{extent_id}.tif')
     result = RSImageProcess.mosaic_crop_images_gdalwarp(water_mask_crop_tif_list, save_water_mask_mosaic, resampling_method='average',o_format='GTiff',
                                                compress='lzw', tiled='yes', bigtiff='if_safer',thread_num=process_num)
     if result is False:
         return False
 
     # because the resolution of dem and water mask is different, so we polygonize the watermask, then burn into the dem
-    water_mask_shp = os.path.join(crop_tif_dir, 'global_surface_water_grid%d.shp'%extent_id)
+    water_mask_shp = os.path.join(crop_tif_dir, f'global_surface_water_grid{extent_id}.shp')
     if os.path.isfile(water_mask_shp):
         basic.outputlogMessage('%s exists, skip cropping' % water_mask_shp)
     else:
@@ -624,12 +625,12 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
     org_dem_tif_list = dem_tif_list.copy()
 
     # crop to the same extent
-    crop_tif_dir = os.path.join(save_dir, 'dem_crop_sub_%d' % extent_id)
+    crop_tif_dir = os.path.join(save_dir, f'dem_crop_sub_{extent_id}')
     if os.path.isdir(crop_tif_dir) is False:
         io_function.mkdir(crop_tif_dir)
     crop_tif_list = []
     for tif in dem_tif_list:
-        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(tif, 'sub_poly_%d' % extent_id)) )
+        save_crop_path = os.path.join(crop_tif_dir, os.path.basename(io_function.get_name_by_adding_tail(tif, f'sub_poly_{extent_id}')) )
         if os.path.isfile(save_crop_path):
             basic.outputlogMessage('%s exists, skip cropping' % save_crop_path)
             crop_tif_list.append(save_crop_path)
@@ -675,7 +676,7 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
     basic.outputlogMessage('Area pixel count: %d'%area_pixel_count)
 
     # create mosaic (dem with the same strip pair ID)
-    mosaic_dir = os.path.join(save_dir, 'dem_stripID_mosaic_sub_%d' % extent_id)
+    mosaic_dir = os.path.join(save_dir, f'dem_stripID_mosaic_sub_{extent_id}')
     if b_mosaic_id:
         dem_groups = group_demTif_strip_pair_ID(dem_tif_list)
 
@@ -707,7 +708,7 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
 
 
     # merge DEM with close acquisition date
-    mosaic_yeardate_dir = os.path.join(save_dir,'dem_date_mosaic_sub_%d'%extent_id)
+    mosaic_yeardate_dir = os.path.join(save_dir,f'dem_date_mosaic_sub_{extent_id}')
     if b_mosaic_date:
         # groups DEM with original images acquired at the same year months
         dem_groups_date = group_demTif_yearmonthDay(dem_tif_list, diff_days=0)
@@ -734,7 +735,7 @@ def mosaic_crop_dem(dem_tif_list, save_dir, extent_id, extent_poly, b_mosaic_id,
             dem_tif_list = check_dem_valid_per(dem_tif_list,mosaic_yeardate_dir,process_num=process_num, move_dem_threshold = keep_dem_percent,area_pixel_num=area_pixel_count)
 
     # mosaic dem for the same year, choose DEM close to July 1 on top.
-    mosaic_year_dir = os.path.join(save_dir, 'dem_year_mosaic_sub_%d' % extent_id)
+    mosaic_year_dir = os.path.join(save_dir, f'dem_year_mosaic_sub_{extent_id}')
     if b_mosaic_year:
         # groups DEM with original images acquired at the same year
         dem_groups_year = group_demTif_same_year(dem_tif_list)
