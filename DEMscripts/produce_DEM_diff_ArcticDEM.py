@@ -248,7 +248,8 @@ def produce_dem_diff_grids(grid_polys, grid_ids, pre_name, reg_tifs,b_apply_matc
 def produce_dem_diff_grids_RowCol_id(extent_grid_shp, process_num,keep_dem_percent,o_res):
     # produce DEM diff using the new version of grid id (RowCol id), 10 km by 10 km, donwload by pDEMtools
 
-    # becuase pDEMtools already applied bitmask, so set the following two as Flase, Feb 4, 2026
+    # because "DEM" files downloaded by "download_arcticDEM_pDEMtools.py" already applied bitmask,
+    # so set the following two as False, Feb 4, 2026
     global b_applied_bitmask
     b_applied_bitmask = False
     global b_apply_matchtag
