@@ -252,7 +252,7 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
 
 
 
-def download_dem_pDENtools(extent_bounds_list, output_dir, date_start,date_end,pre_name,
+def download_dem_pDEMtools(extent_bounds_list, output_dir, date_start,date_end,pre_name,
                       poly_ids=None,save_prj_code=3413,b_unique_grid=False, out_res=None,
                            baseline_max_hours=24, min_overlap_per=0.05):
 
@@ -339,7 +339,7 @@ def main(options, args):
     out_resolution = options.out_res
 
 
-    download_dem_pDENtools(ext_bounds_3413, reg_tif_dir, date_start, date_end, pre_name,
+    download_dem_pDEMtools(ext_bounds_3413, reg_tif_dir, date_start, date_end, pre_name,
                       poly_ids=grid_id_list, save_prj_code=save_prj_code,b_unique_grid=b_unique_grid,out_res=out_resolution,
                            baseline_max_hours=baseline_max_hours, min_overlap_per=min_overlap_per)
 
