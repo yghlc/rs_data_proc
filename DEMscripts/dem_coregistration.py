@@ -39,6 +39,8 @@ import time
 # import resource
 # resource.getrusage(resource.RUSAGE_SELF)
 
+from dem_mosaic_crop import check_dem_valid_per
+
 def choose_reference_dem(dem_list, dem_valid_per_txt):
     if dem_valid_per_txt is None:
         raise ValueError('NO information of valid percentage of DEMs, cannot choose a reference DEM')
@@ -179,6 +181,20 @@ def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num):
         if sub_process.exitcode is not None and sub_process.exitcode != 0:
             sys.exit(1)
 
+def calculate_dem_valid_per(dem_list, dem_dir,process_num):
+    # get the area_pixel_count by using the maximum size
+    # it will save "dem_valid_percent.txt" under dem_dir
+    area_pixel_count = 0
+    for dem_file in dem_list:
+        height, width, _, _ = raster_io.get_height_width_bandnum_dtype(dem_file)
+        if height * width > area_pixel_count:
+            area_pixel_count = height * width
+    basic.outputlogMessage('Area pixel count: %d' % area_pixel_count)
+
+    # do not remove dem files (move_dem_threshold=None)
+    dem_tif_list = check_dem_valid_per(dem_list, dem_dir, process_num=process_num,
+                                       move_dem_threshold=None, area_pixel_num=area_pixel_count)
+    return dem_tif_list
 
 
 def main(options, args):
@@ -195,6 +211,12 @@ def main(options, args):
         dem_list = io_function.get_file_list_by_ext('.tif', dem_dir_or_txt, bsub_folder=False)
         if dem_valid_per_txt is None:
             dem_valid_per_txt = os.path.join(dem_dir_or_txt,'dem_valid_percent.txt')
+
+        # if the file not exist, calculate it
+        if os.path.isfile(dem_valid_per_txt) is False and os.path.isdir(dem_dir_or_txt):
+            # calculate the valid percent (don't remove files, move_dem_threshold=None)
+            calculate_dem_valid_per(dem_list, dem_dir_or_txt, process_num)
+
     dem_count = len(dem_list)
     if dem_count < 1:
         raise ValueError('No input dem files in %s' % dem_dir_or_txt)
