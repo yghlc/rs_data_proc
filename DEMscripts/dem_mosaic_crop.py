@@ -189,8 +189,11 @@ def mosaic_dem_list_gdal_merge(key, dem_list, save_tif_dir,save_source):
     nodata = raster_io.get_nodata(dem_list[0])
 
     # create mosaic, can handle only input one file, but is slow
-    result = RSImageProcess.mosaics_images(dem_list,save_mosaic,nodata=nodata,
-                                           compress='lzw', tiled='yes', bigtiff='if_safer')
+    # result = RSImageProcess.mosaics_images(dem_list,save_mosaic,nodata=nodata,
+    #                                        compress='lzw', tiled='yes', bigtiff='if_safer')
+
+    # change to use gdalbuildvrt (Feb 5, 2026)
+    result = RSImageProcess.mosaics_images_vrt(dem_list, save_mosaic, nodata=nodata)
 
     if result is False:
         sys.exit(1)
