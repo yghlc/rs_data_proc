@@ -280,13 +280,14 @@ def select_search_results_each_month(items, search_result_dict, poly_latlon, pol
                         continue    # if the new item can not increase coverage more than 5%, skip it, may check it new round
                     else:
                         coverage_poly = union_geo
+                        coverage_per = union_per
              
                 # select this item
                 idx = item_info['idx']
                 select_items.append(items[idx])
                 select_search_result_dict['features'].append(search_result_dict['features'][idx])
                 b_selected[i] = 1
-                coverage_per, _ = cal_overlap_percentage(coverage_poly, poly_prj)
+                # coverage_per, _ = cal_overlap_percentage(coverage_poly, poly_prj)
                 # print(f'selected item idx {item_info["idx"]} for year-month {year_month},  selected cover: {coverage_per:.6f} ')
                 if coverage_per > 0.95:
                     # nearly full coverage, break

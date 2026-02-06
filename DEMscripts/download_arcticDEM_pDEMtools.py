@@ -28,6 +28,110 @@ machine_name = os.uname()[1]
 # max_task_count = 1
 # download_tasks = []
 
+from download_arcticDEM_STAC import cal_overlap_percentage
+
+def select_search_results_each_month_geopanda(items_gdf, extent_poly):
+    # similar to "select_search_results_each_month" in "download_arcticDEM_STAC.py",
+    # but working on Geodataframe
+
+    select_gdf_idx = []
+    # group by year-month
+    item_month_dict = {}
+    # loop through each row, calculate overlap, group by year-month
+    for idx, gdf_row in items_gdf.iterrows():
+
+        if gdf_row['datetime'] is None:
+            basic.outputlogMessage(f'Warning, datetime is None for {gdf_row["title"]}, skip it')
+            continue
+        dt = datetime_parser.isoparse(gdf_row['datetime'])
+        year_month = dt.strftime('%Y-%m')
+
+        overlap_per, inter_geo = cal_overlap_percentage(gdf_row.geometry, extent_poly)
+        valid_area_percent = gdf_row['pgc:valid_area_percent']
+        is_xtrack = gdf_row['pgc:is_xtrack']
+
+        item_info = {'idx': idx, 'valid_area_percent': valid_area_percent, 'is_xtrack': is_xtrack,
+                     'overlap_per': overlap_per, 'overlap_poly': inter_geo}
+        item_month_dict.setdefault(year_month, []).append(item_info)
+
+    # print('item_month_dict:', item_month_dict)
+    # io_function.save_dict_to_txt_json('item_month_dict.json', item_month_dict) # for debugging
+
+    # select maximum three coverages for each month
+    max_select_cover_per_month = 3
+    for year_month, item_info_list in item_month_dict.items():
+        # if not too many items, select all
+        if len(item_info_list) <= max_select_cover_per_month:
+            # select all
+            # print(f'Year-Month: {year_month}, sorted items:', sorted_item_info_list,'\n')
+            for item_info in item_info_list:
+                idx = item_info['idx']
+                select_gdf_idx.append(idx)
+            continue
+
+        #  valid_area_percent: descending (largest first).
+        sorted_item_info_list = sorted(item_info_list, key=lambda x: (x['valid_area_percent']), reverse=True)
+        # print(f'Year-Month: {year_month}, sorted items:', sorted_item_info_list,'\n')
+        # continue
+
+        # selected_count = 0
+        selected_round = 0
+        b_selected = [0] * len(sorted_item_info_list)  # to mark if selected, 1 is selected
+        select_coverage_per_list = []
+        while selected_round < max_select_cover_per_month:
+            # select the item with the largest valid_area_percent and non-overlapping with former selected items
+            coverage_poly = None
+            coverage_per = 0
+            for i, item_info in enumerate(sorted_item_info_list):
+                if b_selected[i] == 1:
+                    # already selected
+                    continue
+                if item_info['overlap_per'] < 0.0001:
+                    b_selected[i] = 1  # too small overlap, mark as selected to skip it
+                    continue
+
+                # check if overlapping with former selected items
+                if coverage_poly is None:
+                    coverage_poly = item_info['overlap_poly']
+                    coverage_per = item_info['overlap_per']
+                else:
+                    # select it if it can expand the coverage
+                    item_overlap = item_info['overlap_poly']
+                    union_geo = coverage_poly.union(item_overlap)
+                    union_per, _ = cal_overlap_percentage(union_geo, extent_poly)
+
+                    if union_per - coverage_per < 0.05:
+                        continue  # if the new item can not increase coverage more than 5%, skip it, may check it new round
+                    else:
+                        coverage_poly = union_geo
+                        coverage_per = union_per
+
+                # select this item
+                idx = item_info['idx']
+                select_gdf_idx.append(idx)
+                b_selected[i] = 1
+                # coverage_per, _ = cal_overlap_percentage(coverage_poly, extent_poly)
+
+                if coverage_per > 0.95:
+                    # nearly full coverage, break
+                    break
+
+            select_coverage_per_list.append(coverage_per)
+            selected_round += 1
+            if b_selected.count(1) == len(sorted_item_info_list):
+                # all items have been selected
+                break
+
+        select_coverage_per_list_str = [f'{per:.6f}' for per in select_coverage_per_list]
+        basic.outputlogMessage(
+            f'For year-month {year_month}, selected {b_selected.count(1)} from {len(item_info_list)} items, '
+            f'coverage percentages: {select_coverage_per_list_str}')
+
+    basic.outputlogMessage(f'Total items after select max three each month: {len(item_month_dict)}')
+
+    subset_gdf = items_gdf.loc[select_gdf_idx]
+    return subset_gdf
+
 
 def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_start='2008-01-01', date_end='2026-12-31',
                                baseline_max_hours = 24, min_aoi_frac = 0.1,search_save='tmp.gpkg',out_res=None, b_unique_grid=False,
@@ -115,6 +219,14 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
 
     gdf.to_file(search_save)
     basic.outputlogMessage(f'saved search results to {search_save}')
+
+    # if too many, select by months
+    if n_strips > 300:
+        gdf = select_search_results_each_month_geopanda(gdf, vector_gpd.convert_bounds_to_polygon(bounds))
+        n_strips = len(gdf)
+        search_save_select = io_function.get_name_by_adding_tail(search_save,'monthSel')
+        gdf.to_file(search_save_select)
+        basic.outputlogMessage(f'saved search results to {search_save_select}')
 
     if len(gdf) > 500:
         basic.outputlogMessage(f'error, too many ({len(gdf)}) DEMs within {ext_id} th extent with: {dataset} from {date_start} to {date_end}')
