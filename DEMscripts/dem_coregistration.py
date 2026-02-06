@@ -26,6 +26,7 @@ sys.path.insert(0, deeplabforRS)
 import basic_src.io_function as io_function
 import basic_src.basic as basic
 import raster_io
+import vector_gpd
 
 from multiprocessing import Process
 
@@ -196,6 +197,176 @@ def calculate_dem_valid_per(dem_list, dem_dir,process_num):
                                        move_dem_threshold=None, area_pixel_num=area_pixel_count)
     return dem_tif_list
 
+def download_ICESat2(input_date,days_r,params,epsg,min_is2_points):
+
+    first_iteration = True
+    gdf = None
+    for r in days_r:
+        if first_iteration:
+            first_iteration = False
+        else:
+            print(f"Expanding temporal search.")
+        date_min = to_datetime(input_date) - datetime.timedelta(days=r)
+        date_max = to_datetime(input_date) + datetime.timedelta(days=r)
+        date_min = date_min.strftime("%Y-%m-%d")
+        date_max = date_max.strftime("%Y-%m-%d")
+
+        params["t0"] = date_min
+        params["t1"] = date_max
+
+        print(f"Querying points within {r} days... ", end="")
+
+        gdf = icesat2.atl06p(params).to_crs(epsg)
+
+        n_points = len(gdf)
+
+        # Print statement
+        if n_points == 0:
+            print(f"No points found intersecting.", end=" ")
+        elif n_points < min_is2_points:
+            print(f"{n_points} points found. Below minimum threshold ({min_is2_points}).")
+        else:
+            print(f"{n_points} points found.")
+            break
+
+    if len(gdf) < min_is2_points:
+        warn("Returning GeoDataFrame with number of points below minimum threshold.")
+
+    return gdf
+
+def download_ICESat2_in_bounds(bounds, epsg, save_path=None,max_point_count_year=None):
+    # try to download all icesat 2 data from 2018, summer data.
+    # max_point_count_year each year
+
+    # bounds: bounds in format [xmin, ymin, xmax, ymax], if the
+    #         `epsg` parameter is provided.
+
+    # param epsg: EPSG code for the target_rxd dataset. If `target_rxd` is a tuple,
+    #         this must be provided.
+    #     :type epsg: int
+
+    # connect to sliderule
+    # Get search region as shapely geometry in epsg:4326
+    gdf_4326 = gpd.GeoDataFrame(geometry=[box(*bounds)], crs=epsg).to_crs(4326)
+
+    icesat2.init("slideruleearth.io")
+    sr_region = sliderule.toregion(gdf_4326)
+
+    # set search parameters (apart from dates)
+    params = {
+        "poly": sr_region["poly"],
+        "srt": 3,  # Surface. 0-land, 1-ocean, 2-seaice, 3-landice (default), 4-inlandwater
+        "cnf": 1,  # Confidence. Default 1 (within 10 m). 2: Low. 3: Medium. 4: High.
+        "ats": 10,  # Mininum along track spread. SR Default: 20. pDEMtoold default: 10
+        "cnt": 10,  # Minimum photon count in segment. Default 10.
+        "len": 40,  # Extent length. ATL06 default is 40 metres.
+        "res": 20,  # Step distance. ATL06 default is 20 metres.
+        "track": 0,  # Integer: 0: all tracks, 1: gt1, 2: gt2, 3: gt3. Default 0.
+        "sigma_r_max": 5,  # Max robust dispersion [m]. Default 5.
+    }
+
+
+    is2_gdf_list = []
+    for year in range(2018,  date.today().year):
+        mid_date = f'{year}-07-01'
+        print('\n\nmid-date:',mid_date)
+        # Sanity check date
+        dem_date = to_datetime(mid_date)
+        cutoff_date = to_datetime("2018-10-04")
+        if dem_date < cutoff_date:
+            warn(
+                f"You have searched for data beginning {dem_date}. No ICESat-2 data "
+                "exists prior to 2018-10-04. This function will return no usable data."
+            )
+        days_r = [7, 14, 28, 60]  # maximum, May to September
+        min_is2_points = 2000
+        is2_gdf_year = download_ICESat2(mid_date, days_r, params, epsg, min_is2_points)
+
+        # Only append non-empty results
+        if is2_gdf_year is not None and len(is2_gdf_year) > 0:
+            is2_gdf_list.append(is2_gdf_year)
+
+    # combine all yearly GeoDataFrames
+    if len(is2_gdf_list) > 0:
+        is2_gdf = gpd.GeoDataFrame(pd.concat(is2_gdf_list, ignore_index=True), crs=is2_gdf_list[0].crs)
+    else:
+        return None
+
+    # save to file if save_path is provided
+    if save_path is not None:
+        # Extension-based save (e.g., .gpkg, .shp, .geojson)
+        is2_gdf.to_file(save_path)
+
+    return is2_gdf
+
+
+def co_registration_icesat2_pDEMtools(dem_list, save_dir,extent_shp=None, process_num=8, bounds=None,epsg=None):
+    # co_registration by using ICESat-2 datasets
+
+    # bounds: bounds in format [xmin, ymin, xmax, ymax], if the
+    #         `epsg` parameter is provided.
+
+    # param epsg: EPSG code for the target_rxd dataset. If `target_rxd` is a tuple,
+    #         this must be provided.
+    #     :type epsg: int
+
+    # download all ICESat-2 within the bounds
+    if extent_shp is not None:
+        polys = vector_gpd.read_polygons_gpd(extent_shp)
+        if len(polys)!=1:
+            raise ValueError('Currently, only support one extent')
+        bounds = vector_gpd.get_polygon_bounding_box(polys[0])
+        print('bounds:', bounds)
+        epsg = vector_gpd.get_projection(extent_shp,format='epsg')
+
+    else:
+        # assume they have the same bounds for dem_list
+        if bounds is None:
+            bounds_box = raster_io.get_image_bound_box(dem_list[0])
+            # print('bounds_box:',bounds_box)
+            bounds = tuple(bounds_box)
+            # bounds = ( bounds[1],bounds[0], bounds[2], bounds[1] )
+            # print('bounds:',bounds)
+        if epsg is None:
+            epsg = raster_io.get_projection(dem_list[0],format='epsg')
+            # print('epsg:', epsg)
+
+        # checking bounds and epsg consistent
+        for dem_file in dem_list:
+            tmp_bounds = raster_io.get_image_bound_box(dem_file)
+            tmp_epsg = raster_io.get_projection(dem_file, format='epsg')
+            if tmp_epsg!=epsg:
+                raise ValueError(f'Projection ({epsg} vs {tmp_epsg}) insistence between {dem_list[0]} and {dem_file}')
+            if bounds != tmp_bounds:
+                raise ValueError(f'Bounds ({bounds} vs {tmp_bounds}) insistence between {dem_list[0]} and {dem_file}')
+
+    if os.path.isdir(save_dir) is False:
+        io_function.mkdir(save_dir)
+
+    # ICESat-2 data
+    icesat2_save_path = os.path.join(save_dir,'icesat2_data.gpkg')
+    # download ICESat-2
+    download_ICESat2_in_bounds(bounds, epsg, save_path=icesat2_save_path, max_point_count_year=None)
+
+    # clear ICESat-2 data, only keep these that are on stable surface
+
+
+    # conduct co-registration
+
+
+
+
+def test_co_registration_icesat2_pDEMtools():
+    data_dir = os.path.expanduser('~/Data/dem_processing/registration_tifs')
+    dem_dir = os.path.join(data_dir,'dem_grid0016000342')
+    ext_shp = os.path.expanduser('~/Data/dem_processing/grid_shp/valid_json_files_20251222_TP_grid_10km_subsets/sub299.shp')
+    dem_list = io_function.get_file_list_by_ext('.tif',dem_dir,bsub_folder=False)
+    print(f'Found {len(dem_list)} dem files')
+
+    process_num = 8
+    save_dir = dem_dir + '_coreg'
+    co_registration_icesat2_pDEMtools(dem_list, save_dir, extent_shp=ext_shp, process_num=process_num, bounds=None, epsg=None)
+
 
 def main(options, args):
 
@@ -233,6 +404,21 @@ def main(options, args):
 
 
 if __name__ == '__main__':
+
+    import pdemtools as pdt
+    from datetime import date
+    import geopandas as gpd
+    import pandas as pd
+
+    from sliderule import sliderule, icesat2
+    from pandas import to_datetime
+    from warnings import warn
+    from shapely.geometry import box
+    import datetime
+
+    test_co_registration_icesat2_pDEMtools()
+    sys.exit(0)
+
     usage = "usage: %prog [options] dem_tif_dir or dem_list_txt "
     parser = OptionParser(usage=usage, version="1.0 2020-3-1")
     parser.description = 'Introduction: co-registration for multi-temporal DEMs '
