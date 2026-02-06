@@ -127,10 +127,25 @@ def select_search_results_each_month_geopanda(items_gdf, extent_poly):
             f'For year-month {year_month}, selected {b_selected.count(1)} from {len(item_info_list)} items, '
             f'coverage percentages: {select_coverage_per_list_str}')
 
-    basic.outputlogMessage(f'Total items after select max three each month: {len(item_month_dict)}')
+    basic.outputlogMessage(f'Total items after select max three each month: {len(select_gdf_idx)}')
 
     subset_gdf = items_gdf.loc[select_gdf_idx]
     return subset_gdf
+
+def test_select_search_results_each_month_geopanda():
+
+    import geopandas as gpd
+
+    data_dir = os.path.expanduser('~/Data/dem_processing')
+    ext_poly = os.path.join(data_dir,'grid_shp/valid_json_files_20251222_TP_grid_10km_subsets/sub545.shp')
+
+    search_res = os.path.join(data_dir,'sub545_Strip_grid0017300456.gpkg')
+
+    items_gdf = gpd.read_file(search_res)
+    extent_poly = vector_gpd.read_polygons_gpd(ext_poly)
+
+    # bound = /home/hlc/Data/dem_processing/grid_shp/valid_json_files_20251222_TP_grid_10km_subsets/sub545.shp
+    select_search_results_each_month_geopanda(items_gdf, extent_poly[0])
 
 
 def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_start='2008-01-01', date_end='2026-12-31',
@@ -475,7 +490,8 @@ if __name__ == '__main__':
     # import rioxarray
 
 
-    # test_select_search_results_each_month()
+    # # test_select_search_results_each_month()
+    # test_select_search_results_each_month_geopanda()
     # sys.exit(0)
 
     usage = "usage: %prog [options] extent_shp "
