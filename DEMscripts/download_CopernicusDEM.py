@@ -68,7 +68,7 @@ def process_CopernicusDEM_tiles(cache_dir, download_tiles, save_path):
     curr_dir = os.getcwd()
 
     # merge  # -n -32768 -a_nodata -32768
-    cmd_str = 'gdal_merge.py -o %s ' % save_path
+    cmd_str = 'gdal_merge.py -co COMPRESS=DEFLATE -co PREDICTOR=3 -o %s ' % save_path
 
     for tile in tile_tif_paths:
         if os.path.isfile(tile) is False:
