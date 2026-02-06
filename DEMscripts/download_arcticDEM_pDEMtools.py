@@ -47,9 +47,8 @@ def select_search_results_each_month_geopanda(items_gdf, extent_poly):
         year_month = dt.strftime('%Y-%m')
 
         overlap_per, inter_geo = cal_overlap_percentage(gdf_row.geometry, extent_poly)
-        # valid_area_percent = gdf_row['pgc:valid_area_percent']
         valid_area_percent = gdf_row['valid_area_percent']
-        is_xtrack = gdf_row['pgc:is_xtrack']
+        is_xtrack = gdf_row['is_xtrack']
 
         item_info = {'idx': idx, 'valid_area_percent': valid_area_percent, 'is_xtrack': is_xtrack,
                      'overlap_per': overlap_per, 'overlap_poly': inter_geo}
