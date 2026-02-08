@@ -245,6 +245,11 @@ def download_ICESat2_in_bounds(bounds, epsg, save_path=None,max_point_count_year
     #         this must be provided.
     #     :type epsg: int
 
+    if save_path is not None and os.path.isfile(save_path):
+        basic.outputlogMessage(f'{save_path} already exists, read it directly')
+        is2_gdf = gpd.read_file(save_path)
+        return is2_gdf
+
     # connect to sliderule
     # Get search region as shapely geometry in epsg:4326
     gdf_4326 = gpd.GeoDataFrame(geometry=[box(*bounds)], crs=epsg).to_crs(4326)
@@ -300,6 +305,83 @@ def download_ICESat2_in_bounds(bounds, epsg, save_path=None,max_point_count_year
 
     return is2_gdf
 
+def co_registration_one_dem_is2(dem_file, is2_gdf, save_path, stable_mask=None):
+    if os.path.isfile(save_path):
+        print(f'Warning, co-registration results already exist: {save_path}, skip')
+        return
+
+    # read dem
+    dem = rioxarray.open_rasterio(dem_file).squeeze()  # needed rioxarray for pDEMtools
+
+    gdf_flt = is2_gdf.copy()
+
+    # mask points in NoData regions
+    coords_ds = Dataset(
+        {
+            "x": (["points"], is2_gdf.geometry.x.values),
+            "y": (["points"], is2_gdf.geometry.y.values),
+        }
+    )
+    # Determine raster value and mask at each point
+    # problem: a few points in no-data region, but close to edge, got valid values? Just an issue in QGIS visualization?
+    gdf_flt["values"] = dem.interp(coords_ds, method="nearest").values
+
+
+    # problem: a few points in no-data region, but close to edge, got valid values
+    # a few points got -9999 values
+    # with rasterio.open(dem_file) as src:
+    #     points = list(zip(is2_gdf.geometry.x.values, is2_gdf.geometry.y.values))
+    #     values = [v[0] for v in src.sample(points)]
+    # gdf_flt["values"] = values
+
+    # For DataArray loaded via rioxarray (still:  a few points in no-data region)
+    # transform = dem.rio.transform()
+    # rows, cols = rasterio.transform.rowcol(transform, is2_gdf.geometry.x.values, is2_gdf.geometry.y.values)
+    # mask = ((rows >= 0) & (rows < dem.shape[-2]) & (cols >= 0) & (cols < dem.shape[-1]))
+    # values = np.full(len(rows), np.nan, dtype=float)
+    # values[mask] = dem.data[rows[mask], cols[mask]]
+    # gdf_flt["values"] = values
+
+    # Filter values at each point
+    gdf_flt = gdf_flt[~gdf_flt["values"].isnull()]
+
+    # save point for checking:
+    gdf_ft_save = io_function.get_name_by_adding_tail(save_path,'is2').replace('.tif','.gpkg')
+    gdf_flt.to_file(gdf_ft_save)
+
+    # quick testing, read the gpkg after removing the points in the nodata regions
+    # after quick testing, the rms still very large (>50)
+    # gdf_flt = gpd.read_file(gdf_ft_save)
+
+
+    basic.outputlogMessage(f'After filtering Nodata, select {len(gdf_flt)} points from {len(is2_gdf)} for co-registration')
+
+    # use gdf_flt for co-registration
+    if len(gdf_flt) >= 2:
+            # coregister DEM, with return_stats=True.
+            dem, metadata = dem.pdt.coregister_is2(
+                gdf_flt,
+                stable_mask=stable_mask,
+                max_horiz_offset=50,
+                return_stats=True,
+            )
+    else:
+        metadata = {"coreg_status": "failed",
+                    "remark": f'Not enough ICESat-2 data (only found {len(is2_gdf)} points) '
+                    }
+
+    # Export to geotiff
+    # out_fpath = io_function.get_name_by_adding_tail(out_fpath, 'dem')  # add dem in the end, for existing working flow
+    dem.rio.to_raster(save_path, compress="ZSTD", predictor=3, zlevel=1)
+    del dem
+
+    # Export metadata as json
+    json_fpath = save_path.rsplit(".", 1)[0] + ".json"
+    with open(json_fpath, "w") as f_obj:
+        json.dump(metadata, f_obj, indent=4)
+
+
+
 
 def co_registration_icesat2_pDEMtools(dem_list, save_dir,extent_shp=None, process_num=8, bounds=None,epsg=None):
     # co_registration by using ICESat-2 datasets
@@ -347,12 +429,16 @@ def co_registration_icesat2_pDEMtools(dem_list, save_dir,extent_shp=None, proces
     # ICESat-2 data
     icesat2_save_path = os.path.join(save_dir,'icesat2_data.gpkg')
     # download ICESat-2
-    download_ICESat2_in_bounds(bounds, epsg, save_path=icesat2_save_path, max_point_count_year=None)
+    is2_gdf = download_ICESat2_in_bounds(bounds, epsg, save_path=icesat2_save_path, max_point_count_year=None)
 
     # clear ICESat-2 data, only keep these that are on stable surface
-
+    # No idea on how to clear it, because we don't see repeat observation in the download data.Feb 8, 2026.
 
     # conduct co-registration
+    for idx, dem_file in enumerate(dem_list):
+        print(f'co-registration: {idx+1}/{len(dem_list)}: {os.path.basename(dem_file)}')
+        co_reg_save = os.path.join(save_dir,os.path.basename(dem_file))
+        co_registration_one_dem_is2(dem_file, is2_gdf, co_reg_save)
 
 
 
@@ -407,15 +493,20 @@ def main(options, args):
 if __name__ == '__main__':
 
     import pdemtools as pdt
+    import rioxarray
+    from xarray import DataArray, Dataset
     from datetime import date
     import geopandas as gpd
     import pandas as pd
+    import rasterio
+    import numpy as np
 
     from sliderule import sliderule, icesat2
     from pandas import to_datetime
     from warnings import warn
     from shapely.geometry import box
     import datetime
+    import json
 
     test_co_registration_icesat2_pDEMtools()
     sys.exit(0)

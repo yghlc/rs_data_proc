@@ -268,9 +268,14 @@ def produce_dem_diff_grids_RowCol_id(extent_grid_shp, process_num,keep_dem_perce
             id_index = [grid_ids.index(id) for id in grid_ids_no_demDiff]
             grid_polys = [grid_polys[idx] for idx in id_index]
 
-        # because each dem file of each grid was put to differnt folder, so need to go through one by one
+        # because each dem file of each grid was put to different folder, so need to go through one by one
         for g_poly, g_id in zip(grid_polys, grid_ids_no_demDiff):
             reg_tifs_dir = os.path.join(arcticDEM_reg_tif_dir,f'dem_grid{g_id}')
+            # if co_reg folder exist, then use the files in it
+            reg_tifs_dir_co_reg = reg_tifs_dir + '_coreg'
+            if os.path.isdir(reg_tifs_dir_co_reg):
+                reg_tifs_dir = reg_tifs_dir_co_reg
+
             reg_tifs = io_function.get_file_list_by_ext('.tif', reg_tifs_dir, bsub_folder=False)
 
             # legcy code, just keep here
