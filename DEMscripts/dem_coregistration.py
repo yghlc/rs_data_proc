@@ -358,13 +358,13 @@ def co_registration_one_dem_is2(dem_file, is2_gdf, save_path, stable_mask=None):
 
     # use gdf_flt for co-registration
     if len(gdf_flt) >= 2:
-            # coregister DEM, with return_stats=True.
-            dem, metadata = dem.pdt.coregister_is2(
-                gdf_flt,
-                stable_mask=stable_mask,
-                max_horiz_offset=50,
-                return_stats=True,
-            )
+        # coregister DEM, with return_stats=True.
+        dem, metadata = dem.pdt.coregister_is2(
+            gdf_flt,
+            stable_mask=stable_mask,
+            max_horiz_offset=50,
+            return_stats=True,
+        )
     else:
         metadata = {"coreg_status": "failed",
                     "remark": f'Not enough ICESat-2 data (only found {len(is2_gdf)} points) '
