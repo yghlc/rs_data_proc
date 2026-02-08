@@ -284,6 +284,7 @@ def download_ICESat2_in_bounds(bounds, epsg, save_path=None,max_point_count_year
 
         # Only append non-empty results
         if is2_gdf_year is not None and len(is2_gdf_year) > 0:
+            is2_gdf_year['year'] = year # add the year
             is2_gdf_list.append(is2_gdf_year)
 
     # combine all yearly GeoDataFrames
