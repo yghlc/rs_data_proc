@@ -455,6 +455,57 @@ def test_co_registration_icesat2_pDEMtools():
     co_registration_icesat2_pDEMtools(dem_list, save_dir, extent_shp=ext_shp, process_num=process_num, bounds=None, epsg=None)
 
 
+def extract_stable_ground_from_time_series_DEM(dem_list, save_path, dem_valid_per_txt, ref_dem=None):
+
+    if ref_dem is None:
+        ref_dem = choose_reference_dem(dem_list, dem_valid_per_txt)
+        if ref_dem is None:
+            raise ValueError('Cannot find a reference DEM')
+
+    ref_dem_data_2d, ref_nodata = raster_io.read_raster_one_band_np(ref_dem)
+    tmp_dir = io_function.get_name_no_ext(save_path) + '_tmp_diff'
+    if os.path.isdir(tmp_dir) is False:
+        io_function.mkdir(tmp_dir)
+
+    diff_nodata = 32767
+
+    # from the data, we found that
+    for idx, d_file in enumerate(dem_list):
+        if os.path.basename(ref_dem) ==  os.path.basename(d_file):
+            continue
+        dem_2d, dem_nodata = raster_io.read_raster_one_band_np(d_file)
+        if ref_nodata != dem_nodata:
+            raise ValueError(f'Nodata inconsistent: {ref_dem} and {d_file}')
+        if ref_dem_data_2d.shape != dem_2d.shape:
+            raise ValueError(f'Size (Height and width) inconsistent: {ref_dem} and {d_file}')
+
+        # in the DEM file download by pDEMtools, nodata is nan, although in the metadata, it was set as -9999
+        nan_loc = np.logical_or(np.logical_or(dem_2d == dem_nodata, ref_dem_data_2d == ref_nodata),
+                                np.logical_or(np.isnan(ref_dem_data_2d),np.isnan(dem_2d)))
+        diff_2d = ref_dem_data_2d - dem_2d
+        diff_2d = (diff_2d*100).astype(np.int16)
+        diff_2d[nan_loc] = diff_nodata
+        diff_save = os.path.join(tmp_dir, f'diff_{idx+1}.tif')
+        raster_io.save_numpy_array_to_rasterfile(diff_2d,diff_save,ref_dem, format='GTiff', nodata=diff_nodata,
+                                   compress='lzw', tiled='yes', bigtiff='if_safer')
+        # print(nan_loc)
+        # break
+
+
+
+def test_extract_stable_ground_from_time_series_DEM():
+
+    data_dir = os.path.expanduser('~/Data/dem_processing/registration_tifs')
+    dem_dir = os.path.join(data_dir,'dem_grid0016000342')
+    dem_valid_per_txt = os.path.join(dem_dir, 'dem_valid_percent.txt')
+    dem_list = io_function.get_file_list_by_ext('.tif',dem_dir,bsub_folder=False)
+    print(f'Found {len(dem_list)} dem files')
+
+    save_path = 'grid0016000342_stable_ground.tif'
+
+    extract_stable_ground_from_time_series_DEM(dem_list, save_path, dem_valid_per_txt, ref_dem=None)
+
+
 def main(options, args):
 
     save_dir = options.save_dir
@@ -508,7 +559,8 @@ if __name__ == '__main__':
     import datetime
     import json
 
-    test_co_registration_icesat2_pDEMtools()
+    # test_co_registration_icesat2_pDEMtools()
+    test_extract_stable_ground_from_time_series_DEM()
     sys.exit(0)
 
     usage = "usage: %prog [options] dem_tif_dir or dem_list_txt "
