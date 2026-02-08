@@ -274,6 +274,7 @@ def produce_dem_diff_grids_RowCol_id(extent_grid_shp, process_num,keep_dem_perce
             # if co_reg folder exist, then use the files in it
             reg_tifs_dir_co_reg = reg_tifs_dir + '_coreg'
             if os.path.isdir(reg_tifs_dir_co_reg):
+                print(f'info: DEM coreg exists, use dem files in {os.path.basename(reg_tifs_dir_co_reg)}')
                 reg_tifs_dir = reg_tifs_dir_co_reg
 
             reg_tifs = io_function.get_file_list_by_ext('.tif', reg_tifs_dir, bsub_folder=False)

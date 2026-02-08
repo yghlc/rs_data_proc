@@ -399,7 +399,7 @@ def co_registration_icesat2_pDEMtools(dem_list, save_dir,extent_shp=None, proces
         if len(polys)!=1:
             raise ValueError('Currently, only support one extent')
         bounds = vector_gpd.get_polygon_bounding_box(polys[0])
-        print('bounds:', bounds)
+        # print('bounds:', bounds)
         epsg = vector_gpd.get_projection(extent_shp,format='epsg')
 
     else:
