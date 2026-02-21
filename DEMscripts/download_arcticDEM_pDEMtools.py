@@ -148,9 +148,54 @@ def test_select_search_results_each_month_geopanda():
     select_search_results_each_month_geopanda(items_gdf, extent_poly[0])
 
 
+def co_registration_is2(dem, date,cutoff_date,dem_id, out_fname,bedrock_mask):
+
+    if to_datetime(date) < cutoff_date:
+        metadata = {"coreg_status": "failed",
+                    "remark": f'the date is {date}. No ICESat-2 data exists prior to 2018-10-04'
+                    }
+        basic.outputlogMessage(
+            f"Warning, For {dem_id}, the date is {date}. No ICESat-2 data exists prior to 2018-10-04.")
+    else:
+        # get the IS2 coregistration data
+        basic.outputlogMessage("Getting IS2 coregistration data...")
+        is2_gdf = pdt.data.icesat2_atl06(dem, date, stable_mask=bedrock_mask)
+        if len(is2_gdf) >= 2:
+            # coregister DEM, with return_stats=True.
+            dem, metadata = dem.pdt.coregister_is2(
+                is2_gdf,
+                stable_mask=bedrock_mask,
+                max_horiz_offset=50,
+                return_stats=True,
+            )
+        else:
+            metadata = {"coreg_status": "failed",
+                        "remark": f'Not enough ICESat-2 data (only found {len(is2_gdf)} points) '
+                        }
+
+    # check whether coreg worked, and construct filename appropriately
+    if metadata["coreg_status"] == "failed":
+        out_fpath = out_fname + ".tif"
+    elif metadata["coreg_status"] == "coregistered":
+        out_fpath = out_fname + "_coreg.tif"
+    elif metadata["coreg_status"] == "dz_only":
+        out_fpath = out_fname + "_coreg_dz.tif"
+    else:
+        basic.outputlogMessage(f"Unknown coregistration status {metadata['coreg_status']}. Saving wihtout extension.")
+        out_fpath = out_fname + ".tif"
+
+    # Export metadata as json
+    json_fpath = out_fpath.rsplit(".", 1)[0] + ".json"
+    with open(json_fpath, "w") as json_file:
+        json.dump(metadata, json_file, indent=4)
+
+
+    return dem, metadata, out_fpath
+
+
 def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_start='2008-01-01', date_end='2026-12-31',
                                baseline_max_hours = 24, min_aoi_frac = 0.1,search_save='tmp.gpkg',out_res=None, b_unique_grid=False,
-                               mask_coreg=False,custom_mask_fpath = None, geoid_correct = False):
+                               mask_coreg=False,custom_mask_fpath = None, geoid_correct = False, is2_correct=False):
     # this function is modified from: https://github.com/trchudley/pdemtools/blob/bb1e9d29721caf460ba56c1ea9b6ba9e388e5bb4/batch/batch_download_and_coregister_is2.py
 
     # bounds = (xmin, ymin, xmax, ymax)
@@ -189,7 +234,7 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
     first_date_str = dates.split("/")[0]
     first_date = to_datetime(first_date_str, format="%Y%m%d")
     cutoff_date = to_datetime("2018-10-04")
-    if first_date < cutoff_date:
+    if first_date < cutoff_date and is2_correct:
         if override_datecheck:
             basic.outputlogMessage("Warning, "
                 f"You have searched for data beginning {first_date_str}. No ICESat-2 data "
@@ -309,43 +354,15 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
 
                 first_loop = False
 
-            if to_datetime(date) < cutoff_date:
-                metadata = {"coreg_status":"failed",
-                            "remark":f'the date is {date}. No ICESat-2 data exists prior to 2018-10-04'
-                            }
-                basic.outputlogMessage(f"Warning, For {dem_id}, the date is {date}. No ICESat-2 data exists prior to 2018-10-04.")
-            else:
-                # get the IS2 coregistration data
-                basic.outputlogMessage("Getting IS2 coregistration data...")
-                is2_gdf = pdt.data.icesat2_atl06(dem, date, stable_mask=bedrock_mask)
-                if len(is2_gdf) >= 2:
-                    # coregister DEM, with return_stats=True.
-                    dem, metadata = dem.pdt.coregister_is2(
-                        is2_gdf,
-                        stable_mask=bedrock_mask,
-                        max_horiz_offset=50,
-                        return_stats=True,
-                    )
-                else:
-                    metadata = {"coreg_status": "failed",
-                                "remark": f'Not enough ICESat-2 data (only found {len(is2_gdf)} points) '
-                                }
+            out_fpath = out_fname + ".tif"
+            if is2_correct:
+                dem, metadata, out_fpath = co_registration_is2(dem, date, cutoff_date, dem_id, out_fname, bedrock_mask)
 
             # geoid correct if necessary
             if geoid_correct:
                 basic.outputlogMessage("Geoid-correcting...")
                 dem = dem.pdt.geoid_correct(geoid)
 
-            # check whether coreg worked, and construct filename appropriately
-            if metadata["coreg_status"] == "failed":
-                out_fpath = out_fname + ".tif"
-            elif metadata["coreg_status"] == "coregistered":
-                out_fpath = out_fname + "_coreg.tif"
-            elif metadata["coreg_status"] == "dz_only":
-                out_fpath = out_fname + "_coreg_dz.tif"
-            else:
-                basic.outputlogMessage(f"Unknown coregistration status {metadata['coreg_status']}. Saving wihtout extension.")
-                out_fpath = out_fname + ".tif"
 
             # Export to geotiff
             out_fpath = io_function.get_name_by_adding_tail(out_fpath,'dem') # add dem in the end, for existing working flow
@@ -353,10 +370,6 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
             del dem
 
 
-            # Export metadata as json
-            json_fpath = out_fpath.rsplit(".", 1)[0] + ".json"
-            with open(json_fpath, "w") as json_file:
-                json.dump(metadata, json_file, indent=4)
 
             # quick check the resolution
             with rasterio.open(out_fpath) as src:
@@ -381,7 +394,7 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
 
 def download_dem_pDEMtools(extent_bounds_list, output_dir, date_start,date_end,pre_name,
                       poly_ids=None,save_prj_code=3413,b_unique_grid=False, out_res=None,
-                           baseline_max_hours=24, min_overlap_per=0.05):
+                           baseline_max_hours=24, min_overlap_per=0.05, is2_coreg=False):
 
     # download data through STAC, not need to unpack
     b_save_grid_id_noDEM = True
@@ -399,7 +412,7 @@ def download_dem_pDEMtools(extent_bounds_list, output_dir, date_start,date_end,p
 
         res = download_dem_within_bounds(ext_bound,ext_tif_save_dir, idx, date_start=date_start,date_end=date_end,
                                      baseline_max_hours = baseline_max_hours, min_aoi_frac = min_overlap_per, search_save=search_save,out_res=out_res,
-                                         b_unique_grid=b_unique_grid)
+                                         b_unique_grid=b_unique_grid,is2_correct=is2_coreg)
 
         # if res is False, mean no data found
         if res is False and b_save_grid_id_noDEM is True:
@@ -413,6 +426,7 @@ def main(options, args):
     extent_shp = args[0]
     basic.outputlogMessage(f'input extent: {extent_shp}')
     b_arcticDEM_mosaic = options.b_arcticDEM_mosaic # default is False
+    b_is2_coreg = options.b_is2_coreg
 
     # global max_task_count
     # max_task_count = options.max_process_num
@@ -468,7 +482,7 @@ def main(options, args):
 
     download_dem_pDEMtools(ext_bounds_3413, reg_tif_dir, date_start, date_end, pre_name,
                       poly_ids=grid_id_list, save_prj_code=save_prj_code,b_unique_grid=b_unique_grid,out_res=out_resolution,
-                           baseline_max_hours=baseline_max_hours, min_overlap_per=min_overlap_per)
+                           baseline_max_hours=baseline_max_hours, min_overlap_per=min_overlap_per, is2_coreg=b_is2_coreg)
 
 
 
@@ -530,6 +544,10 @@ if __name__ == '__main__':
     parser.add_option("-m", "--b_arcticDEM_mosaic",
                       action="store_true", dest="b_arcticDEM_mosaic",default=False,
                       help="if set, will download the mosaic of ArcticDEM, other wise, download the strips")
+
+    parser.add_option("-c", "--b_is2_coreg",
+                      action="store_true", dest="b_is2_coreg",default=False,
+                      help="if set, to download ICESat-2 data and apply co-registration")
 
 
     (options, args) = parser.parse_args()
