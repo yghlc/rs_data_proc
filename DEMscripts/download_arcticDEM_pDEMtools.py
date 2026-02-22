@@ -386,7 +386,7 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
     saved_file_list = io_function.get_file_list_by_pattern(outdir,'*.tif')
     # checking file count
     if n_strips != len(saved_file_list):
-        raise ValueError(f'downloading for polygon {ext_id} is not completed')
+        raise ValueError(f'downloading for polygon {ext_id} is not completed: {n_strips} strips but got {len(saved_file_list)} tif files')
 
     io_function.save_text_to_file(done_indicator, f'completed downloading {len(saved_file_list)} files')
 
