@@ -148,8 +148,11 @@ def get_existing_dem_diff(dem_diff_dir, grid_base_name, grid_ids):
         basic.outputlogMessage('no existing grid dem diff files')
     return existing_tif, grid_id_no_dem_tiff
 
-def filter_dem_by_month(dem_list):
-    allow_months=[6, 7, 8, 9]
+def filter_dem_by_month(dem_list, sel_months=None):
+    if sel_months is None:
+        allow_months=[6, 7, 8, 9]
+    else:
+        allow_months = sel_months
     year_dates = [timeTools.get_yeardate_yyyymmdd(os.path.basename(item), pattern='[0-9]{8}_') for item in dem_list]
     month_list = [item.month for item in year_dates]
 
