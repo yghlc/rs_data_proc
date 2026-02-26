@@ -41,6 +41,7 @@ import time
 # resource.getrusage(resource.RUSAGE_SELF)
 
 from dem_mosaic_crop import check_dem_valid_per
+from produce_DEM_diff_ArcticDEM import filter_dem_by_month
 
 def choose_reference_dem(dem_list, dem_valid_per_txt):
     if dem_valid_per_txt is None:
@@ -457,6 +458,9 @@ def test_co_registration_icesat2_pDEMtools():
 
 def extract_stable_ground_from_time_series_DEM(dem_list, save_path, dem_valid_per_txt, ref_dem=None):
 
+    ### not finished, they are some problems: (1) hard to find the stable surface, or not exists.
+    # (2) may don't have enough ICESat-2 data for co-registration in some regions.
+
     if ref_dem is None:
         ref_dem = choose_reference_dem(dem_list, dem_valid_per_txt)
         if ref_dem is None:
@@ -468,6 +472,8 @@ def extract_stable_ground_from_time_series_DEM(dem_list, save_path, dem_valid_pe
         io_function.mkdir(tmp_dir)
 
     diff_nodata = 32767
+
+    # dem_list = filter_dem_by_month(dem_list,sel_months=[6,7,8])
 
     # from the data, we found that
     for idx, d_file in enumerate(dem_list):
@@ -486,8 +492,13 @@ def extract_stable_ground_from_time_series_DEM(dem_list, save_path, dem_valid_pe
         diff_2d = (diff_2d*100).astype(np.int16)
         diff_2d[nan_loc] = diff_nodata
         diff_save = os.path.join(tmp_dir, f'diff_{idx+1}.tif')
+        diff_save_meta = os.path.join(tmp_dir, f'diff_{idx+1}_meta.json')
         raster_io.save_numpy_array_to_rasterfile(diff_2d,diff_save,ref_dem, format='GTiff', nodata=diff_nodata,
                                    compress='lzw', tiled='yes', bigtiff='if_safer')
+        diff_meta_dict = {'ref_dem':ref_dem, 'dem':d_file, 'diff':"ref_dem - dem",
+                          'diff_save':diff_save}
+        io_function.save_dict_to_txt_json(diff_save_meta,diff_meta_dict)
+
         # print(nan_loc)
         # break
 
@@ -496,7 +507,8 @@ def extract_stable_ground_from_time_series_DEM(dem_list, save_path, dem_valid_pe
 def test_extract_stable_ground_from_time_series_DEM():
 
     data_dir = os.path.expanduser('~/Data/dem_processing/registration_tifs')
-    dem_dir = os.path.join(data_dir,'dem_grid0016000342')
+    # dem_dir = os.path.join(data_dir,'dem_grid0016000342')
+    dem_dir = os.path.join(data_dir,'dem_grid0016000342_coreg')
     dem_valid_per_txt = os.path.join(dem_dir, 'dem_valid_percent.txt')
     dem_list = io_function.get_file_list_by_ext('.tif',dem_dir,bsub_folder=False)
     print(f'Found {len(dem_list)} dem files')
