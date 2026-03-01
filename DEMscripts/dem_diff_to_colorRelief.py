@@ -37,6 +37,8 @@ def dem_tif_to_colorReleif(input,output,out_format='GTiff',tif_compression='lzw'
         return True
 
     color_text_file = 'dem_diff_color_5to5m.txt'
+    if os.path.isfile(color_text_file) is False:
+        raise IOError('color text file %s does not exist, failed to generate color relief'%color_text_file)
 
     if out_format=='GTiff':
         command_str = f'gdaldem color-relief -of {out_format} -co compress={tif_compression} -co tiled=yes -co bigtiff=if_safer '
