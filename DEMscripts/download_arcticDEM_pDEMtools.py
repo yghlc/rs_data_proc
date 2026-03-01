@@ -193,6 +193,36 @@ def co_registration_is2(dem, date,cutoff_date,dem_id, out_fname,bedrock_mask):
     return dem, metadata, out_fpath
 
 
+def download_dem_within_bounds_mosaic(bounds,outdir,ext_id, dataset='arcticdem',out_res=2, b_unique_grid=False):
+    # ref: https://pdemtools.readthedocs.io/en/v1.2.1/examples/mosaic.html
+    
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
+    
+    data_verson = 'v4.1'
+    pre_name = f'{dataset}_mosaic_{data_verson}'
+    if b_unique_grid:
+        out_fpath = os.path.join(outdir, f'{pre_name}_grid{ext_id}.tif')
+    else:
+        out_fpath = os.path.join(outdir, f'{pre_name}_sub{ext_id}.tif')
+    
+    if os.path.isfile(out_fpath):
+        basic.outputlogMessage(f'File exists: {out_fpath}, skip')
+        return
+
+    basic.outputlogMessage("\nSearching for DEM mosaic...")
+    dem = pdt.load.mosaic(
+        dataset=dataset,  # must be `arcticdem` or `rema`
+        resolution=int(out_res),        # must be 2, 10, or 32, only accept integer
+        bounds=bounds,        # (xmin, ymin, xmax, ymax) or a shapely geometry
+        version=data_verson,       # optional: desired version (defaults to most recent)
+        )   
+
+    dem.rio.to_raster(out_fpath, compress="ZSTD", predictor=3, zlevel=1)
+    basic.outputlogMessage(f"Finished downloading mosaic for extent: {ext_id}, saved to {out_fpath}")
+
+
 def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_start='2008-01-01', date_end='2026-12-31',
                                baseline_max_hours = 24, min_aoi_frac = 0.1,search_save='tmp.gpkg',out_res=None, b_unique_grid=False,
                                mask_coreg=False,custom_mask_fpath = None, geoid_correct = False, is2_correct=False):
@@ -392,9 +422,9 @@ def download_dem_within_bounds(bounds,outdir,ext_id, dataset='arcticdem',date_st
 
 
 
-def download_dem_pDEMtools(extent_bounds_list, output_dir, date_start,date_end,pre_name,
+def download_dem_pDEMtools(extent_bounds_list, output_dir, date_start,date_end, pre_name,
                       poly_ids=None,save_prj_code=3413,b_unique_grid=False, out_res=None,
-                           baseline_max_hours=24, min_overlap_per=0.05, is2_coreg=False):
+                           baseline_max_hours=24, min_overlap_per=0.05, is2_coreg=False,b_download_mosaic=False):
 
     # download data through STAC, not need to unpack
     b_save_grid_id_noDEM = True
@@ -403,6 +433,12 @@ def download_dem_pDEMtools(extent_bounds_list, output_dir, date_start,date_end,p
         b_save_grid_id_noDEM = False    # if poly_ids is not the global unique id, then don't save it.
 
     for count, (idx, ext_bound) in enumerate(zip(poly_ids, extent_bounds_list)):
+
+        # donwload the mosaic data
+        if b_download_mosaic:
+            download_dem_within_bounds_mosaic(ext_bound, output_dir, idx, out_res=out_res, b_unique_grid=b_unique_grid)
+            continue
+
         if b_unique_grid:
             search_save = os.path.join(output_dir, pre_name + f'_grid{idx}.gpkg')
             ext_tif_save_dir = os.path.join(output_dir, f'dem_grid{idx}')
@@ -482,7 +518,8 @@ def main(options, args):
 
     download_dem_pDEMtools(ext_bounds_3413, reg_tif_dir, date_start, date_end, pre_name,
                       poly_ids=grid_id_list, save_prj_code=save_prj_code,b_unique_grid=b_unique_grid,out_res=out_resolution,
-                           baseline_max_hours=baseline_max_hours, min_overlap_per=min_overlap_per, is2_coreg=b_is2_coreg)
+                           baseline_max_hours=baseline_max_hours, min_overlap_per=min_overlap_per, is2_coreg=b_is2_coreg,
+                           b_download_mosaic=b_arcticDEM_mosaic)
 
 
 
