@@ -572,8 +572,8 @@ if __name__ == '__main__':
     import json
 
     # test_co_registration_icesat2_pDEMtools()
-    test_extract_stable_ground_from_time_series_DEM()
-    sys.exit(0)
+    # test_extract_stable_ground_from_time_series_DEM()
+    # sys.exit(0)
 
     usage = "usage: %prog [options] dem_tif_dir or dem_list_txt "
     parser = OptionParser(usage=usage, version="1.0 2020-3-1")
