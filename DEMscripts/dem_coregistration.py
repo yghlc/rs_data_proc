@@ -91,7 +91,7 @@ def copy_align_results(ref_dem, dem_tif, save_dir, align_dir=None):
     align_outputs = check_align_folder(dem_tif,out_dir=align_dir)
     if len(align_outputs) < 9:
         basic.outputlogMessage(f'errro: the dem_align.py output of {dem_tif} is less than 9 files')
-        return False
+        return None, None
 
     dem_align = os.path.join(coreg_save_dir, os.path.basename(io_function.get_name_by_adding_tail(dem_tif, 'coreg')))
     # align DEM and a filt version, which one should I use? what filter they apply?
@@ -103,7 +103,7 @@ def copy_align_results(ref_dem, dem_tif, save_dir, align_dir=None):
     stats_json_list = [out for out in align_outputs if out.endswith('align_stats.json')]
     if len(align_res_list) != 1:
         basic.outputlogMessage(f'No or more than two: the align DEM in the dem_align.py output of {dem_tif}')
-        return None
+        return None, None
     else:
         align_filt = align_res_list[0]
         io_function.copy_file_to_dst(align_filt,dem_align, overwrite=True)
@@ -175,6 +175,9 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_
     co_reg_result, stats_json = copy_align_results(ref_dem, dem_tif, save_dir,align_dir=out_dir)
 
     # get metadata of the co-registration results, for checking and future use
+    if co_reg_result is None or stats_json is None:
+        basic.outputlogMessage(f'Error: copy_align_results failed for {dem_tif}, skip getting metadata of co-registration results')
+        return False
     save_meta_fn = co_reg_result.replace('.tif','_coreg_meta.json')
     get_meta_of_coreg_dem(ref_dem, dem_tif, co_reg_result, stats_json, save_dir, mode, max_offset,max_dz, save_meta_fn=save_meta_fn)
 
