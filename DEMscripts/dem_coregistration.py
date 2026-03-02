@@ -63,58 +63,68 @@ def choose_reference_dem(dem_list, dem_valid_per_txt):
     return None
 
 def check_coreg_results(dem_tif, save_dir):
-    dem_align = os.path.join(save_dir, 'dem_coreg', os.path.basename(io_function.get_name_by_adding_tail(dem_tif, 'coreg')))
+    dem_align = os.path.join(save_dir, os.path.basename(io_function.get_name_by_adding_tail(dem_tif, 'coreg')))
     if os.path.isfile(dem_align):
         return True
     return False
 
-def check_align_folder(dem_tif):
-    # by default, dem_align.py save the results to where dem_tif is
-    res_dir = os.path.dirname(dem_tif)
-    align_folder = os.path.splitext(os.path.basename(dem_tif))[0] + '_dem_align'
-    align_dir = os.path.join(res_dir,align_folder)
+def check_align_folder(dem_tif,out_dir=None):
+    if out_dir is None:
+        # by default, dem_align.py save the results to where dem_tif is
+        res_dir = os.path.dirname(dem_tif)
+        align_folder = os.path.splitext(os.path.basename(dem_tif))[0] + '_dem_align'
+        align_dir = os.path.join(res_dir,align_folder)
+    else:
+        align_dir = out_dir
     # after dem_align.py usually have 9 files
     align_outputs = io_function.get_file_list_by_pattern(align_dir,'*')
     # print(align_outputs)
     return align_outputs
 
 
-def move_align_results(ref_dem, dem_tif, save_dir):
+def copy_align_results(ref_dem, dem_tif, save_dir, align_dir=None):
 
-    coreg_save_dir = os.path.join(save_dir, 'dem_coreg')
+    coreg_save_dir = save_dir # os.path.join(save_dir, 'dem_coreg')
     if os.path.isdir(coreg_save_dir) is False:
         io_function.mkdir(coreg_save_dir)
 
-    align_outputs = check_align_folder(dem_tif)
+    align_outputs = check_align_folder(dem_tif,out_dir=align_dir)
     if len(align_outputs) < 9:
-        raise ValueError('the output of dem_align.py is less than 9 files')
+        basic.outputlogMessage(f'errro: the dem_align.py output of {dem_tif} is less than 9 files')
+        return False
 
     dem_align = os.path.join(coreg_save_dir, os.path.basename(io_function.get_name_by_adding_tail(dem_tif, 'coreg')))
     # align DEM and a filt version, which one should I use? what filter they apply?
     # visually check one results (Banks east) , a the same location, align DEM and a filt one have exact values,
-    # but the filt version have more nodata.  Let's use the filt version.
+    # but the filt version have more nodata.  
     # the nodata pixels usually are water pixels, but also some inside the thaw slumps
-    align_filt = [out for out in align_outputs if out.endswith('align_filt.tif')][0]
-    io_function.move_file_to_dst(align_filt,dem_align, overwrite=True)
+    # So, we should use the align DEM, for more complete coverage.
+    align_res_list = [out for out in align_outputs if out.endswith('align.tif')]
+    if len(align_res_list) != 1:
+        basic.outputlogMessage(f'No or more than two: the align DEM in the dem_align.py output of {dem_tif}')
+        return False
+    else:
+        align_filt = align_res_list[0]
+        io_function.copy_file_to_dst(align_filt,dem_align, overwrite=True)
 
-    # copy reference dem if necessary
-    ref_dem_copy = os.path.join(coreg_save_dir, os.path.basename(ref_dem))
-    if os.path.isfile(ref_dem_copy) is False:
-        io_function.copy_file_to_dst(ref_dem,ref_dem_copy)
+    # # copy reference dem if necessary
+    # ref_dem_copy = os.path.join(coreg_save_dir, os.path.basename(ref_dem))
+    # if os.path.isfile(ref_dem_copy) is False:
+    #     io_function.copy_file_to_dst(ref_dem,ref_dem_copy)
 
-    # move the elevation difference?
-    ele_diff_folder = os.path.join(save_dir,'dem_diff_from_demcoreg')
-    if os.path.isdir(ele_diff_folder) is False:
-        io_function.mkdir(ele_diff_folder)
-    dem_diff_filt = [out for out in align_outputs if out.endswith('align_diff_filt.tif')][0]
-    io_function.movefiletodir(dem_diff_filt,ele_diff_folder, overwrite=True)
+    # # move the elevation difference?
+    # ele_diff_folder = os.path.join(save_dir,'dem_diff_from_demcoreg')
+    # if os.path.isdir(ele_diff_folder) is False:
+    #     io_function.mkdir(ele_diff_folder)
+    # dem_diff_filt = [out for out in align_outputs if out.endswith('align_diff_filt.tif')][0]
+    # io_function.movefiletodir(dem_diff_filt,ele_diff_folder, overwrite=True)
 
-    coreg_png_plot_folder = os.path.join(save_dir,'demcoreg_png_plot')
-    if os.path.isdir(coreg_png_plot_folder):
-        io_function.mkdir(coreg_png_plot_folder)
-    coreg_pngs = [out for out in align_outputs if out.endswith('.png')]
-    for png in coreg_pngs:
-        io_function.movefiletodir(png, coreg_png_plot_folder, overwrite=True)
+    # coreg_png_plot_folder = os.path.join(save_dir,'demcoreg_png_plot')
+    # if os.path.isdir(coreg_png_plot_folder):
+    #     io_function.mkdir(coreg_png_plot_folder)
+    # coreg_pngs = [out for out in align_outputs if out.endswith('.png')]
+    # for png in coreg_pngs:
+    #     io_function.movefiletodir(png, coreg_png_plot_folder, overwrite=True)
 
     return True
 
@@ -135,32 +145,47 @@ def move_align_results(ref_dem, dem_tif, save_dir):
 
     # move results to another folder
 
-def co_registration_one_dem(ref_dem, dem_tif, save_dir):
+def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc'):
     if check_coreg_results(dem_tif,save_dir):
         basic.outputlogMessage('co-registeration results for %s exists, skip'%dem_tif)
         return 0
+    
+    out_dir = os.path.join(tmp_dir, os.path.basename(io_function.get_name_no_ext(dem_tif)))
+    if os.path.isdir(out_dir) is False:
+        io_function.mkdir(out_dir)
 
-    align_outputs = check_align_folder(dem_tif)
+    align_outputs = check_align_folder(dem_tif, out_dir=out_dir)
     if len(align_outputs) >= 9:
         basic.outputlogMessage('%s has been co-registered, skip'%dem_tif)
     else:
-        commond_str = dem_dem_align + ' ' + ref_dem + ' ' + dem_tif
+        commond_str = dem_dem_align + f' -mode={mode} -mask_list=none ' 
+
+        commond_str += f' -max_offset=20 -max_dz=30 -outdir={out_dir} '
+        commond_str += ref_dem + ' ' + dem_tif
+
         basic.outputlogMessage(commond_str)
-        res = os.system(commond_str)
+        screen_output = os.path.join(out_dir,'screen_output.txt')
+        # 2>&1: redirect stderr (1) to stdout (1), so that both will be saved in the screen_output.txt
+        res = os.system(commond_str + f' > {screen_output} 2>&1')
         if res != 0:
             sys.exit(1)
 
-    return move_align_results(ref_dem, dem_tif, save_dir)
+    return copy_align_results(ref_dem, dem_tif, save_dir,align_dir=out_dir)
 
 
-def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num):
-    print('ref_dem', ref_dem)
-    print('source dem:')
-    for dem_tif in dem_list:
-        print(dem_tif)
+def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_dir='./', demcoreg_mode='ncc'):
+    basic.outputlogMessage(f'ref_dem: {ref_dem}')
+    # print('source dem:')
+    # for dem_tif in dem_list:
+    #     print(dem_tif)
 
     sub_tasks = []
     for dem_tif in dem_list:
+        # check results exists or not, if exist, skip
+        if check_coreg_results(dem_tif,save_dir):
+            basic.outputlogMessage('co-registeration results for %s exists, skip'%dem_tif)
+            continue
+
         height, width, band_num, daet_type = raster_io.get_height_width_bandnum_dtype(dem_tif)
         # estimate memory need
         need_memory = height*width*4*12 # usually, each pixel need 4 Bytes (float), dem_align.py need more than memory 12 times of file size
@@ -174,12 +199,14 @@ def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num):
         while basic.alive_process_count(sub_tasks) >= process_num:
             time.sleep(10)
 
-        sub_process = Process(target=co_registration_one_dem, args=(ref_dem, dem_tif,save_dir))
+        sub_process = Process(target=co_registration_one_dem, args=(ref_dem, dem_tif,save_dir,tmp_dir,demcoreg_mode))
         sub_process.start()
         sub_tasks.append(sub_process)
         time.sleep(1)
-        if sub_process.exitcode is None:    # even the function has return, sub_process.alive still true for now
-            time.sleep(10)   # wait 10 seconds
+        wait_second = 0
+        while sub_process.exitcode is None and wait_second < 30 :    # even the function has return, sub_process.alive still true for now
+            time.sleep(1)   # wait 10 seconds
+            wait_second += 1
         if sub_process.exitcode is not None and sub_process.exitcode != 0:
             sys.exit(1)
 
@@ -525,6 +552,8 @@ def main(options, args):
     ref_dem = options.ref_dem
     dem_valid_per_txt = options.dem_valid_per_txt
     process_num = options.process_num
+    tmp_dir = options.tmp_dir
+    demcoreg_mode = options.demcoreg_mode
 
     if os.path.isfile(dem_dir_or_txt):
         dem_list = io_function.read_list_from_txt(dem_dir_or_txt)
@@ -550,7 +579,7 @@ def main(options, args):
     if ref_dem in dem_list:
         dem_list.remove(ref_dem)
     # co_registration_parallel(ref_dem,dem_list,save_dir,process_num)
-    co_registration_multi_process(ref_dem, dem_list, save_dir, process_num)
+    co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_dir=tmp_dir, demcoreg_mode=demcoreg_mode)
 
 
 if __name__ == '__main__':
@@ -594,6 +623,16 @@ if __name__ == '__main__':
     parser.add_option("-p", "--dem_valid_per_txt",
                       action="store", dest="dem_valid_per_txt",
                       help="a txt file storing the valid percentage of all the DEM")
+    
+    parser.add_option("-t", "--tmp_dir",
+                      action="store", dest="tmp_dir", default='./tmp_demcoreg',
+                      help="a temporary directory for intermediate files")
+    
+    # demcoreg
+    parser.add_option("-m", "--demcoreg_mode",
+                      action="store", dest="demcoreg_mode", default='ncc',
+                      help="the demcoreg mode, (ncc,sad,nuth,none)")
+
 
     (options, args) = parser.parse_args()
     # print(options.create_mosaic)
