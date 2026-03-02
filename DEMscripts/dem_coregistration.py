@@ -179,7 +179,7 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_
         basic.outputlogMessage(f'Error: copy_align_results failed for {dem_tif}, skip getting metadata of co-registration results')
         return False
     save_meta_fn = co_reg_result.replace('.tif','_coreg_meta.json')
-    get_meta_of_coreg_dem(ref_dem, dem_tif, co_reg_result, stats_json, save_dir, mode, max_offset,max_dz, save_meta_fn=save_meta_fn)
+    get_meta_of_coreg_dem(ref_dem, dem_tif, co_reg_result, stats_json, out_dir, mode, max_offset,max_dz, save_meta_fn=save_meta_fn)
 
     return True
 
