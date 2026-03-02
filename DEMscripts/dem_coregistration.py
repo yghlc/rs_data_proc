@@ -100,12 +100,14 @@ def copy_align_results(ref_dem, dem_tif, save_dir, align_dir=None):
     # the nodata pixels usually are water pixels, but also some inside the thaw slumps
     # So, we should use the align DEM, for more complete coverage.
     align_res_list = [out for out in align_outputs if out.endswith('align.tif')]
+    stats_json_list = [out for out in align_outputs if out.endswith('align_stats.json')]
     if len(align_res_list) != 1:
         basic.outputlogMessage(f'No or more than two: the align DEM in the dem_align.py output of {dem_tif}')
-        return False
+        return None
     else:
         align_filt = align_res_list[0]
         io_function.copy_file_to_dst(align_filt,dem_align, overwrite=True)
+        return dem_align, stats_json_list[0]
 
     # # copy reference dem if necessary
     # ref_dem_copy = os.path.join(coreg_save_dir, os.path.basename(ref_dem))
@@ -126,7 +128,7 @@ def copy_align_results(ref_dem, dem_tif, save_dir, align_dir=None):
     # for png in coreg_pngs:
     #     io_function.movefiletodir(png, coreg_png_plot_folder, overwrite=True)
 
-    return True
+    # return True
 
 
 # def co_registration_parallel(ref_dem, dem_list, save_dir, process_num):
@@ -145,7 +147,7 @@ def copy_align_results(ref_dem, dem_tif, save_dir, align_dir=None):
 
     # move results to another folder
 
-def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc'):
+def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_offset=10, max_dz=30):
     if check_coreg_results(dem_tif,save_dir):
         basic.outputlogMessage('co-registeration results for %s exists, skip'%dem_tif)
         return 0
@@ -160,7 +162,7 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc'):
     else:
         commond_str = dem_dem_align + f' -mode={mode} -mask_list=none ' 
 
-        commond_str += f' -max_offset=20 -max_dz=30 -outdir={out_dir} '
+        commond_str += f' -max_offset={max_offset} -max_dz={max_dz} -outdir={out_dir} '
         commond_str += ref_dem + ' ' + dem_tif
 
         basic.outputlogMessage(commond_str)
@@ -170,10 +172,17 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc'):
         if res != 0:
             sys.exit(1)
 
-    return copy_align_results(ref_dem, dem_tif, save_dir,align_dir=out_dir)
+    co_reg_result, stats_json = copy_align_results(ref_dem, dem_tif, save_dir,align_dir=out_dir)
+
+    # get metadata of the co-registration results, for checking and future use
+    save_meta_fn = co_reg_result.replace('.tif','_coreg_meta.json')
+    get_meta_of_coreg_dem(ref_dem, dem_tif, co_reg_result, stats_json, save_dir, mode, max_offset,max_dz, save_meta_fn=save_meta_fn)
+
+    return True
 
 
-def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_dir='./', demcoreg_mode='ncc'):
+def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_dir='./', demcoreg_mode='ncc',
+                                  max_offset=10, max_dz=30):
     basic.outputlogMessage(f'ref_dem: {ref_dem}')
     # print('source dem:')
     # for dem_tif in dem_list:
@@ -199,7 +208,7 @@ def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_
         while basic.alive_process_count(sub_tasks) >= process_num:
             time.sleep(10)
 
-        sub_process = Process(target=co_registration_one_dem, args=(ref_dem, dem_tif,save_dir,tmp_dir,demcoreg_mode))
+        sub_process = Process(target=co_registration_one_dem, args=(ref_dem, dem_tif,save_dir,tmp_dir,demcoreg_mode,max_offset,max_dz))
         sub_process.start()
         sub_tasks.append(sub_process)
         time.sleep(1)
@@ -209,6 +218,45 @@ def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_
             wait_second += 1
         if sub_process.exitcode is not None and sub_process.exitcode != 0:
             sys.exit(1)
+
+def get_meta_of_coreg_dem(ref_dem, dem_tif, co_reg_result, stats_json, out_dir, mode, max_offset, max_dz, save_meta_fn='coreg_metadata.json'):
+    
+    screen_out = os.path.join(out_dir,'screen_output.txt')
+    io_function.is_file_exist(screen_out)
+    io_function.is_file_exist(stats_json)
+
+    coreg_meta_dict = {}
+    stats_dict = io_function.read_dict_from_txt_json(stats_json)
+
+    if stats_dict['ref_fn'] != ref_dem:
+        raise ValueError(f'error: the reference DEM in the stats json ({stats_dict["ref_fn"]}) is different from the input ref_dem ({ref_dem})')
+    if stats_dict['src_fn'] != dem_tif:
+        raise ValueError(f'error: the source DEM in the stats json ({stats_dict["src_fn"]}) is different from the input dem_tif ({dem_tif})')
+
+    # copy some important information to the coreg_meta_dict, for checking and future use
+    for key in ['ref_fn', 'src_fn', 'res', 'center_coord', 'shift','before','before_filt','after','after_filt']:
+        coreg_meta_dict[key] = stats_dict[key]
+
+    # the results have copy to a new location, so update the path of the align_fn
+    coreg_meta_dict['align_fn'] = co_reg_result
+
+    # save processing information
+    coreg_meta_dict['mode'] = mode
+    coreg_meta_dict['max_offset'] = max_offset
+    coreg_meta_dict['max_dz'] = max_dz
+
+    # get iteration count 
+    with open(screen_out, 'r') as f_obj:
+        screen_lines = f_obj.readlines()
+        iter_count = 0
+        for line in screen_lines:
+            # the line contain "Iteration"
+            if "Iteration" in line:
+                iter_count += 1
+
+    coreg_meta_dict['Iteration_count'] = iter_count    
+    io_function.save_dict_to_txt_json(save_meta_fn, coreg_meta_dict)
+
 
 def calculate_dem_valid_per(dem_list, dem_dir,process_num):
     # get the area_pixel_count by using the maximum size
@@ -578,8 +626,16 @@ def main(options, args):
 
     if ref_dem in dem_list:
         dem_list.remove(ref_dem)
+    dem_count = len(dem_list)
+    max_offset=10
+    max_dz=30
     # co_registration_parallel(ref_dem,dem_list,save_dir,process_num)
-    co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_dir=tmp_dir, demcoreg_mode=demcoreg_mode)
+    for max_offset in [10,20,30,40,50]:
+        # small max_offset save time, but may failed, some gradually increase max_offset,
+        co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_dir=tmp_dir, demcoreg_mode=demcoreg_mode, max_offset=max_offset, max_dz=max_dz)
+        coreg_dem_list = io_function.get_file_list_by_pattern(save_dir, "*coreg.tif")
+        if dem_count == len(coreg_dem_list):
+            break
 
 
 if __name__ == '__main__':
