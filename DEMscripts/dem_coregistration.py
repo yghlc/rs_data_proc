@@ -30,6 +30,7 @@ import raster_io
 import vector_gpd
 
 from multiprocessing import Process
+from datetime import datetime
 
 dem_dem_align = os.path.expanduser('~/codes/github_public_repositories/demcoreg/demcoreg/dem_align.py')
 
@@ -203,12 +204,14 @@ def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_
     # for dem_tif in dem_list:
     #     print(dem_tif)
 
-    sub_tasks = []
+    proc_tasks = []
     for dem_tif in dem_list:
         # check results exists or not, if exist, skip
         if check_coreg_results(dem_tif,save_dir):
             basic.outputlogMessage('co-registeration results for %s exists, skip'%dem_tif)
             continue
+
+        basic.check_exitcode_of_process(proc_tasks) # if there is one former job failed, then quit
 
         height, width, band_num, daet_type = raster_io.get_height_width_bandnum_dtype(dem_tif)
         # estimate memory need
@@ -220,19 +223,30 @@ def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_
             time.sleep(10)
             avai_memory = psutil.virtual_memory().available
 
-        while basic.alive_process_count(sub_tasks) >= process_num:
+        while basic.alive_process_count(proc_tasks) >= process_num:
             time.sleep(10)
 
         sub_process = Process(target=co_registration_one_dem, args=(ref_dem, dem_tif,save_dir,tmp_dir,demcoreg_mode,max_offset,max_dz))
         sub_process.start()
-        sub_tasks.append(sub_process)
+        proc_tasks.append(sub_process)
         time.sleep(1)
-        wait_second = 0
-        while sub_process.exitcode is None and wait_second < 30 :    # even the function has return, sub_process.alive still true for now
-            time.sleep(1)   # wait 10 seconds
-            wait_second += 1
-        if sub_process.exitcode is not None and sub_process.exitcode != 0:
-            sys.exit(1)
+        basic.close_remove_completed_process(proc_tasks)
+        # wait_second = 0
+        # while sub_process.exitcode is None and wait_second < 30 :    # even the function has return, sub_process.alive still true for now
+        #     time.sleep(1)   # wait 10 seconds
+        #     wait_second += 1
+        # if sub_process.exitcode is not None and sub_process.exitcode != 0:
+        #     sys.exit(1)
+    
+    # wait until all sub_tasks are done
+    while True:
+        job_count = basic.alive_process_count(proc_tasks)
+        if job_count > 0:
+            print(datetime.now(), 'wait until all task are completed, alive task account: %d ' % job_count)
+            time.sleep(30)  #
+        else:
+            break
+    basic.close_remove_completed_process(proc_tasks)
 
 def get_meta_of_coreg_dem(ref_dem, dem_tif, co_reg_result, stats_json, out_dir, mode, max_offset, max_dz, save_meta_fn='coreg_metadata.json'):
     
@@ -613,6 +627,9 @@ def test_extract_stable_ground_from_time_series_DEM():
 
 def main(options, args):
 
+    # basic.setlogfile(f'demCoreg_log_pID{os.getpid()}.txt')
+    basic.setlogfile(f'demCoreg_log.txt')
+
     save_dir = options.save_dir
     dem_dir_or_txt = args[0]
     ref_dem = options.ref_dem
@@ -650,6 +667,7 @@ def main(options, args):
     # co_registration_parallel(ref_dem,dem_list,save_dir,process_num)
     for max_offset in [10,20,30,40,50]:
         # small max_offset save time, but may failed, some gradually increase max_offset,
+        basic.outputlogMessage(f'Start co-registration with max_offset={max_offset} and max_dz={max_dz}')
         co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_dir=tmp_dir, demcoreg_mode=demcoreg_mode, max_offset=max_offset, max_dz=max_dz)
         coreg_dem_list = io_function.get_file_list_by_pattern(save_dir, "*coreg.tif")
         if dem_count == len(coreg_dem_list):
@@ -677,7 +695,6 @@ if __name__ == '__main__':
     from pandas import to_datetime
     from warnings import warn
     from shapely.geometry import box
-    import datetime
     import json
 
     # test_co_registration_icesat2_pDEMtools()
