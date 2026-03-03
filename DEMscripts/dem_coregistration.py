@@ -658,16 +658,22 @@ def main(options, args):
 
 if __name__ == '__main__':
 
-    import pdemtools as pdt
-    import rioxarray
-    from xarray import DataArray, Dataset
+    # these are needed by pdemtools to download ICESat-2 data and do co-registration, comment them out 
+    # as we may not have pDEMtools installed in the current environment, and these functions are not used in the main function for now.
+
+    # import pdemtools as pdt
+    # import rioxarray
+    # from xarray import DataArray, Dataset
+    # from sliderule import sliderule, icesat2
+
+
     from datetime import date
     import geopandas as gpd
     import pandas as pd
     import rasterio
     import numpy as np
 
-    from sliderule import sliderule, icesat2
+    
     from pandas import to_datetime
     from warnings import warn
     from shapely.geometry import box
