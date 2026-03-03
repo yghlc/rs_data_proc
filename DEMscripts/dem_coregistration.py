@@ -8,7 +8,7 @@ using demcoreg, install it and its dependencies:
     git clone https://github.com/dshean/imview.git
     pip install -e imview
 
-   git clone https://github.com/dshean/pygeotools.git
+   git clone https://github.com/yghlc/pygeotools.git (used my forked version, which has masked nan or inf values when reading raster, to avoid the problem in dem_align.py)
    pip install -e pygeotools
 
    git clone https://github.com/dshean/demcoreg.git
