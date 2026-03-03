@@ -8,10 +8,12 @@ using demcoreg, install it and its dependencies:
     git clone https://github.com/dshean/imview.git
     pip install -e imview
 
+   # https://github.com/dshean/pygeotools.git
    git clone https://github.com/yghlc/pygeotools.git (used my forked version, which has masked nan or inf values when reading raster, to avoid the problem in dem_align.py)
    pip install -e pygeotools
 
-   git clone https://github.com/dshean/demcoreg.git
+   #git clone https://github.com/dshean/demcoreg.git
+   git clone  https://github.com/yghlc/demcoreg.git (used my forked version, allow to use mode: "none")
    pip install -e demcoreg
 
 authors: Huang Lingcao
@@ -91,9 +93,11 @@ def copy_align_results(ref_dem, dem_tif, save_dir, align_dir=None):
         io_function.mkdir(coreg_save_dir)
 
     align_outputs = check_align_folder(dem_tif,out_dir=align_dir)
-    if len(align_outputs) < 9:
-        basic.outputlogMessage(f'errro: the dem_align.py output of {dem_tif} is less than 9 files')
-        return None, None
+    # if len(align_outputs) < 9:
+    #     basic.outputlogMessage(f'errro: the dem_align.py output of {dem_tif} is less than 9 files')
+    #     return None, None
+    align_res_list = [out for out in align_outputs if out.endswith('align.tif')]
+    stats_json_list = [out for out in align_outputs if out.endswith('align_stats.json')]
 
     dem_align = os.path.join(coreg_save_dir, os.path.basename(io_function.get_name_by_adding_tail(dem_tif, 'coreg')))
     # align DEM and a filt version, which one should I use? what filter they apply?
@@ -101,10 +105,11 @@ def copy_align_results(ref_dem, dem_tif, save_dir, align_dir=None):
     # but the filt version have more nodata.  
     # the nodata pixels usually are water pixels, but also some inside the thaw slumps
     # So, we should use the align DEM, for more complete coverage.
-    align_res_list = [out for out in align_outputs if out.endswith('align.tif')]
-    stats_json_list = [out for out in align_outputs if out.endswith('align_stats.json')]
     if len(align_res_list) != 1:
-        basic.outputlogMessage(f'No or more than two: the align DEM in the dem_align.py output of {dem_tif}')
+        basic.outputlogMessage(f'Error: Not one but {len(align_res_list)} *align.tif: the align DEM in the dem_align.py output of {dem_tif}')
+        return None, None
+    elif len(stats_json_list) != 1:
+        basic.outputlogMessage(f'Error: Not one but {len(stats_json_list)} *align_stats.json: the stats json in the dem_align.py output of {dem_tif}')
         return None, None
     else:
         align_filt = align_res_list[0]
@@ -158,32 +163,29 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_
     if os.path.isdir(out_dir) is False:
         io_function.mkdir(out_dir)
 
-    align_outputs = check_align_folder(dem_tif, out_dir=out_dir)
-    if len(align_outputs) >= 9:
-        basic.outputlogMessage('%s has been co-registered, skip'%dem_tif)
-    else:
-        commond_str = dem_dem_align + f' -mode={mode} -mask_list=none ' 
 
-        commond_str += f' -max_offset={max_offset} -max_dz={max_dz} -outdir={out_dir} '
-        commond_str += ref_dem + ' ' + dem_tif
+    commond_str = dem_dem_align + f' -mode={mode} -mask_list=none ' 
 
-        basic.outputlogMessage(commond_str)
-        screen_output = os.path.join(out_dir,'screen_output.txt')
-        if os.path.isfile(screen_output):
-            screen_output_bak = io_function.get_name_by_adding_tail(screen_output,timeTools.get_now_time_str())
-            io_function.move_file_to_dst(screen_output, screen_output_bak, overwrite=True)
+    commond_str += f' -max_offset={max_offset} -max_dz={max_dz} -outdir={out_dir} '
+    commond_str += ref_dem + ' ' + dem_tif
 
-        # 2>&1: redirect stderr (1) to stdout (1), so that both will be saved in the screen_output.txt
-        res = os.system(commond_str + f' > {screen_output} 2>&1')
-        if res != 0:
-            # if the non-zero exit code is caused by max_offset, then don't quit
-            with open(screen_output, 'r') as f_obj:
-                screen_lines = f_obj.readlines()
-                for line in screen_lines:
-                    if "max_offset" in line and "exceeded" in line:
-                        return False
-            # if the non-zero exit code is not caused by max_offset, then quit
-            sys.exit(1)
+    basic.outputlogMessage(commond_str)
+    screen_output = os.path.join(out_dir,'screen_output.txt')
+    if os.path.isfile(screen_output):
+        screen_output_bak = io_function.get_name_by_adding_tail(screen_output,timeTools.get_now_time_str())
+        io_function.move_file_to_dst(screen_output, screen_output_bak, overwrite=True)
+
+    # 2>&1: redirect stderr (1) to stdout (1), so that both will be saved in the screen_output.txt
+    res = os.system(commond_str + f' > {screen_output} 2>&1')
+    if res != 0:
+        # if the non-zero exit code is caused by max_offset, then don't quit
+        with open(screen_output, 'r') as f_obj:
+            screen_lines = f_obj.readlines()
+            for line in screen_lines:
+                if "max_offset" in line and "exceeded" in line:
+                    return False
+        # if the non-zero exit code is not caused by max_offset, then quit
+        sys.exit(1)
 
     co_reg_result, stats_json = copy_align_results(ref_dem, dem_tif, save_dir,align_dir=out_dir)
 
