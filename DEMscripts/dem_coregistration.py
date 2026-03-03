@@ -25,6 +25,7 @@ deeplabforRS =  os.path.expanduser('~/codes/PycharmProjects/DeeplabforRS')
 sys.path.insert(0, deeplabforRS)
 import basic_src.io_function as io_function
 import basic_src.basic as basic
+import basic_src.timeTools as timeTools
 import raster_io
 import vector_gpd
 
@@ -167,6 +168,10 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_
 
         basic.outputlogMessage(commond_str)
         screen_output = os.path.join(out_dir,'screen_output.txt')
+        if os.path.isfile(screen_output):
+            screen_output_bak = io_function.get_name_by_adding_tail(screen_output,timeTools.get_now_time_str())
+            io_function.move_file_to_dst(screen_output, screen_output_bak, overwrite=True)
+
         # 2>&1: redirect stderr (1) to stdout (1), so that both will be saved in the screen_output.txt
         res = os.system(commond_str + f' > {screen_output} 2>&1')
         if res != 0:
