@@ -175,6 +175,13 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_
         # 2>&1: redirect stderr (1) to stdout (1), so that both will be saved in the screen_output.txt
         res = os.system(commond_str + f' > {screen_output} 2>&1')
         if res != 0:
+            # if the non-zero exit code is caused by max_offset, then don't quit
+            with open(screen_output, 'r') as f_obj:
+                screen_lines = f_obj.readlines()
+                for line in screen_lines:
+                    if "max_offset" in line and "exceeded" in line:
+                        return False
+            # if the non-zero exit code is not caused by max_offset, then quit
             sys.exit(1)
 
     co_reg_result, stats_json = copy_align_results(ref_dem, dem_tif, save_dir,align_dir=out_dir)
@@ -233,7 +240,7 @@ def get_meta_of_coreg_dem(ref_dem, dem_tif, co_reg_result, stats_json, out_dir, 
     io_function.is_file_exist(screen_out)
     io_function.is_file_exist(stats_json)
 
-    coreg_meta_dict = {}
+    # coreg_meta_dict = {}
     stats_dict = io_function.read_dict_from_txt_json(stats_json)
 
     if stats_dict['ref_fn'] != ref_dem:
@@ -242,8 +249,11 @@ def get_meta_of_coreg_dem(ref_dem, dem_tif, co_reg_result, stats_json, out_dir, 
         raise ValueError(f'error: the source DEM in the stats json ({stats_dict["src_fn"]}) is different from the input dem_tif ({dem_tif})')
 
     # copy some important information to the coreg_meta_dict, for checking and future use
-    for key in ['ref_fn', 'src_fn', 'res', 'center_coord', 'shift','before','before_filt','after','after_filt']:
-        coreg_meta_dict[key] = stats_dict[key]
+    # for key in ['ref_fn', 'src_fn', 'res', 'center_coord', 'shift','before','before_filt','after','after_filt']:
+    #     coreg_meta_dict[key] = stats_dict[key]
+    # copy all information in stats_dict to coreg_meta_dict, for checking and future use
+    coreg_meta_dict = stats_dict.copy()
+
 
     # the results have copy to a new location, so update the path of the align_fn
     coreg_meta_dict['align_fn'] = co_reg_result
@@ -635,7 +645,7 @@ def main(options, args):
     if ref_dem in dem_list:
         dem_list.remove(ref_dem)
     dem_count = len(dem_list)
-    max_offset=10
+    # max_offset=10
     max_dz=30
     # co_registration_parallel(ref_dem,dem_list,save_dir,process_num)
     for max_offset in [10,20,30,40,50]:
