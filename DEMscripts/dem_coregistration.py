@@ -618,9 +618,15 @@ def test_extract_stable_ground_from_time_series_DEM():
     data_dir = os.path.expanduser('~/Data/dem_processing/registration_tifs')
     # dem_dir = os.path.join(data_dir,'dem_grid0016000342')
     dem_dir = os.path.join(data_dir,'dem_grid0016000342_coreg')
+    # dem_dir = os.path.join(data_dir,'dem_grid0016000342_coreg_none')
     dem_valid_per_txt = os.path.join(dem_dir, 'dem_valid_percent.txt')
     dem_list = io_function.get_file_list_by_ext('.tif',dem_dir,bsub_folder=False)
     print(f'Found {len(dem_list)} dem files')
+
+    # if the file not exist, calculate it
+    if os.path.isfile(dem_valid_per_txt) is False:
+        # calculate the valid percent (don't remove files, move_dem_threshold=None)
+        calculate_dem_valid_per(dem_list, dem_dir, 8)
 
     save_path = 'grid0016000342_stable_ground.tif'
 
