@@ -242,7 +242,7 @@ def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_
     while True:
         job_count = basic.alive_process_count(proc_tasks)
         if job_count > 0:
-            print(datetime.now(), 'wait until all task are completed, alive task account: %d ' % job_count)
+            print(datetime.now(), 'wait until all task are completed, alive task count: %d ' % job_count)
             time.sleep(30)  #
         else:
             break
