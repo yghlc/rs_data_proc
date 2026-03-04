@@ -154,6 +154,15 @@ def copy_align_results(ref_dem, dem_tif, save_dir, align_dir=None):
 
     # move results to another folder
 
+def check_max_offset_failed(screen_output,dem_tif, max_offset):
+    with open(screen_output, 'r') as f_obj:
+        screen_lines = f_obj.readlines()
+        for line in screen_lines:
+            if "max_offset" in line and "exceeded" in line:
+                basic.outputlogMessage(f'co-registration failed for {dem_tif} with max_offset={max_offset}, try again with larger max_offset')
+                return True
+    return False
+
 def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_offset=10, max_dz=30):
     if check_coreg_results(dem_tif,save_dir):
         basic.outputlogMessage('co-registeration results for %s exists, skip'%dem_tif)
@@ -163,30 +172,36 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_
     if os.path.isdir(out_dir) is False:
         io_function.mkdir(out_dir)
 
+    coreg_meta_dict = {}
+    t0 = time.time()
+    start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
+    in_max_offset = max_offset
+    # graduatelly increase max_offset if the co-registration failed. 
+    while in_max_offset < 101:
 
-    commond_str = dem_dem_align + f' -mode={mode} -mask_list=none ' 
+        commond_str = dem_dem_align + f' -mode={mode} -mask_list=none ' 
+        commond_str += f' -max_offset={in_max_offset} -max_dz={max_dz} -outdir={out_dir} '
+        commond_str += ref_dem + ' ' + dem_tif
 
-    commond_str += f' -max_offset={max_offset} -max_dz={max_dz} -outdir={out_dir} '
-    commond_str += ref_dem + ' ' + dem_tif
+        basic.outputlogMessage(commond_str)
+        screen_output = os.path.join(out_dir,'screen_output.txt')
+        if os.path.isfile(screen_output):
+            screen_output_bak = io_function.get_name_by_adding_tail(screen_output,timeTools.get_now_time_str())
+            io_function.move_file_to_dst(screen_output, screen_output_bak, overwrite=True)
 
-    basic.outputlogMessage(commond_str)
-    screen_output = os.path.join(out_dir,'screen_output.txt')
-    if os.path.isfile(screen_output):
-        screen_output_bak = io_function.get_name_by_adding_tail(screen_output,timeTools.get_now_time_str())
-        io_function.move_file_to_dst(screen_output, screen_output_bak, overwrite=True)
-
-    # 2>&1: redirect stderr (1) to stdout (1), so that both will be saved in the screen_output.txt
-    res = os.system(commond_str + f' > {screen_output} 2>&1')
-    if res != 0:
-        # if the non-zero exit code is caused by max_offset, then don't quit
-        with open(screen_output, 'r') as f_obj:
-            screen_lines = f_obj.readlines()
-            for line in screen_lines:
-                if "max_offset" in line and "exceeded" in line:
-                    return False
-        # if the non-zero exit code is not caused by max_offset, then quit
-        sys.exit(1)
+        # 2>&1: redirect stderr (1) to stdout (1), so that both will be saved in the screen_output.txt
+        res = os.system(commond_str + f' > {screen_output} 2>&1')
+        if res != 0:
+            # if the non-zero exit code is caused by max_offset, then don't quit
+            if check_max_offset_failed(screen_output, dem_tif, in_max_offset):
+                in_max_offset += 10
+                continue
+            # if the non-zero exit code is not caused by max_offset, then quit
+            sys.exit(1)
+        else:
+            # co-registration succeeded, break the loop, if not, increase max_offset and try again
+            break
 
     co_reg_result, stats_json = copy_align_results(ref_dem, dem_tif, save_dir,align_dir=out_dir)
 
@@ -195,7 +210,15 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_
         basic.outputlogMessage(f'Error: copy_align_results failed for {dem_tif}, skip getting metadata of co-registration results')
         return False
     save_meta_fn = co_reg_result.replace('.tif','_coreg_meta.json')
-    get_meta_of_coreg_dem(ref_dem, dem_tif, co_reg_result, stats_json, out_dir, mode, max_offset,max_dz, save_meta_fn=save_meta_fn)
+    coreg_meta_dict = get_meta_of_coreg_dem(coreg_meta_dict,ref_dem, dem_tif, co_reg_result, stats_json, out_dir, mode, in_max_offset,max_dz)
+
+    t1 = time.time()
+    end_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    coreg_meta_dict['processing_time_sec'] = t1-t0
+    coreg_meta_dict['start_time'] = start_time
+    coreg_meta_dict['end_time'] = end_time
+
+    io_function.save_dict_to_txt_json(save_meta_fn, coreg_meta_dict)
 
     return True
 
@@ -222,11 +245,12 @@ def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_
         avai_memory = psutil.virtual_memory().available
 
         while need_memory > avai_memory:
-            print('waiting more available memory, need: %.4f GB, available: %.4f GB'%(need_memory/(1000*1000*1000), avai_memory/(1000*1000*1000)))
+            print(datetime.now(), 'waiting more available memory, need: %.4f GB, available: %.4f GB'%(need_memory/(1000*1000*1000), avai_memory/(1000*1000*1000)))
             time.sleep(10)
             avai_memory = psutil.virtual_memory().available
 
         while basic.alive_process_count(proc_tasks) >= process_num:
+            print(datetime.now(), f'running {process_num} or more processes , wait 10 seconds')
             time.sleep(10)
 
         sub_process = Process(target=co_registration_one_dem, args=(ref_dem, dem_tif,save_dir,tmp_dir,demcoreg_mode,max_offset,max_dz))
@@ -251,7 +275,7 @@ def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_
             break
     basic.close_remove_completed_process(proc_tasks)
 
-def get_meta_of_coreg_dem(ref_dem, dem_tif, co_reg_result, stats_json, out_dir, mode, max_offset, max_dz, save_meta_fn='coreg_metadata.json'):
+def get_meta_of_coreg_dem(coreg_meta_dict, ref_dem, dem_tif, co_reg_result, stats_json, out_dir, mode, max_offset, max_dz):
     
     screen_out = os.path.join(out_dir,'screen_output.txt')
     io_function.is_file_exist(screen_out)
@@ -266,10 +290,10 @@ def get_meta_of_coreg_dem(ref_dem, dem_tif, co_reg_result, stats_json, out_dir, 
         raise ValueError(f'error: the source DEM in the stats json ({stats_dict["src_fn"]}) is different from the input dem_tif ({dem_tif})')
 
     # copy some important information to the coreg_meta_dict, for checking and future use
-    # for key in ['ref_fn', 'src_fn', 'res', 'center_coord', 'shift','before','before_filt','after','after_filt']:
-    #     coreg_meta_dict[key] = stats_dict[key]
+    for key in ['ref_fn', 'src_fn', 'align_fn', 'res', 'center_coord', 'shift','before','before_filt','after','after_filt']:
+        coreg_meta_dict[key] = stats_dict[key]
     # copy all information in stats_dict to coreg_meta_dict, for checking and future use
-    coreg_meta_dict = stats_dict.copy()
+    # coreg_meta_dict = stats_dict.copy()
 
 
     # the results have copy to a new location, so update the path of the align_fn
@@ -289,8 +313,8 @@ def get_meta_of_coreg_dem(ref_dem, dem_tif, co_reg_result, stats_json, out_dir, 
             if "Iteration" in line:
                 iter_count += 1
 
-    coreg_meta_dict['Iteration_count'] = iter_count    
-    io_function.save_dict_to_txt_json(save_meta_fn, coreg_meta_dict)
+    coreg_meta_dict['Iteration_count'] = iter_count
+    return coreg_meta_dict
 
 
 def calculate_dem_valid_per(dem_list, dem_dir,process_num):
@@ -672,16 +696,16 @@ def main(options, args):
     if ref_dem in dem_list:
         dem_list.remove(ref_dem)
     dem_count = len(dem_list)
-    # max_offset=10
+    max_offset=10
     max_dz=30
     # co_registration_parallel(ref_dem,dem_list,save_dir,process_num)
-    for max_offset in [10,20,30,40,50]:
+    # for max_offset in [10,20,30,40,50]:
         # small max_offset save time, but may failed, some gradually increase max_offset,
-        basic.outputlogMessage(f'Start co-registration with max_offset={max_offset} and max_dz={max_dz}')
-        co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_dir=tmp_dir, demcoreg_mode=demcoreg_mode, max_offset=max_offset, max_dz=max_dz)
-        coreg_dem_list = io_function.get_file_list_by_pattern(save_dir, "*coreg.tif")
-        if dem_count == len(coreg_dem_list):
-            break
+    # basic.outputlogMessage(f'Start co-registration with max_offset={max_offset} and max_dz={max_dz}')
+    co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_dir=tmp_dir, demcoreg_mode=demcoreg_mode, max_offset=max_offset, max_dz=max_dz)
+    # coreg_dem_list = io_function.get_file_list_by_pattern(save_dir, "*coreg.tif")
+    # if dem_count == len(coreg_dem_list):
+    #     break
 
 
 if __name__ == '__main__':
