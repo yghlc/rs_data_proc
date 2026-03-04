@@ -164,6 +164,7 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_
         io_function.mkdir(out_dir)
 
 
+
     commond_str = dem_dem_align + f' -mode={mode} -mask_list=none ' 
 
     commond_str += f' -max_offset={max_offset} -max_dz={max_dz} -outdir={out_dir} '
@@ -617,7 +618,8 @@ def test_extract_stable_ground_from_time_series_DEM():
 
     data_dir = os.path.expanduser('~/Data/dem_processing/registration_tifs')
     # dem_dir = os.path.join(data_dir,'dem_grid0016000342')
-    dem_dir = os.path.join(data_dir,'dem_grid0016000342_coreg')
+    # dem_dir = os.path.join(data_dir,'dem_grid0016000342_coreg')
+    dem_dir = os.path.join(data_dir,'dem_grid0016000342_coreg_nuth')
     # dem_dir = os.path.join(data_dir,'dem_grid0016000342_coreg_none')
     dem_valid_per_txt = os.path.join(dem_dir, 'dem_valid_percent.txt')
     dem_list = io_function.get_file_list_by_ext('.tif',dem_dir,bsub_folder=False)
