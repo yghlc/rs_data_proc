@@ -209,7 +209,7 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_
     if co_reg_result is None or stats_json is None:
         basic.outputlogMessage(f'Error: copy_align_results failed for {dem_tif}, skip getting metadata of co-registration results')
         return False
-    save_meta_fn = co_reg_result.replace('.tif','_coreg_meta.json')
+    save_meta_fn = co_reg_result.replace('.tif','_meta.json')
     coreg_meta_dict = get_meta_of_coreg_dem(coreg_meta_dict,ref_dem, dem_tif, co_reg_result, stats_json, out_dir, mode, in_max_offset,max_dz)
 
     t1 = time.time()
@@ -269,7 +269,7 @@ def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_
     while True:
         job_count = basic.alive_process_count(proc_tasks)
         if job_count > 0:
-            print(datetime.now(), 'wait until all task are completed, alive task count: %d ' % job_count)
+            print(datetime.now(), 'wait until all tasks are completed, alive task count: %d ' % job_count)
             time.sleep(30)  #
         else:
             break
