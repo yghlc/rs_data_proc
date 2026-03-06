@@ -230,6 +230,10 @@ def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_
     # for dem_tif in dem_list:
     #     print(dem_tif)
 
+    # create save_dir before parallel running, to avoid multiple processes creating the same folder at the same time
+    if os.path.isdir(save_dir) is False:
+        io_function.mkdir(save_dir)
+
     proc_tasks = []
     for dem_tif in dem_list:
         # check results exists or not, if exist, skip
