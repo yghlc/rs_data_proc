@@ -48,8 +48,12 @@ def main(options, args):
     data_folder = arcticDEM_reg_tif_dir
     if len(args) > 0:
         data_folder = args[0]
+    
+    pattern = options.pattern
+    if pattern is None:
+        pattern = '*.tif'
 
-    tifs = io_function.get_file_list_by_pattern(data_folder, '*.tif') # _dem_reg check all tifs
+    tifs = io_function.get_file_list_by_pattern(data_folder, pattern) # _dem_reg check all tifs
     save_invalid_txt_path = os.path.basename(data_folder) + '_invalid_list.txt'
     save_good_txt_path = os.path.basename(data_folder) + '_good_list.txt'
     tif_count = len(tifs)
@@ -101,6 +105,11 @@ if __name__ == '__main__':
     parser.add_option("-p", "--process_num",
                       action="store", dest="process_num", type=int, default=8,
                       help="number of processes to checking invalid tifs")
+
+
+    parser.add_option("", "--pattern",
+                      action="store", dest="pattern",
+                      help="the file pattern to check, default is *.tif")
 
     (options, args) = parser.parse_args()
     # print(options.create_mosaic)
