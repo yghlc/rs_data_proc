@@ -47,6 +47,8 @@ import time
 from dem_mosaic_crop import check_dem_valid_per
 from produce_DEM_diff_ArcticDEM import filter_dem_by_month
 
+machine_name = os.uname()[1]
+
 def choose_reference_dem(dem_list, dem_valid_per_txt):
     if dem_valid_per_txt is None:
         raise ValueError('NO information of valid percentage of DEMs, cannot choose a reference DEM')
@@ -318,6 +320,7 @@ def get_meta_of_coreg_dem(coreg_meta_dict, ref_dem, dem_tif, co_reg_result, stat
                 iter_count += 1
 
     coreg_meta_dict['Iteration_count'] = iter_count
+    coreg_meta_dict['machine_name'] = machine_name
     return coreg_meta_dict
 
 
