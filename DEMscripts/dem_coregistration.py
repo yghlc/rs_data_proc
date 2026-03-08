@@ -339,6 +339,27 @@ def calculate_dem_valid_per(dem_list, dem_dir,process_num):
                                        move_dem_threshold=None, area_pixel_num=area_pixel_count)
     return dem_tif_list
 
+
+def filter_dem_by_valid_per(dem_list, dem_valid_per_txt, valid_per_threshold=2):
+    # filter dem files by valid percentage, only keep these with valid percentage larger than valid_per_threshold
+    with open(dem_valid_per_txt, 'r') as f_obj:
+        tif_valid_per_list = [line.strip().split() for line in f_obj.readlines()]
+        tif_valid_per_dict = {os.path.basename(tif): float(per) for tif, per in tif_valid_per_list}
+
+    filtered_dem_list = []
+    for dem_file in dem_list:
+        dem_name = os.path.basename(dem_file)
+        if dem_name in tif_valid_per_dict:
+            if tif_valid_per_dict[dem_name] > valid_per_threshold:
+                filtered_dem_list.append(dem_file)
+            else:
+                basic.outputlogMessage(f'Filter out {dem_file} with valid percentage {tif_valid_per_dict[dem_name]} <= {valid_per_threshold}')
+        else:
+            basic.outputlogMessage(f'Warning: No valid percentage information for {dem_file} in {dem_valid_per_txt}, keep it by default')
+            filtered_dem_list.append(dem_file)
+
+    return filtered_dem_list
+
 def download_ICESat2(input_date,days_r,params,epsg,min_is2_points):
 
     first_iteration = True
@@ -780,6 +801,10 @@ def main(options, args):
 
     if ref_dem in dem_list:
         dem_list.remove(ref_dem)
+    
+    # remove dem files with very small valid percent (<= 2%)
+    dem_list = filter_dem_by_valid_per(dem_list, dem_valid_per_txt, valid_per_threshold=2)
+    
     dem_count = len(dem_list)
     max_offset=10
     max_dz=30
