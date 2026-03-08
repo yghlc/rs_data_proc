@@ -55,6 +55,7 @@ def main(options, args):
 
     tifs = io_function.get_file_list_by_pattern(data_folder, pattern) # _dem_reg check all tifs
     save_invalid_txt_path = os.path.basename(data_folder) + '_invalid_list.txt'
+    save_invalid_txt_full_path = os.path.basename(data_folder) + '_invalid_fullPath_list.txt'
     save_good_txt_path = os.path.basename(data_folder) + '_good_list.txt'
     tif_count = len(tifs)
 
@@ -64,6 +65,7 @@ def main(options, args):
     if os.path.isfile(save_good_txt_path):
         good_tifs.extend(io_function.read_list_from_txt(save_good_txt_path))
     invalid_tif = []
+    invalid_tif_full_path = []
 
     # remove good one for the list
     if len(good_tifs)>0:
@@ -75,6 +77,7 @@ def main(options, args):
                 good_tifs.append(os.path.basename(tif))
             else:
                 invalid_tif.append(os.path.basename(tif))
+                invalid_tif_full_path.append(tif)
     else:
         theadPool = Pool(process_num)  # multi processes
         parameters_list = [(idx,tif_count,tif,good_tifs) for idx,tif in enumerate(tifs)]
@@ -84,9 +87,11 @@ def main(options, args):
                 good_tifs.append(os.path.basename(tif))
             else:
                 invalid_tif.append(os.path.basename(tif))
+                invalid_tif_full_path.append(tif)
         theadPool.close()
 
     io_function.save_list_to_txt(save_invalid_txt_path, invalid_tif)
+    io_function.save_list_to_txt(save_invalid_txt_full_path, invalid_tif_full_path)
     io_function.save_list_to_txt(save_good_txt_path,good_tifs)
         
 
