@@ -787,13 +787,20 @@ def main(options, args):
     # for max_offset in [10,20,30,40,50]:
         # small max_offset save time, but may failed, some gradually increase max_offset,
     # basic.outputlogMessage(f'Start co-registration with max_offset={max_offset} and max_dz={max_dz}')
+    done_indicator = save_dir + f'_coreg.done'
+    if os.path.isfile(done_indicator):
+        print(f'co-registration for extent: {os.path.basename(save_dir)} has completed')
+        return True
+    
     co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_dir=tmp_dir, demcoreg_mode=demcoreg_mode, max_offset=max_offset, max_dz=max_dz)
     coreg_dem_list = io_function.get_file_list_by_pattern(save_dir, "*coreg.tif")
     if dem_count == len(coreg_dem_list):
         # remove the temporary directory to save disk space
-        basic.outputlogMessage(f'All {dem_count} DEMs co-registered successfully, remove files in {tmp_dir} to save disk space')
+        basic.outputlogMessage(f'All {dem_count} DEMs co-registered successfully, remove files in {tmp_dir} to save disk space, please use rmdir the remove empty folders')
         # io_function.delete_file_or_dir(tmp_dir)
         io_function.delete_file_or_dir_pattern(tmp_dir, "SETSM*") # for save, only delete these files start with SETSM, to avoid accidentally delete other files in the tmp_dir
+        io_function.save_text_to_file(done_indicator, f'completed co-registration for {dem_count} DEM files')
+        
 
 
 if __name__ == '__main__':
