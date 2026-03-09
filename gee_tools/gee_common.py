@@ -41,6 +41,14 @@ def reproject(image, new_prj_epsg, resolution):
 
 def export_one_imagetoDrive(select_image, save_folder,save_file_name, crop_region, res,maxPixels=1e9, wait2finished=True):
 
+    # ask user to make sure "save_folder" exists in their Google Drive, if not create it first
+    # GEE will create many folders in the Drive with the same name if the folder does not exist, causing trouble to download the data later. 
+    checked_indicator = f"{save_folder}_is_in_your_Google_Drive"
+    if os.path.isfile(checked_indicator) is False:
+        input(f"Please make sure the folder: {save_folder} exists in your root folder of Google Drive, if not, create it first. Then press Enter to continue...")
+        with open(checked_indicator,'w') as f:
+            f.write('checked')
+
 
     task = ee.batch.Export.image.toDrive(image=select_image,
                                          region=crop_region,
