@@ -765,6 +765,32 @@ def test_statistic_demcoreg_mode_performance():
         statistic_demcoreg_mode_performance(coreg_json_list, save_path)
 
 
+def check_coreg_completed(in_dem_list, output_dir):
+    # Implementation for checking completion of co-registration
+    in_dem_count = len(in_dem_list)
+    coreg_dem_list = io_function.get_file_list_by_pattern(output_dir, "*coreg.tif")
+    if in_dem_count > len(coreg_dem_list):
+        return False
+    else:
+        # need to check one by one, because some failed cases and filtered files in previous processes
+        check_count = 0
+        for dem_fn in in_dem_list:
+            dem_basename = os.path.basename(dem_fn)
+            coreg_fn = os.path.join(output_dir, dem_basename.replace('.tif', '_coreg.tif'))
+            coreg_meta = os.path.join(output_dir, dem_basename.replace('.tif', '_coreg_meta.json'))
+            if os.path.isfile(coreg_fn) and os.path.isfile(coreg_meta):
+                check_count += 1
+            else:
+                # print missing files
+                if os.path.isfile(coreg_fn) is False:
+                    basic.outputlogMessage(f'Missing co-registration result: {coreg_fn}')
+                if os.path.isfile(coreg_meta) is False:
+                    basic.outputlogMessage(f'Missing co-registration metadata: {coreg_meta}')
+        if check_count == in_dem_count:
+            return True
+        else:            
+            return False
+
 def main(options, args):
 
     # basic.setlogfile(f'demCoreg_log_pID{os.getpid()}.txt')
@@ -818,10 +844,9 @@ def main(options, args):
         return True
     
     co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_dir=tmp_dir, demcoreg_mode=demcoreg_mode, max_offset=max_offset, max_dz=max_dz)
-    coreg_dem_list = io_function.get_file_list_by_pattern(save_dir, "*coreg.tif")
-    # before applying "filter_dem_by_valid_per", the "coreg_dem_list" contains all co-registrated DEMs that not failed. 
-    # so the number of "coreg_dem_list" may be larger than the "dem_list" after filtering by valid percentage, because some DEMs with small valid percentage may failed in co-registration, and they are not included in the "coreg_dem_list".
-    if dem_count <= len(coreg_dem_list):
+    
+    # conduct a final check to make sure all the co-registration results are generated, if yes, then save a done indicator file, and remove the temporary files.
+    if check_coreg_completed(dem_list, save_dir):
         # remove the temporary directory to save disk space
         basic.outputlogMessage(f'All {dem_count} DEMs co-registered successfully, remove files in {tmp_dir} to save disk space, please use rmdir the remove empty folders')
         # io_function.delete_file_or_dir(tmp_dir)
