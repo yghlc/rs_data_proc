@@ -819,13 +819,14 @@ def main(options, args):
     
     co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_dir=tmp_dir, demcoreg_mode=demcoreg_mode, max_offset=max_offset, max_dz=max_dz)
     coreg_dem_list = io_function.get_file_list_by_pattern(save_dir, "*coreg.tif")
-    if dem_count == len(coreg_dem_list):
+    # before applying "filter_dem_by_valid_per", the "coreg_dem_list" contains all co-registrated DEMs that not failed. 
+    # so the number of "coreg_dem_list" may be larger than the "dem_list" after filtering by valid percentage, because some DEMs with small valid percentage may failed in co-registration, and they are not included in the "coreg_dem_list".
+    if dem_count <= len(coreg_dem_list):
         # remove the temporary directory to save disk space
         basic.outputlogMessage(f'All {dem_count} DEMs co-registered successfully, remove files in {tmp_dir} to save disk space, please use rmdir the remove empty folders')
         # io_function.delete_file_or_dir(tmp_dir)
         io_function.delete_file_or_dir_pattern(tmp_dir, "SETSM*") # for save, only delete these files start with SETSM, to avoid accidentally delete other files in the tmp_dir
         io_function.save_text_to_file(done_indicator, f'completed co-registration for {dem_count} DEM files')
-        
 
 
 if __name__ == '__main__':
