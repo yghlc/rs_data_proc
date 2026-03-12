@@ -818,7 +818,8 @@ def main(options, args):
 
     dem_count = len(dem_list)
     if dem_count < 1:
-        raise ValueError('No input dem files in %s' % dem_dir_or_txt)
+        basic.outputlogMessage('No input dem files in %s' % dem_dir_or_txt)
+        return  False
 
     if ref_dem is None:
         ref_dem = choose_reference_dem(dem_list, dem_valid_per_txt)
