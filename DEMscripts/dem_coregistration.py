@@ -861,7 +861,7 @@ def main(options, args):
         io_function.save_text_to_file(done_indicator, f'completed co-registration for {dem_count} DEM files')
     else:
         basic.outputlogMessage(f'Co-registration may have some failed cases, please check the log file and the output folder {save_dir} to find out which files failed, then you can change the parameters or mode and run again')
-        io_function.save_text_to_file(fail_indicator, f'failed co-registration for {dem_count} DEM files')
+        io_function.save_text_to_file(fail_indicator, f'failed co-registration for some DEM files in {dem_dir_or_txt}, please check the log file and the output folder {save_dir} to find out which files failed, then you can change the parameters or mode and run again')
 
 
 if __name__ == '__main__':
