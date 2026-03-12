@@ -844,6 +844,12 @@ def main(options, args):
         print(f'co-registration for extent: {os.path.basename(save_dir)} has completed')
         return True
     
+    fail_indicator = save_dir + f'_coreg_{demcoreg_mode}.fail'
+    if os.path.isfile(fail_indicator):
+        print(f'co-registration for extent: {os.path.basename(save_dir)} has failed before, '
+              'please check the log file and choose a different mode, or change the parameters then remove the fail indicator file to run again')
+        return False
+
     co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_dir=tmp_dir, demcoreg_mode=demcoreg_mode, max_offset=max_offset, max_dz=max_dz)
     
     # conduct a final check to make sure all the co-registration results are generated, if yes, then save a done indicator file, and remove the temporary files.
@@ -853,6 +859,9 @@ def main(options, args):
         # io_function.delete_file_or_dir(tmp_dir)
         io_function.delete_file_or_dir_pattern(tmp_dir, "SETSM*") # for save, only delete these files start with SETSM, to avoid accidentally delete other files in the tmp_dir
         io_function.save_text_to_file(done_indicator, f'completed co-registration for {dem_count} DEM files')
+    else:
+        basic.outputlogMessage(f'Co-registration may have some failed cases, please check the log file and the output folder {save_dir} to find out which files failed, then you can change the parameters or mode and run again')
+        io_function.save_text_to_file(fail_indicator, f'failed co-registration for {dem_count} DEM files')
 
 
 if __name__ == '__main__':
