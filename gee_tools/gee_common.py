@@ -43,6 +43,8 @@ def export_one_imagetoDrive(select_image, save_folder,save_file_name, crop_regio
 
     # ask user to make sure "save_folder" exists in their Google Drive, if not create it first
     # GEE will create many folders in the Drive with the same name if the folder does not exist, causing trouble to download the data later. 
+    # make sure the GEE python API is version 1.6 or later, to avoid this issue:  see the following link for details:
+    # https://gis.stackexchange.com/questions/492154/gee-export-table-todrive-creating-multiple-folders-with-the-same-name-instead-o
     checked_indicator = f"{save_folder}_is_in_your_Google_Drive"
     if os.path.isfile(checked_indicator) is False:
         input(f"Please make sure the folder: {save_folder} exists in your root folder of Google Drive, if not, create it first. Then press Enter to continue...")
