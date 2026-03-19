@@ -262,6 +262,7 @@ def build_dict_of_dem_cover_grid_ids(dem_info_shp,grid_20_shp,save_dict_txt):
     # save to dict
     io_function.save_dict_to_txt_json(save_dict_txt,dem_cover_grids)
     theadPool.close()
+    theadPool.join() # wait for worker processes to exit, avoid zombie process
     return True
 
 def test_build_dict_of_dem_cover_grid_ids():

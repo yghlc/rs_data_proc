@@ -228,6 +228,7 @@ def obtain_h3_cells_for_overlap_vectors(input_vector, resolution, save_path, exc
             all_cell_ids.extend(cell_ids)
             all_cell_polys.extend(cell_polys)
         theadPool.close()
+        theadPool.join() # wait for worker processes to exit, avoid zombie process
 
     print(datetime.now(), f'Obtained {len(all_cell_ids)} cell at res: {resolution}')
     id_colum_name = f"h3_id_{resolution}"

@@ -208,6 +208,7 @@ def main(options, args):
             if res is not True:
                 failed_tifs.append(res)
         theadPool.close()
+        theadPool.join() # wait for worker processes to exit, avoid zombie process
 
     with open('to_hillshade_slope8bit_failed_cases.txt','w') as f_obj:
         for item in failed_tifs:

@@ -417,6 +417,7 @@ def main(options, args):
                 id, polygon, poly_latlon in zip(grid_ids,grid_polygons,grid_polygons_latlon)]
             results = theadPool.starmap(create_moasic_of_each_grid_polygon, parameters_list)  # need python3
             theadPool.close()
+            theadPool.join() # wait for worker processes to exit, avoid zombie process
         else:
             raise ValueError('incorrect process number: %d'% process_num)
 

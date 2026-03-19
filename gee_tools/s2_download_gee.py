@@ -374,6 +374,7 @@ def gee_download_sentinel2_image(extent_shp, region_name,id_column_name, start_d
                                for idx, (extent, ext_id) in enumerate(zip(extent_polygons_2, extent_ids_2))]
             results = theadPool.starmap(parallel_gee_download_images_to_local, parameters_list)  # need python3
             theadPool.close()
+            theadPool.join() # wait for worker processes to exit, avoid zombie process
 
     else:
         # exporting to Google Drive

@@ -89,6 +89,7 @@ def main(options, args):
                 invalid_tif.append(os.path.basename(tif))
                 invalid_tif_full_path.append(tif)
         theadPool.close()
+        theadPool.join() # wait for worker processes to exit, avoid zombie process
 
     io_function.save_list_to_txt(save_invalid_txt_path, invalid_tif)
     io_function.save_list_to_txt(save_invalid_txt_full_path, invalid_tif_full_path)

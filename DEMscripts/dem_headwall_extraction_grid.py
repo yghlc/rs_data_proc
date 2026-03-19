@@ -138,6 +138,7 @@ def dem_list_to_slope_list(dem_list, save_dir, extent_id, process_num=1):
         results = theadPool.starmap(one_dem_to_slope, parameters_list)  # need python3
         slope_list = [ out for out in results if out is not False]
         theadPool.close()
+        theadPool.join() # wait for worker processes to exit, avoid zombie process
     else:
         raise ValueError('Wrong process number: %s'%str(process_num))
 

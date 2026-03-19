@@ -232,6 +232,7 @@ def dem_diff_newest_oldest(dem_tif_list, out_dem_diff, out_date_diff, process_nu
             old_date_index[row_s:row_e, col_s:col_e] = patch_old_date_idx
             new_date_index[row_s:row_e, col_s:col_e] = patch_new_date_idx
         theadPool.close()
+        theadPool.join() # wait for worker processes to exit, avoid zombie process
 
     # save date diff to tif (16 bit)
     raster_io.save_numpy_array_to_rasterfile(date_diff_np,out_date_diff,dem_tif_list[0], nodata=0,compress='lzw',tiled='yes',bigtiff='if_safer')
