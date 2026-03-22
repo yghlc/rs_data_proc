@@ -207,6 +207,7 @@ def directly_save_image_to_local(save_file_path, dtype, image, image_features, v
 
     transform = (dst_res, 0, min(x_new)-dst_res/2.0, 0, -dst_res, max(y_new) + dst_res/2.0) # # (resX, 0, X_min, 0, -resY, Y_max)
     # transform = (dst_res, 0, x_new[0], 0, -dst_res, y_new[0]) # # (resX, 0, X_min, 0, -resY, Y_max)
+    # change compression from lzw to zstd, for smaller file size
     profile = {
         "driver": "GTiff",
         "width": width,
@@ -215,7 +216,8 @@ def directly_save_image_to_local(save_file_path, dtype, image, image_features, v
         "crs": dst_crs_str,
         "transform": transform,
         "dtype": img_all.dtype,
-        "compress": "lzw",
+        "compress": "zstd",
+        "zstd_level": 9,
         "predictor": 2,
         # "tiled": True,  # Set tile size
         # "blockxsize": 256,  # Set block size in X direction
