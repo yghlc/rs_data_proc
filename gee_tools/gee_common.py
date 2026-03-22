@@ -219,9 +219,9 @@ def directly_save_image_to_local(save_file_path, dtype, image, image_features, v
         "compress": "zstd",
         "zstd_level": 9,
         "predictor": 2,
-        # "tiled": True,  # Set tile size
-        # "blockxsize": 256,  # Set block size in X direction
-        # "blockysize": 256,  # Set block size in Y direction
+        "tiled": True,  # Set tile size
+        "blockxsize": 256,  # Set block size in X direction
+        "blockysize": 256,  # Set block size in Y direction
     }
 
     with rasterio.open(file_name, "w", **profile) as f:
