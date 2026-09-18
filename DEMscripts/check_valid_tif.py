@@ -70,6 +70,7 @@ def main(options, args):
     # remove good one for the list
     if len(good_tifs)>0:
         tifs = [item for item in tifs if os.path.basename(item) not in good_tifs]
+        basic.outputlogMessage(f'remove good tif files that have been checked previously, remaining {len(tifs)} to check' )
 
     if process_num == 1:
         for idx,tif in enumerate(tifs):
