@@ -804,6 +804,17 @@ def main(options, args):
     tmp_dir = options.tmp_dir
     demcoreg_mode = options.demcoreg_mode
 
+    done_indicator = save_dir + f'_coreg.done'
+    if os.path.isfile(done_indicator):
+        print(f'co-registration for extent: {os.path.basename(save_dir)} has completed')
+        return True
+    
+    fail_indicator = save_dir + f'_coreg_{demcoreg_mode}.fail'
+    if os.path.isfile(fail_indicator):
+        print(f'co-registration for extent: {os.path.basename(save_dir)} has failed before, '
+              'please check the log file and choose a different mode, or change the parameters then remove the fail indicator file to run again')
+        return False
+
     if os.path.isfile(dem_dir_or_txt):
         dem_list = io_function.read_list_from_txt(dem_dir_or_txt)
     else:
@@ -839,16 +850,6 @@ def main(options, args):
     # for max_offset in [10,20,30,40,50]:
         # small max_offset save time, but may failed, some gradually increase max_offset,
     # basic.outputlogMessage(f'Start co-registration with max_offset={max_offset} and max_dz={max_dz}')
-    done_indicator = save_dir + f'_coreg.done'
-    if os.path.isfile(done_indicator):
-        print(f'co-registration for extent: {os.path.basename(save_dir)} has completed')
-        return True
-    
-    fail_indicator = save_dir + f'_coreg_{demcoreg_mode}.fail'
-    if os.path.isfile(fail_indicator):
-        print(f'co-registration for extent: {os.path.basename(save_dir)} has failed before, '
-              'please check the log file and choose a different mode, or change the parameters then remove the fail indicator file to run again')
-        return False
 
     co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_dir=tmp_dir, demcoreg_mode=demcoreg_mode, max_offset=max_offset, max_dz=max_dz)
     
