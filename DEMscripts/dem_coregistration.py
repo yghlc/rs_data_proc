@@ -187,7 +187,7 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_
         commond_str += ref_dem + ' ' + dem_tif
 
         basic.outputlogMessage(commond_str)
-        screen_output = os.path.join(out_dir,'screen_output.txt')
+        screen_output = os.path.join(out_dir,f'screen_output_pID{os.getpid()}.txt') 
         if os.path.isfile(screen_output):
             screen_output_bak = io_function.get_name_by_adding_tail(screen_output,timeTools.get_now_time_str())
             io_function.move_file_to_dst(screen_output, screen_output_bak, overwrite=True)
