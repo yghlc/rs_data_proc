@@ -179,6 +179,7 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_
     start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     in_max_offset = max_offset
+    screen_output = os.path.join(out_dir,f'screen_output_pID{os.getpid()}.txt') 
     # graduatelly increase max_offset if the co-registration failed. 
     while in_max_offset < 101:
 
@@ -187,7 +188,6 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_
         commond_str += ref_dem + ' ' + dem_tif
 
         basic.outputlogMessage(commond_str)
-        screen_output = os.path.join(out_dir,f'screen_output_pID{os.getpid()}.txt') 
         if os.path.isfile(screen_output):
             screen_output_bak = io_function.get_name_by_adding_tail(screen_output,timeTools.get_now_time_str())
             io_function.move_file_to_dst(screen_output, screen_output_bak, overwrite=True)
@@ -212,7 +212,7 @@ def co_registration_one_dem(ref_dem, dem_tif, save_dir, tmp_dir, mode='ncc',max_
         basic.outputlogMessage(f'Error: copy_align_results failed for {dem_tif}, skip getting metadata of co-registration results')
         return False
     save_meta_fn = co_reg_result.replace('.tif','_meta.json')
-    coreg_meta_dict = get_meta_of_coreg_dem(coreg_meta_dict,ref_dem, dem_tif, co_reg_result, stats_json, out_dir, mode, in_max_offset,max_dz)
+    coreg_meta_dict = get_meta_of_coreg_dem(coreg_meta_dict,ref_dem, dem_tif, co_reg_result, stats_json, screen_output, mode, in_max_offset,max_dz)
 
     t1 = time.time()
     end_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -279,11 +279,12 @@ def co_registration_multi_process(ref_dem, dem_list, save_dir, process_num, tmp_
             time.sleep(30)  #
         else:
             break
+    basic.check_exitcode_of_process(proc_tasks) # if there is one former job failed, then quit
     basic.close_remove_completed_process(proc_tasks)
 
-def get_meta_of_coreg_dem(coreg_meta_dict, ref_dem, dem_tif, co_reg_result, stats_json, out_dir, mode, max_offset, max_dz):
+def get_meta_of_coreg_dem(coreg_meta_dict, ref_dem, dem_tif, co_reg_result, stats_json, screen_out, mode, max_offset, max_dz):
     
-    screen_out = os.path.join(out_dir,'screen_output.txt')
+    # screen_out = os.path.join(out_dir,'screen_output.txt')
     io_function.is_file_exist(screen_out)
     io_function.is_file_exist(stats_json)
 
