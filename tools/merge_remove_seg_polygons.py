@@ -21,7 +21,12 @@ import basic_src.basic as basic
 import basic_src.map_projection as map_projection
 import basic_src.timeTools as timeTools
 
+import time
+import warnings
+
 import pandas as pd
+import geopandas as gpd
+import networkx as nx
 
 
 def remove_merge_polygon_in_one_shp(in_shp, org_raster, attribute_name, attribute_range, min_area, max_area, process_num=1):
@@ -178,13 +183,67 @@ def remove_merge_polygon_in_one_shp(in_shp, org_raster, attribute_name, attribut
     return save_shp
 
 
+def find_merge_touch_overlap_polygons(in_shp, save_file):
+    # suggested by poe GPT-5.5
+
+    t0= time.time()
+
+    gdf = gpd.read_file(in_shp)
+    # remove empty 
+    gdf = gdf[~gdf.geometry.is_empty & gdf.geometry.notna()].copy()
+
+    gdf["geometry"] = gdf.geometry.make_valid()
+    gdf = gdf.reset_index(drop=True)
+
+    # Use predicate="intersects" if you want to merge both touching and overlapping polygons. 
+    # Use predicate="touches" if you only want polygons that touch at boundaries.
+    pairs = gdf.sindex.query(gdf.geometry, predicate="intersects")
+
+    edges = [
+        (int(i), int(j))
+        for i, j in zip(pairs[0], pairs[1])
+        if i < j
+    ]
+
+    G = nx.Graph()
+    G.add_nodes_from(gdf.index)
+    G.add_edges_from(edges)
+
+    group_map = {}
+    for group_id, component in enumerate(nx.connected_components(G)):
+        for idx in component:
+            # print('group_id',group_id,component)
+            group_map[idx] = group_id
+
+    gdf["group_id"] = gdf.index.map(group_map)
+
+    # Dissolve geometries within groupby into single observation. 
+    # This is accomplished by applying the union_all method to all geometries within a groupself.
+    merged = gdf.dissolve(by="group_id", as_index=False)
+
+    # Add number of original polygons merged into each output polygon
+    merged["merge_count"] = gdf.groupby("group_id").size().values
+
+    # count the number of merge count that is greater than 1
+    merge_count_gt1 = (merged["merge_count"] > 1).sum()
+    print(f"Number of polygons merged touch/overlap: {merge_count_gt1}")  
+
+    if save_file.endswith('.gpkg') is False:
+        dir_name = os.path.dirname(save_file)
+        save_file = os.path.join(dir_name, io_function.get_name_no_ext(save_file) + '.gpkg')
+    merged.to_file(save_file, driver="GPKG")
+
+    print(f'saved to {os.path.abspath(save_file)}')
+    print(f"time used: {time.time()-t0:.2f} seconds")
+
+
 
 def main(options, args):
 
     b_merge_labels = options.b_merge_labels
     b_merge_touch_polys = options.b_merge_touch_polygons
-    process_num = options.process_num
     org_raster = options.org_raster
+    save_path = options.save_path
 
     shp_path_list = [item for item in args if io_function.is_file_exist(item)]
 
@@ -192,6 +251,13 @@ def main(options, args):
     # get DEM diff information for each polygon.
     # dem_diff_shp = get_dem_subscidence_polygons(segment_shp_path, dem_diff, dem_diff_thread_m=subsidence_thr_m,
     #                              min_area=min_area, max_area=max_area, process_num=process_num)
+
+
+    if b_merge_touch_polys:
+        in_shp = args[0]
+        if save_path is None:
+            save_file = io_function.get_name_by_adding_tail(in_shp, 'NoTouchOverlap')
+        find_merge_touch_overlap_polygons(in_shp, save_file)
 
 
     pass
@@ -207,11 +273,15 @@ if __name__ == '__main__':
 
     parser.add_option("-t", "--b_merge_touch_polygons",
                       action="store_true", dest="b_merge_touch_polygons", default=False,
-                      help="merge polygons if they touch each other and have similar attributes")
+                      help="merge polygons if they touch each other")
 
     parser.add_option("-o", "--org_raster",
                       action="store", dest="org_raster",
                       help="the original raster for calculating the attributes")
+
+    parser.add_option("-s", "--save_path",
+                      action="store", dest="save_path",
+                      help="the path to save the merged polygons")
 
     (options, args) = parser.parse_args()
 
