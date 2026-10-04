@@ -68,12 +68,12 @@ def polygonize_label_images(label_paths, org_raster=None, stats=None,prefix=None
     label_shp_list = []
     if process_num == 1:
         for idx,label in enumerate(label_path_list):
-            _, out_shp = polygonize_one_label(label, org_raster,stats,prefix,b_remove_nodata,1)
+            _, out_shp = polygonize_one_label(idx, label, org_raster,stats,prefix,b_remove_nodata,1)
             if out_shp is None:
                 raise ValueError('failed in polygonize %s'%label)
             label_shp_list.append(out_shp)
 
-    if process_num > 1:
+    elif process_num > 1:
         theadPool = Pool(process_num)
         parameters_list = [(idx,label, org_raster,stats,prefix,b_remove_nodata,1) for idx,label in enumerate(label_path_list)]
         results = theadPool.starmap(polygonize_one_label, parameters_list)
