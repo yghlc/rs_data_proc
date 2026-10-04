@@ -228,13 +228,37 @@ def find_merge_touch_overlap_polygons(in_shp, save_file):
     merge_count_gt1 = (merged["merge_count"] > 1).sum()
     print(f"Number of polygons merged touch/overlap: {merge_count_gt1}")  
 
-    if save_file.endswith('.gpkg') is False:
-        dir_name = os.path.dirname(save_file)
-        save_file = os.path.join(dir_name, io_function.get_name_no_ext(save_file) + '.gpkg')
     merged.to_file(save_file, driver="GPKG")
 
     print(f'saved to {os.path.abspath(save_file)}')
     print(f"time used: {time.time()-t0:.2f} seconds")
+
+    return save_file
+
+
+def removed_polygon_by_min_max_area(in_shp, min_area, max_area, save_file):
+    gdf = gpd.read_file(in_shp)
+    # remove empty 
+    gdf = gdf[~gdf.geometry.is_empty & gdf.geometry.notna()].copy()
+
+    gdf["geometry"] = gdf.geometry.make_valid()
+    gdf = gdf.reset_index(drop=True)
+
+    # remove polygons based on min and max area
+    gdf['area'] = gdf.geometry.area
+    filtered_gdf = gdf[(gdf['area'] >= min_area) & (gdf['area'] <= max_area)]
+
+    print(f"Number of polygons removed by area: {len(gdf) - len(filtered_gdf)}")
+    print(f"Number of polygons remaining: {len(filtered_gdf)}")
+
+    if save_file.endswith('.gpkg') is False:
+        dir_name = os.path.dirname(save_file)
+        save_file = os.path.join(dir_name, io_function.get_name_no_ext(save_file) + '.gpkg')
+    
+    filtered_gdf.to_file(save_file, driver="GPKG")
+    print(f'saved to {os.path.abspath(save_file)}')
+
+    return save_file
 
 
 
@@ -244,6 +268,8 @@ def main(options, args):
     b_merge_touch_polys = options.b_merge_touch_polygons
     org_raster = options.org_raster
     save_path = options.save_path
+    min_area = options.min_area
+    max_area = options.max_area
 
     shp_path_list = [item for item in args if io_function.is_file_exist(item)]
 
@@ -256,9 +282,20 @@ def main(options, args):
     if b_merge_touch_polys:
         in_shp = args[0]
         if save_path is None:
-            save_file = io_function.get_name_by_adding_tail(in_shp, 'NoTouchOverlap')
-        find_merge_touch_overlap_polygons(in_shp, save_file)
+            save_Notouch = io_function.get_name_by_adding_tail(in_shp, 'NoTouchOverlap')
+        else:
+            save_Notouch = save_path
 
+        if save_Notouch.endswith('.gpkg') is False:
+            dir_name = os.path.dirname(save_Notouch)
+            save_Notouch = os.path.join(dir_name, io_function.get_name_no_ext(save_Notouch) + '.gpkg')
+        
+        find_merge_touch_overlap_polygons(in_shp, save_Notouch)
+
+        # remove polygons based on min and max area
+        if min_area is not None or max_area is not None:
+            save_filter_area = io_function.get_name_by_adding_tail(save_Notouch, 'minMaxArea')
+            removed_polygon_by_min_max_area(save_Notouch, min_area, max_area, save_filter_area)
 
     pass
 
@@ -278,6 +315,14 @@ if __name__ == '__main__':
     parser.add_option("-o", "--org_raster",
                       action="store", dest="org_raster",
                       help="the original raster for calculating the attributes")
+
+    parser.add_option("-l", "--min_area",
+                      action="store", dest="min_area",  type=float,
+                      help="minimum area for polygon filtering")
+    parser.add_option("-u", "--max_area", 
+                      action="store", dest="max_area", type=float, 
+                      help="maximum area for polygon filtering")
+
 
     parser.add_option("-s", "--save_path",
                       action="store", dest="save_path",
