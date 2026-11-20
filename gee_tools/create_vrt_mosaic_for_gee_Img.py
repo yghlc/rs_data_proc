@@ -19,6 +19,7 @@ import raster_io
 import vector_gpd
 
 import pandas as pd
+import re
 
 from delete_bad_images import get_image_valid_percent_entropy, get_img_grid_id_from_path
 
@@ -60,13 +61,34 @@ def create_virtual_mosaic(image_list, save_path, b_overview=True):
         cmd_str = f"gdaladdo  -ro {save_path} 4 8 16 32 64 128"
         basic.os_system_exit_code(cmd_str)
 
+def get_RowCol_id(raster_names):
+    # in each file name, like "img0084901758_m0_20240806-212553.tif", to extract "0084901758" as string
+    ids = []
+    for name in raster_names:
+        match = re.search(r"img(\d+)_", name)
+        if match:
+            ids.append(match.group(1))
+        else:
+            ids.append(None)
+
+    if len(ids) != len(raster_names):
+        basic.outputlogMessage(f'Warning, The number of extracted IDs {len(ids)} does not match the number of raster names {len(raster_names)}, return empty list')
+        return []
+
+    return ids
+
+
 def save_image_extend(img_list, save_path):
     img_boxes = [ raster_io.get_image_bound_box(img_path)  for img_path in img_list]
     img_box_polygons = [ vector_gpd.convert_image_bound_to_shapely_polygon(box) for box in img_boxes]
     # save to file
     wkt = map_projection.get_raster_or_vector_srs_info_proj4(img_list[0])
     raster_names = [os.path.basename(item) for item in img_list]
-    save_pd = pd.DataFrame({'raster':raster_names, 'Polygon':img_box_polygons})
+    RowCol_id_list = get_RowCol_id(raster_names)
+    if len(RowCol_id_list) != len(raster_names):
+        save_pd = pd.DataFrame({'raster':raster_names, 'Polygon':img_box_polygons})
+    else:
+        save_pd = pd.DataFrame({'raster':raster_names, 'RowCol_id':RowCol_id_list, 'Polygon':img_box_polygons})
     vector_gpd.save_polygons_to_files(save_pd,'Polygon',wkt,save_path,format='GPKG')
     print(f'save raster extents to {save_path}')
 
