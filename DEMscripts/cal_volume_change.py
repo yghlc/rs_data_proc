@@ -24,6 +24,8 @@ import raster_statistic
 import numpy as np
 from multiprocessing import Pool
 
+from skimage.transform import resize
+
 def cal_volume(in_array, nodata,res_x, res_y,range=None, scale=1.0):
     # print(in_array)
     # print(in_array.shape)
@@ -66,23 +68,67 @@ def cal_volume(in_array, nodata,res_x, res_y,range=None, scale=1.0):
 
     return volume, valid_count, not_in_range_c, np.min(data_1d), np.max(data_1d)
 
-def cal_volume_one_polygon(idx, polygon, res,image_tiles, img_tile_polygons,nodata=None,range=range,
+
+def resample_raster_to_match_another(src_array, target_array, method='nearest'):
+    '''resample a raster array to match another raster array, the target array is used as reference using skimage '''
+    # 0 = nearest, 1 = bilinear
+
+    # If your raster is categorical, such as land-cover class IDs, then do not use anti-aliasing, and use nearest neighbor
+    # Note that when down-sampling an image, resize and rescale should perform Gaussian smoothing to avoid aliasing artifacts 
+    # so, aliasing artifacts should be True 
+
+    if method == 'nearest':
+        resampled = resize(src_array, target_array.shape, order=0, preserve_range=True, anti_aliasing=False )
+    elif method == 'bilinear':
+        resampled = resize(src_array, target_array.shape, order=1, preserve_range=True, anti_aliasing=True )
+    else:
+        raise ValueError('method should be nearest or bilinear') 
+
+    return resampled
+
+
+def cal_volume_one_polygon(idx, polygon, res,image_tiles, img_tile_polygons, carbon_tiles,carbon_tile_polygons, nodata=None,range=range,
                            all_touched=True,tile_min_overlap=None,scale=1.0):
     ''' calculate volume for a polygon, allow multiple polygons
     '''
     # read the raster
     out_image = raster_statistic.read_raster_data_img_list(idx, polygon, image_tiles, img_tile_polygons, nodata=nodata,
                                           band=1, all_touched=all_touched, tile_min_overlap=tile_min_overlap)
+    out_volume, pixel_count, not_in_range_c, min_v, max_v = cal_volume(out_image, nodata,  res, res, range=range,scale=scale)
+    
+    total_carbon = None
+    if carbon_tiles is None:
+        # NO carbon raster, return None for carbon data
+        return out_volume, pixel_count, not_in_range_c, min_v, max_v, total_carbon
+    else:
+        carbon_nodata = raster_io.get_nodata_value(carbon_tiles[0])
+        carbon_data = raster_statistic.read_raster_data_img_list(idx, polygon, carbon_tiles, carbon_tile_polygons, nodata=carbon_nodata,
+                                          band=1, all_touched=all_touched, tile_min_overlap=tile_min_overlap)
+        # resample carbon raster to the same shape as dem diff raster
+        if carbon_data.shape != out_image.shape:
+            carbon_data = resample_raster_to_match_another(carbon_data, out_image, method='nearest')
 
-    # calculate the
-    return cal_volume(out_image, nodata,  res, res, range=range,scale=scale)
+        ## check the resmapled data by saving it to a file, and check if the resampled data is correct
+        raster_io.save_numpy_array_to_rasterfile(out_image, f'out_image_{idx}.tif', image_tiles[0],  nodata=nodata)
+        raster_io.save_numpy_array_to_rasterfile(carbon_data, f'carbon_data_resampled_{idx}.tif', carbon_tiles[0],  nodata=carbon_nodata)
 
-def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,save_path=None,range=None,
+        # calculate the total carbon mobilization based on the volume change and carbon data
+        
+
+        
+        
+
+        # calculate the volume change
+        return out_volume, pixel_count, not_in_range_c, min_v, max_v, total_carbon
+
+def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,carbon_raster=None, save_path=None,range=None,
                                         tile_min_overlap=None, nodata=None,buffer=None, all_touched=True, process_num=1):
     '''
     calculate the volumetric changes of all polygons in a vector file, allow multiple rasters
     :param boundary_shp:
     :param raster_file_or_files:
+    :param carbon_raster: if not None, it will be used to calculate the carbon mobilization based on the volume change, 
+                          if change carbon to soil, ice or others, the results should be related to soil or ice or others,
     :param save_path:
     :param valid_thr:
     :param tile_min_overlap:
@@ -101,6 +147,7 @@ def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,save_p
         image_tiles = raster_file_or_files
     else:
         raise ValueError('unsupport type for %s'%str(raster_file_or_files))
+    raster_prj = raster_io.get_projection(image_tiles[0])
     # check projection (assume we have the same projection), check them outside this function
 
     # get image box
@@ -124,13 +171,29 @@ def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,save_p
     in_range_per = []
     dem_diff_min = []
     dem_diff_max = []
+    carbon_move_list = []
+
+    # check carbon raster file
+    if carbon_raster is not None:
+        io_function.is_file_exist(carbon_raster)
+        # check projection
+        carbon_r_prj = raster_io.get_projection(carbon_raster)
+        if raster_prj != carbon_r_prj:
+            raise ValueError('The projection of carbon raster and dem diff raster are not the same')
+        carbon_tiles = [carbon_raster]
+        carbon_tile_boxes = [raster_io.get_image_bound_box(tile) for tile in carbon_tiles]
+        carbon_tile_polygons = [vector_gpd.convert_image_bound_to_shapely_polygon(box) for box in carbon_tile_boxes]
+    else:
+        carbon_tiles = None
+        carbon_tile_polygons = None
+        
 
     # process polygons one by one and the corresponding image tiles (parallel and save memory)
     # also to avoid error: daemonic processes are not allowed to have children
     if process_num == 1:
 
         for idx, polygon in enumerate(polygons):
-            out_volume, pixel_count, not_in_range_c, min_v, max_v = cal_volume_one_polygon(idx, polygon, res_x, image_tiles, img_tile_polygons,
+            out_volume, pixel_count, not_in_range_c, min_v, max_v, carbon_move = cal_volume_one_polygon(idx, polygon, res_x, image_tiles, img_tile_polygons,carbon_tiles,carbon_tile_polygons,
                                                 nodata=nodata, range=range,all_touched=all_touched,
                                                 tile_min_overlap=tile_min_overlap,scale=scale)
             volume_res_list.append(out_volume)
@@ -140,16 +203,17 @@ def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,save_p
                 in_range_per.append(0)
             dem_diff_min.append(min_v)
             dem_diff_max.append(max_v)
+            carbon_move_list.append(carbon_move)
 
     elif process_num > 1:
         threadpool = Pool(process_num)
-        para_list = [(idx, polygon, res_x, image_tiles, img_tile_polygons, nodata, range, all_touched,
+        para_list = [(idx, polygon, res_x, image_tiles, img_tile_polygons, carbon_tiles, carbon_tile_polygons, nodata, range, all_touched,
                       tile_min_overlap,scale)
                      for idx, polygon in enumerate(polygons)]
         results = threadpool.starmap(cal_volume_one_polygon, para_list)
         # save results
         for res in results:
-            out_volume, pixel_count, not_in_range_c, min_v, max_v = res
+            out_volume, pixel_count, not_in_range_c, min_v, max_v, carbon_move = res
             volume_res_list.append(out_volume)
             if pixel_count > 0:
                 in_range_per.append(100 * (pixel_count - not_in_range_c) / pixel_count)
@@ -157,6 +221,7 @@ def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,save_p
                 in_range_per.append(0)
             dem_diff_min.append(min_v)
             dem_diff_max.append(max_v)
+            carbon_move_list.append(carbon_move)
         threadpool.close()
     else:
         raise ValueError('Wrong process number: %s ' % str(process_num))
@@ -165,7 +230,7 @@ def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,save_p
     # if os.path.isfile(save_path) is False:
     #     io_function.copy_file_to_dst(boundary_shp, save_path)
 
-    vol_att = {'vol_chg': volume_res_list, 'INrangePer': in_range_per, 'D_diff_min':dem_diff_min, 'D_diff_max':dem_diff_max}
+    vol_att = {'vol_chg': volume_res_list, 'INrangePer': in_range_per, 'D_diff_min':dem_diff_min, 'D_diff_max':dem_diff_max, 'carbon_mo': carbon_move_list}
     save_format = vector_gpd.guess_file_format_extension(save_path)
     if save_path != boundary_shp:
         vector_gpd.add_attributes_to_shp(boundary_shp, vol_att, save_as=save_path, format=save_format)
@@ -198,9 +263,13 @@ def main(options, args):
     process_num = options.process_num
     # nodata on DEM difference
     bit16_nodata = 32767
+    carbon_path = options.carbon_raster
+
+    #TODO: add a option to set the range, for now, we use the default value [-2.0, None] to calculate the volume change
 
 
-    cal_volumetric_change_from_dem_diff(boundary_shp, dem_diff_path, save_path=save_path, range=[None,-2.0],
+
+    cal_volumetric_change_from_dem_diff(boundary_shp, dem_diff_path, carbon_raster=carbon_path, save_path=save_path, range=[None,-2.0],
                                         tile_min_overlap=None, nodata=bit16_nodata, all_touched=True,
                                         process_num=process_num)
 
@@ -216,6 +285,12 @@ if __name__ == "__main__":
                       action="store", dest="save_path",
                       help="The path to save the output as a new file")
 
+    parser.add_option("-c", "--carbon_raster",
+                      action="store", dest="carbon_raster",
+                      help="The path to the carbon raster file, if set, it will be used to  calculate the carbon mobilization based on the volume change," \
+                      "if change carbon to soil, ice or others, the results should be related to soil or ice or others")
+
+    
     parser.add_option("-p", "--process_num",
                       action="store", dest="process_num", type=int, default=8,
                       help="number of processes to create the mosaic")
