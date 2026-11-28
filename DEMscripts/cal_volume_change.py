@@ -86,7 +86,58 @@ def resample_raster_to_match_another(src_array, target_array, method='nearest'):
 
     return resampled
 
-def cal_carbon_mobilization(dem_diff_array,dem_diff_nodata, dem_diff_res, carbon_array, carbon_res, dem_diff_range=None, dem_diff_scale=1.0):
+
+def extrapolation_carbon_deeper_layers_lookup(carbon_mobilization_layers, max_num_layers, extrapolation='linear'):
+    '''
+    Extrapolate carbon values for deeper layers beyond the first three.
+    :param carbon_mobilization_layers: the 3D array of carbon mobilization layers
+    :param max_num_layers: the total number of layers to extrapolate
+    :param extrapolation: set "linear" or "exponential_decay", will use the function to estimate carbon values beyond 300 cm
+    :return: the updated carbon_mobilization_layers with extrapolated values
+    '''
+    # because most of the carbon values for are the same, so using lookup table for extrapolation is efficient
+    # calculate the look up table for extrapolation based on the chosen method
+    # find unique values for the first three layers, exlcuding nan values
+    unique_values_layer1 = np.unique(carbon_mobilization_layers[:1, :, :])
+    unique_values_layer1 = unique_values_layer1[~np.isnan(unique_values_layer1)]
+    unique_values_layer2 = np.unique(carbon_mobilization_layers[1:2, :, :])
+    unique_values_layer2 = unique_values_layer2[~np.isnan(unique_values_layer2)]
+    unique_values_layer3 = np.unique(carbon_mobilization_layers[2:3, :, :])
+    unique_values_layer3 = unique_values_layer3[~np.isnan(unique_values_layer3)]
+    # print(unique_values_layer1, unique_values_layer2, unique_values_layer3)
+    # create a dictionary to store the lookup table for each unique combination of the first three layers
+    lookup_dict = {} 
+    for val1 in unique_values_layer1:
+        for val2 in unique_values_layer2:
+            for val3 in unique_values_layer3:
+                x = np.array([1, 2, 3])
+                y = np.array([val1, val2, val3])
+                x_new = np.arange(4, max_num_layers + 1) # for layers beyond the first three
+                if extrapolation == 'linear':
+                    # y=mx+b
+                    m, b = np.polyfit(x, y, 1)
+                    y_linear = m * x_new + b
+                    # if smaller than 0, then set a 0
+                    y_linear[y_linear < 0] = 0
+                    lookup_dict[(val1, val2, val3)] = y_linear
+                elif extrapolation == 'exponential_decay':
+                    # y = A * exp(-k*x)
+                    if np.any(y <= 0):
+                        raise ValueError("Exponential decay fit requires all y values to be positive.")
+                    slope, intercept = np.polyfit(x, np.log(y), 1)
+                    A = np.exp(intercept)
+                    k = -slope
+                    y_exp = A * np.exp(-k * x_new)
+                    lookup_dict[(val1, val2, val3)] = y_exp
+                else:
+                    raise ValueError('extrapolation should be linear or exponential_decay')
+
+    # print("lookup_dict:", lookup_dict)
+    return lookup_dict
+
+
+def cal_carbon_mobilization(dem_diff_array,dem_diff_nodata, dem_diff_res, carbon_array, carbon_res, dem_diff_range=None, 
+                            dem_diff_scale=1.0, layer_depth=1.0, extrapolation='linear'):
     '''
     calculate the carbon mobilization based on the volume change and carbon data
     :param dem_diff_array: the DEM difference array
@@ -96,21 +147,89 @@ def cal_carbon_mobilization(dem_diff_array,dem_diff_nodata, dem_diff_res, carbon
     :param carbon_res: the original resolution of the carbon array (e.g., 1000 m)
     :param dem_diff_range: the range of the DEM difference values to consider for volume change
     :param dem_diff_scale: the scale factor to apply to the DEM difference values
+    :param layer_depth: the depth of each layer to divide the DEM difference values into (default is 1.0 m)
+    :param extrapolation: set "linear" or "exponential_decay", will use the function to estimate carbon values beyond 300 cm 
     :return: the total carbon mobilization
     '''
 
-    # divide dem diff array to different layers.
-    
+    # not nondata, not nan, and in the range of dem_diff_range
+    valid_mask = ~np.isnan(dem_diff_array)
+    if dem_diff_nodata is not None:
+        valid_mask &= dem_diff_array != dem_diff_nodata
+    # apply the scale to the dem diff array before applying range, as the dem diff array may be in cm, and we need to convert it to m
+    dem_diff_array = dem_diff_array * dem_diff_scale
+    if dem_diff_range is not None:
+        lower, upper = dem_diff_range
+        lower = -np.inf if lower is None else lower
+        upper = np.inf if upper is None else upper
+        valid_mask &= dem_diff_array >= lower
+        valid_mask &= dem_diff_array <= upper
+    # don't select, just mask out, keep the original shape, making each to check and debug
+    # valid_locs = np.where(valid_mask)
+
+    # print("dem_diff_array shape", dem_diff_array.shape, "carbon_array shape", carbon_array.shape)
+    # set the non valid pixel as 0, so it will not be used in the calculation
+    dem_diff_array[~valid_mask] = 0
+    # select the valid locations from carbon_array, assuming carbon_array is 3D (band, height, width)  
+    carbon_array[:, ~valid_mask] = np.nan
+
+    # adjust the carbon array to the same resolution as dem diff array
+    carbon_array = carbon_array * ((1.0*dem_diff_res / carbon_res) ** 2)  
+
+    # calculate the layer number for each pixel, for nan values, we can set the layer number to 0, as they will not be used in the calculation 
+    num_layer_each_pixel = np.floor((np.abs(dem_diff_array)+ 0.5*layer_depth) / layer_depth).astype(int)
+    # print("num_layer_each_pixel:", num_layer_each_pixel)
+    # print("max number of layers:", np.max(num_layer_each_pixel), ", min number of layers:", np.min(num_layer_each_pixel))
+    max_num_layers = np.max(num_layer_each_pixel) 
+
+    # create a 3D mask array for carbon_mobilization_layers based on num_layer_each_pixel and valid_mask
+    valid_mask_carbon = (np.arange(max_num_layers)[:, None, None] < num_layer_each_pixel[None, :, :]) & valid_mask[None, :, :]
+    # print("valid_mask_carbon shape", valid_mask_carbon.shape)
+
+    # create a 3D array to store the carbon mobilization for each layer, the shape
+    carbon_mobilization_layers = np.zeros((max_num_layers, dem_diff_array.shape[0],dem_diff_array.shape[1]), dtype=np.float32)
+    # print("carbon_mobilization_layers shape", carbon_mobilization_layers.shape)
+
+    # copy the first three layers from carbon_array to carbon_mobilization_layers directly, 
+    for layer in range(min(3, max_num_layers)):
+        carbon_mobilization_layers[layer, :, :] = carbon_array[layer, :, :]
+    if max_num_layers > 3:
+        # print("Extrapolating carbon values for layers beyond the first three")
+        # for layers beyond the first three, we need to use the extrapolation function to estimate the carbon values
+        deep_carbon_lookup = extrapolation_carbon_deeper_layers_lookup(carbon_mobilization_layers, max_num_layers, extrapolation=extrapolation)
+        # fill in the deeper layers using the lookup
+        for layer in range(3, max_num_layers):
+            for i in range(carbon_mobilization_layers.shape[1]):
+                for j in range(carbon_mobilization_layers.shape[2]):
+                    key = tuple(carbon_mobilization_layers[:3, i, j])
+                    if key in deep_carbon_lookup:
+                        carbon_mobilization_layers[layer, i, j] = deep_carbon_lookup[key][layer - 3]
+
+    # mask the carbon mobilization layers using the valid_mask_carbon
+    carbon_mobilization_layers[~valid_mask_carbon] = 0
+
+    # sum the carbon mobilization across all layers
+    total_carbon = np.sum(carbon_mobilization_layers)
+    # print("total_carbon", total_carbon)
+
+    # sys.exit(0)  # for testing, exit after processing the first polygon
 
 
+    return total_carbon
 
-    pass
+
 
 
 def cal_volume_one_polygon(idx, polygon, res,image_tiles, img_tile_polygons, carbon_tiles,carbon_tile_polygons, nodata=None,v_range=None,
                            all_touched=True,tile_min_overlap=None,scale=1.0):
     ''' calculate volume for a polygon, allow multiple polygons
     '''
+    # output progress
+    if idx%10 == 0:
+        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Working on poly:", idx)
+    # # for testing, only process polygon with idx 52
+    # if idx != 52:
+    #     return 0, 0, 0, 0, 0, 0
     # read the raster
     out_image, out_transform,_ = raster_statistic.read_raster_data_img_list_geo(idx, polygon, image_tiles, img_tile_polygons, nodata=nodata,
                                           band=1, all_touched=all_touched, tile_min_overlap=tile_min_overlap)
@@ -122,8 +241,9 @@ def cal_volume_one_polygon(idx, polygon, res,image_tiles, img_tile_polygons, car
         return out_volume, pixel_count, not_in_range_c, min_v, max_v, total_carbon
     else:
         carbon_nodata = raster_io.get_nodata(carbon_tiles[0])
+        carbon_res, _ = raster_io.get_xres_yres_file(carbon_tiles[0])  # assume square pixel, so use xres
         _, _, carbon_band_count, _ = raster_io.get_height_width_bandnum_dtype(carbon_tiles[0])
-        print('carbon raster band count:', carbon_band_count)
+        # print('carbon raster band count:', carbon_band_count)
         # read all bands
         carbon_data_list = []
         for band in range(1, carbon_band_count + 1):
@@ -146,9 +266,7 @@ def cal_volume_one_polygon(idx, polygon, res,image_tiles, img_tile_polygons, car
         # raster_io.save_numpy_array_to_rasterfile(carbon_data, f'carbon_data_resampled_{idx}.tif', carbon_tiles[0],  nodata=carbon_nodata, transform=out_transform)
 
         # calculate the total carbon mobilization based on the volume change and carbon data
-
-
-        
+        total_carbon = cal_carbon_mobilization(out_image,nodata, res, carbon_data, carbon_res, dem_diff_range=v_range, dem_diff_scale=scale)
         
 
         # calculate the volume change
@@ -256,6 +374,7 @@ def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,carbon
             dem_diff_max.append(max_v)
             carbon_move_list.append(carbon_move)
         threadpool.close()
+        threadpool.join()
     else:
         raise ValueError('Wrong process number: %s ' % str(process_num))
 
@@ -307,6 +426,7 @@ def main(options, args):
                                         process_num=process_num)
 
 
+    basic.outputlogMessage("Processing completed.")
 
 
 if __name__ == "__main__":
