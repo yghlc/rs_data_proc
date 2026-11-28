@@ -86,6 +86,26 @@ def resample_raster_to_match_another(src_array, target_array, method='nearest'):
 
     return resampled
 
+def cal_carbon_mobilization(dem_diff_array,dem_diff_nodata, dem_diff_res, carbon_array, carbon_res, dem_diff_range=None, dem_diff_scale=1.0):
+    '''
+    calculate the carbon mobilization based on the volume change and carbon data
+    :param dem_diff_array: the DEM difference array
+    :param dem_diff_nodata: the nodata value of the DEM difference array
+    :param dem_diff_res: the resolution of the DEM difference array
+    :param carbon_array: the carbon array
+    :param carbon_res: the original resolution of the carbon array (e.g., 1000 m)
+    :param dem_diff_range: the range of the DEM difference values to consider for volume change
+    :param dem_diff_scale: the scale factor to apply to the DEM difference values
+    :return: the total carbon mobilization
+    '''
+
+    # divide dem diff array to different layers.
+    
+
+
+
+    pass
+
 
 def cal_volume_one_polygon(idx, polygon, res,image_tiles, img_tile_polygons, carbon_tiles,carbon_tile_polygons, nodata=None,v_range=None,
                            all_touched=True,tile_min_overlap=None,scale=1.0):
