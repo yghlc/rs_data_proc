@@ -26,7 +26,7 @@ from multiprocessing import Pool
 
 from skimage.transform import resize
 
-def cal_volume(in_array, nodata,res_x, res_y,range=None, scale=1.0):
+def cal_volume(in_array, nodata,res_x, res_y,v_range=None, scale=1.0):
     # print(in_array)
     # print(in_array.shape)
     data_1d = in_array.flatten()
@@ -43,9 +43,9 @@ def cal_volume(in_array, nodata,res_x, res_y,range=None, scale=1.0):
     # apply the scale before checking range
     data_1d = data_1d * scale
 
-    if range is not None:
-        lower = range[0]
-        upper = range[1]
+    if v_range is not None:
+        lower = v_range[0]
+        upper = v_range[1]
         if lower is None:
             data_1d = data_1d[data_1d <= upper]
         elif upper is None:
@@ -87,33 +87,46 @@ def resample_raster_to_match_another(src_array, target_array, method='nearest'):
     return resampled
 
 
-def cal_volume_one_polygon(idx, polygon, res,image_tiles, img_tile_polygons, carbon_tiles,carbon_tile_polygons, nodata=None,range=range,
+def cal_volume_one_polygon(idx, polygon, res,image_tiles, img_tile_polygons, carbon_tiles,carbon_tile_polygons, nodata=None,v_range=None,
                            all_touched=True,tile_min_overlap=None,scale=1.0):
     ''' calculate volume for a polygon, allow multiple polygons
     '''
     # read the raster
-    out_image = raster_statistic.read_raster_data_img_list(idx, polygon, image_tiles, img_tile_polygons, nodata=nodata,
+    out_image, out_transform,_ = raster_statistic.read_raster_data_img_list_geo(idx, polygon, image_tiles, img_tile_polygons, nodata=nodata,
                                           band=1, all_touched=all_touched, tile_min_overlap=tile_min_overlap)
-    out_volume, pixel_count, not_in_range_c, min_v, max_v = cal_volume(out_image, nodata,  res, res, range=range,scale=scale)
+    out_volume, pixel_count, not_in_range_c, min_v, max_v = cal_volume(out_image, nodata,  res, res, v_range=v_range,scale=scale)
     
     total_carbon = None
     if carbon_tiles is None:
         # NO carbon raster, return None for carbon data
         return out_volume, pixel_count, not_in_range_c, min_v, max_v, total_carbon
     else:
-        carbon_nodata = raster_io.get_nodata_value(carbon_tiles[0])
-        carbon_data = raster_statistic.read_raster_data_img_list(idx, polygon, carbon_tiles, carbon_tile_polygons, nodata=carbon_nodata,
-                                          band=1, all_touched=all_touched, tile_min_overlap=tile_min_overlap)
-        # resample carbon raster to the same shape as dem diff raster
-        if carbon_data.shape != out_image.shape:
-            carbon_data = resample_raster_to_match_another(carbon_data, out_image, method='nearest')
+        carbon_nodata = raster_io.get_nodata(carbon_tiles[0])
+        _, _, carbon_band_count, _ = raster_io.get_height_width_bandnum_dtype(carbon_tiles[0])
+        print('carbon raster band count:', carbon_band_count)
+        # read all bands
+        carbon_data_list = []
+        for band in range(1, carbon_band_count + 1):
+            carbon_data, carbon_transform, _ = raster_statistic.read_raster_data_img_list_geo(idx, polygon, carbon_tiles, carbon_tile_polygons, nodata=carbon_nodata,
+                                          band=band, all_touched=all_touched, tile_min_overlap=tile_min_overlap)
+            # resample carbon raster to the same shape as dem diff raster
+            if carbon_data.shape != out_image.shape:
+                carbon_data = resample_raster_to_match_another(carbon_data, out_image, method='nearest')
+            carbon_data_list.append(carbon_data)
+        
+        # combine all bands to a 3D array, for rasterio, the shape should be (band, height, width), so we need to stack along axis=0
+        if len(carbon_data_list) > 1:
+            carbon_data = np.stack(carbon_data_list, axis=0)
+        else:
+            carbon_data = carbon_data_list[0]
 
-        ## check the resmapled data by saving it to a file, and check if the resampled data is correct
-        raster_io.save_numpy_array_to_rasterfile(out_image, f'out_image_{idx}.tif', image_tiles[0],  nodata=nodata)
-        raster_io.save_numpy_array_to_rasterfile(carbon_data, f'carbon_data_resampled_{idx}.tif', carbon_tiles[0],  nodata=carbon_nodata)
+        # # check the resmapled data by saving it to a file, and check if the resampled data is correct
+        # # as they crop to the same polygon, the transform should be the same, so we can use the transform from dem diff raster
+        # raster_io.save_numpy_array_to_rasterfile(out_image, f'out_image_{idx}.tif', image_tiles[0],  nodata=nodata, transform=out_transform)
+        # raster_io.save_numpy_array_to_rasterfile(carbon_data, f'carbon_data_resampled_{idx}.tif', carbon_tiles[0],  nodata=carbon_nodata, transform=out_transform)
 
         # calculate the total carbon mobilization based on the volume change and carbon data
-        
+
 
         
         
@@ -121,7 +134,7 @@ def cal_volume_one_polygon(idx, polygon, res,image_tiles, img_tile_polygons, car
         # calculate the volume change
         return out_volume, pixel_count, not_in_range_c, min_v, max_v, total_carbon
 
-def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,carbon_raster=None, save_path=None,range=None,
+def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,carbon_raster=None, save_path=None,v_range=None,
                                         tile_min_overlap=None, nodata=None,buffer=None, all_touched=True, process_num=1):
     '''
     calculate the volumetric changes of all polygons in a vector file, allow multiple rasters
@@ -130,7 +143,7 @@ def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,carbon
     :param carbon_raster: if not None, it will be used to calculate the carbon mobilization based on the volume change, 
                           if change carbon to soil, ice or others, the results should be related to soil or ice or others,
     :param save_path:
-    :param valid_thr:
+    :param v_range:
     :param tile_min_overlap:
     :param nodata: incorrect setting of nodata will end in low values of "INrangePer".
     :param buffer:
@@ -194,7 +207,7 @@ def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,carbon
 
         for idx, polygon in enumerate(polygons):
             out_volume, pixel_count, not_in_range_c, min_v, max_v, carbon_move = cal_volume_one_polygon(idx, polygon, res_x, image_tiles, img_tile_polygons,carbon_tiles,carbon_tile_polygons,
-                                                nodata=nodata, range=range,all_touched=all_touched,
+                                                nodata=nodata, v_range=v_range,all_touched=all_touched,
                                                 tile_min_overlap=tile_min_overlap,scale=scale)
             volume_res_list.append(out_volume)
             if pixel_count > 0:
@@ -207,7 +220,7 @@ def cal_volumetric_change_from_dem_diff(boundary_shp,raster_file_or_files,carbon
 
     elif process_num > 1:
         threadpool = Pool(process_num)
-        para_list = [(idx, polygon, res_x, image_tiles, img_tile_polygons, carbon_tiles, carbon_tile_polygons, nodata, range, all_touched,
+        para_list = [(idx, polygon, res_x, image_tiles, img_tile_polygons, carbon_tiles, carbon_tile_polygons, nodata, v_range, all_touched,
                       tile_min_overlap,scale)
                      for idx, polygon in enumerate(polygons)]
         results = threadpool.starmap(cal_volume_one_polygon, para_list)
@@ -249,7 +262,7 @@ def test_cal_volumetric_change_from_dem_diff():
     nodata = 32767
 
     save_path = os.path.join(data_dir,'testing_output.shp')
-    cal_volumetric_change_from_dem_diff(poly_shp,dem_diff,save_path=save_path, range=[None,-2],nodata=nodata, process_num=8)
+    cal_volumetric_change_from_dem_diff(poly_shp,dem_diff,save_path=save_path, v_range=[None,-2],nodata=nodata, process_num=8)
 
 
 def main(options, args):
@@ -269,7 +282,7 @@ def main(options, args):
 
 
 
-    cal_volumetric_change_from_dem_diff(boundary_shp, dem_diff_path, carbon_raster=carbon_path, save_path=save_path, range=[None,-2.0],
+    cal_volumetric_change_from_dem_diff(boundary_shp, dem_diff_path, carbon_raster=carbon_path, save_path=save_path, v_range=[None,-2.0],
                                         tile_min_overlap=None, nodata=bit16_nodata, all_touched=True,
                                         process_num=process_num)
 
